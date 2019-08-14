@@ -8,7 +8,7 @@
 #define REQUIRE_EXTENSIONS
 #define AUTOLOAD_EXTENSIONS
 #include <tf2items>
-//#include "botvsmann/teammanager.sp"
+#include "botvsmann/objectiveres.sp"
 
 enum
 {
@@ -43,18 +43,23 @@ stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 }
 
 public void OnPluginStart()
-{
-	AddCommandListener( Listener_JoinTeam, "jointeam" );
-	
+{	
 	RegConsoleCmd( "sm_joinred", Command_JoinRED, "Joins RED team." );
 	RegConsoleCmd( "sm_joinblu", Command_JoinBLU, "Joins BLU/Robot team." );
+	RegAdminCmd( "sm_bvm_debug", Command_Debug, ADMFLAG_ROOT, "Debug command" );
+	
+	// EVENTS
+	HookEvent("mvm_begin_wave", E_WaveStart);
+	HookEvent("mvm_wave_complete", E_WaveEnd);
+	HookEvent("mvm_wave_failed", E_WaveFailed);
+	HookEvent("mvm_mission_complete", E_MissionComplete);
 }
 
 public void OnMapStart()
 {
 	if(!IsMvM())
 	{
-		SetFailState("This plugin is for Mann vs Machine Only.")
+		SetFailState("This plugin is for Mann vs Machine Only.") // probably easier than add IsMvM everywhere
 	}
 }
 
@@ -78,37 +83,6 @@ bool IsMvM(bool forceRecalc = false)
 }
 
 // #####COMMANDS#####
-
-public Action Listener_JoinTeam( int client, char[] sCmd, int nArgs )
-{
-	if(!IsMvM() || IsFakeClient(client) || !IsClientInGame(client))
-		return Plugin_Continue;
-		
-	char team[16]
-	TFTeam iTeam = TFTeam_Unassigned;
-	
-	if( StrEqual( team, "red", false ) )
-		iTeam = TFTeam_Red;
-	else if( StrEqual( team, "blue", false ) )
-		iTeam = TFTeam_Blue;
-	else if( StrEqual( team, "spectate", false ) || StrEqual( team, "spectator", false ) )
-		iTeam = TFTeam_Spectator;
-	else if( !StrEqual( sCmd, "autoteam", false ) )
-		return Plugin_Continue;
-		
-	if(iTeam == TFTeam_Red)
-	{
-		CreateTimer(0.0, Timer_TurnHuman, GetClientUserId( client ));
-		return Plugin_Handled;
-	}
-	else if(iTeam == TFTeam_Blue)
-	{
-		CreateTimer(0.0, Timer_TurnRobot, GetClientUserId( client ));
-		return Plugin_Handled;
-	}
-	
-	return Plugin_Handled;
-}
 
 public Action Command_JoinBLU( int client, int nArgs )
 {
@@ -137,42 +111,36 @@ public Action Command_JoinRED( int client, int nArgs )
 	return Plugin_Handled;
 }
 
-// #####TIMERS#####
-
-public Action Timer_TurnHuman( Handle hTimer, int iUserID )
+public Action Command_Debug( int client, int nArgs )
 {
-	int iClient = GetClientOfUserId( iUserID );
+	int iClasses = OR_GetAvailableClasses();
+	ReplyToCommand(client, "Available Classes: %i", iClasses);
 	
-	if( !IsClientInGame(iClient) )
-		return Plugin_Stop;
-	
-	
-	if( !IsFakeClient(iClient) )
+	if(iClasses & 128)
 	{
-		SetVariantString( "" );
-		AcceptEntityInput( iClient, "SetCustomModel" );
-		SetEntPropFloat( iClient, Prop_Send, "m_flModelScale", 1.0 );
+		ReplyToCommand(client, "Found sniper");
 	}
 	
-	return Plugin_Stop;
+	return Plugin_Handled;
 }
-public Action Timer_TurnRobot( Handle hTimer, int iUserID )
+
+// EVENTS
+public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 {
-	int iClient = GetClientOfUserId( iUserID );
-	
-	if( !IsClientInGame(iClient) )
-		return Plugin_Stop;
-	
-	if( !IsFakeClient(iClient) )
-	{
-		SetEntProp( iClient, Prop_Send, "m_nBotSkill", BotSkill_Easy );
-		SetEntProp( iClient, Prop_Send, "m_bIsMiniBoss", _:false );
-	}
-	
-	int iEntFlags = GetEntityFlags( iClient );
-	SetEntityFlags( iClient, iEntFlags|FL_FAKECLIENT );
-	ChangeClientTeam( iClient, _:TFTeam_Blue );
-	SetEntityFlags( iClient, iEntFlags&~FL_FAKECLIENT );
-	
-	return Plugin_Stop;
+	OR_Update();
+}
+
+public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
+{
+	OR_Update();
+}
+
+public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
+{
+	OR_Update();
+}
+
+public Action E_MissionComplete(Event event, const char[] name, bool dontBroadcast)
+{
+	OR_Update(); // placeholder
 }
