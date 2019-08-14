@@ -45,6 +45,17 @@ stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 public void OnPluginStart()
 {
 	AddCommandListener( Listener_JoinTeam, "jointeam" );
+	
+	RegConsoleCmd( "sm_joinred", Command_JoinRED, "Joins RED team." );
+	RegConsoleCmd( "sm_joinblu", Command_JoinBLU, "Joins BLU/Robot team." );
+}
+
+public void OnMapStart()
+{
+	if(!IsMvM())
+	{
+		SetFailState("This plugin is for Mann vs Machine Only.")
+	}
 }
 
 // IsMvM code by FlaminSarge
@@ -101,22 +112,32 @@ public Action Listener_JoinTeam( int client, char[] sCmd, int nArgs )
 
 public Action Command_JoinBLU( int client, int nArgs )
 {
-	if( !IsMvM() || IsClientInGame(client) || IsFakeClient(client) )
-		return Plugin_Continue;
 	
-	FakeClientCommand( client, "jointeam blue" );
+	if( !IsFakeClient(client) )
+	{
+		SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
+		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", _:false );
+	}
+	
+	int iEntFlags = GetEntityFlags( client );
+	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
+	//ChangeClientTeam( client, _:TFTeam_Blue );
+	TF2_ChangeClientTeam(client, TFTeam_Blue);
+	SetEntityFlags( client, iEntFlags );
 	
 	return Plugin_Handled;
 }
-public Action:Command_JoinTeamRed( iClient, nArgs )
+public Action Command_JoinRED( int client, int nArgs )
 {
-	if( !IsMvM() || IsClientInGame(client) || IsFakeClient(iClient) )
+	if( !IsMvM() || !IsClientInGame(client) || IsFakeClient(client) )
 		return Plugin_Continue;
 		
-	FakeClientCommand( iClient, "jointeam red" );
+	TF2_ChangeClientTeam(client, TFTeam_Red);
 
 	return Plugin_Handled;
 }
+
+// #####TIMERS#####
 
 public Action Timer_TurnHuman( Handle hTimer, int iUserID )
 {
