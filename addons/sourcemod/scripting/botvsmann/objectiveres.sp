@@ -51,7 +51,7 @@ void OR_Update()
 		{
 			int iClassCount = 0;
 			int iClassFlags = 0;
-			bool bClassActive = false;
+			//bool bClassActive = false;
 			
 			char strIcon[64]; 
 			
@@ -59,7 +59,7 @@ void OR_Update()
 			{
 				iClassCount = GetEntProp(iResource, Prop_Send, "m_nMannVsMachineWaveClassCounts", _, i); 
 				iClassFlags = GetEntProp(iResource, Prop_Send, "m_nMannVsMachineWaveClassFlags", _, i);
-				bClassActive = view_as<bool>(GetEntProp(iResource, Prop_Send, "m_bMannVsMachineWaveClassActive", _, i));
+				//bClassActive = view_as<bool>(GetEntProp(iResource, Prop_Send, "m_bMannVsMachineWaveClassActive", _, i));
 				
 				GetEntPropString(iResource, Prop_Data, "m_iszMannVsMachineWaveClassNames", strIcon, sizeof(strIcon), i);
 			}
@@ -67,7 +67,7 @@ void OR_Update()
 			{
 				iClassCount = GetEntProp(iResource, Prop_Send, "m_nMannVsMachineWaveClassCounts2", _, i - 12); 
 				iClassFlags = GetEntProp(iResource, Prop_Send, "m_nMannVsMachineWaveClassFlags2", _, i - 12);
-				bClassActive = view_as<bool>(GetEntProp(iResource, Prop_Send, "m_bMannVsMachineWaveClassActive2", _, i - 12));
+				//bClassActive = view_as<bool>(GetEntProp(iResource, Prop_Send, "m_bMannVsMachineWaveClassActive2", _, i - 12));
 				
 				GetEntPropString(iResource, Prop_Data, "m_iszMannVsMachineWaveClassNames2", strIcon, sizeof(strIcon), i - 12);
 			}
