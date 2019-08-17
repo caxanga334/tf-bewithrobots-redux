@@ -11,6 +11,8 @@
 #include "botvsmann/objectiveres.sp"
 #include "botvsmann/bot_variants.sp"
 
+#define PLUGIN_VERSION "0.0.1"
+
 // maximum class variants that exists
 #define MAX_SCOUT 1
 #define MAX_SCOUT_GIANT 1
@@ -31,12 +33,19 @@
 #define MAX_SPY 1
 #define MAX_SPY_GIANT 1
 
+// player robot variants
 int iBotType[MAXPLAYERS + 1];
 int iBotVariant[MAXPLAYERS + 1];
-
 TFClassType BotClass[MAXPLAYERS + 1];
 
 ArrayList ay_avclass; // array containing available classes
+
+// others
+bool g_bUpgradeStation[MAXPLAYERS + 1];
+
+// convars
+ConVar c_iMinRed;
+ConVar c_iGiantChance;
 
 enum
 {
@@ -61,7 +70,7 @@ public Plugin myinfo =
 	name = "[TF2] Robots vs Mann",
 	author = "caxanga334",
 	description = "Allows players to play as a robot in MvM",
-	version = "0.0.1",
+	version = PLUGIN_VERSION,
 	url = "https://github.com/caxanga334"
 };
 
@@ -82,6 +91,11 @@ stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 
 public void OnPluginStart()
 {	
+	// convars
+	CreateConVar("sm_botvsmann_version", PLUGIN_VERSION, "Robots vs Mann plugin version.", FCVAR_NOTIFY);
+	c_iMinRed = CreateConVar("sm_bvm_minred", 3, "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NOTIFY, true, 0.0, true, 10.0);
+	c_iGiantChance = CreateConVar("sm_bmv_giantchance", 30, "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NOTIFY, true, 0.0, true, 100.0);
+
 	RegConsoleCmd( "sm_joinred", Command_JoinRED, "Joins RED team." );
 	RegConsoleCmd( "sm_joinblu", Command_JoinBLU, "Joins BLU/Robot team." );
 	RegConsoleCmd( "sm_joinblue", Command_JoinBLU, "Joins BLU/Robot team." );
@@ -110,6 +124,18 @@ public void OnMapStart()
 	{
 		SetFailState("This plugin is for Mann vs Machine Only.") // probably easier than add IsMvM everywhere
 	}
+}
+
+/* public OnClientConnected(client)
+{
+
+} */
+
+public OnClientDisconnect(client)
+{
+	iBotType[client] = Bot_Normal;
+	iBotVariant[client] = 0;
+	g_bUpgradeStation[client] = false;
 }
 
 // IsMvM code by FlaminSarge
@@ -212,7 +238,21 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 
 public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 {
-	PrintToChatAll("E_Inventory");
+	int client = event.GetInt("userid");
+	TFTeam Team = TF2_GetClientTeam(client);
+	
+	if(Team == TFTeam_Blue && !IsFakeClient(client) && IsClientInGame(client))
+	{
+		if( iBotVariant[client] >= 0 )
+		{
+			StripItems(client, true);
+		}
+		else
+		{
+			StripItems(client, false);
+		}
+
+	}
 }
 
 
@@ -239,9 +279,12 @@ void MovePlayerToBLU(int client)
 	
 	OR_Update();
 	UpdateClassArray();
+	PickRandomRobot(client);
 }
 
 // updates ay_avclass
+// uses the data from tf_objective_resource to determine which classes should be available.
+// use the function OR_Update to read the tf_objective_resource's data.
 void UpdateClassArray()
 {
 	int iAvailable = OR_GetAvailableClasses();
@@ -250,7 +293,7 @@ void UpdateClassArray()
 	
 	if(iAvailable & 1) // scout
 	{
-		ay_avclass.Push(1);
+		ay_avclass.Push(1); // this number is the same as TFClassType enum
 	}
 	if(iAvailable & 2) // soldier
 	{
@@ -292,76 +335,174 @@ void PickRandomRobot(int client)
 	if(!IsClientInGame(client))
 		return;
 	
-	//int iAvailable = OR_GetAvailableClasses();
+	int iAvailable = OR_GetAvailableClasses();
 	int iSize = GetArraySize(ay_avclass) - 1;
 	int iRandom = GetRandomInt(0, iSize);
 	int iClass = ay_avclass.Get(iRandom);
-	TFClassType Class;
-	
-	// convert int to tfclass
-	switch( iClass )
-	{
-		case 1:
-		{
-			Class = TFClass_Scout;
-		}
-		case 2:
-		{
-			Class = TFClass_Sniper;
-		}
-		case 3:
-		{
-			Class = TFClass_Soldier;
-		}
-		case 4:
-		{
-			Class = TFClass_DemoMan;
-		}
-		case 5:
-		{
-			Class = TFClass_Medic;
-		}
-		case 6:
-		{
-			Class = TFClass_Heavy;
-		}
-		case 7:
-		{
-			Class = TFClass_Pyro;
-		}
-		case 8:
-		{
-			Class = TFClass_Spy;
-		}
-		case 9:
-		{
-			Class = TFClass_Engineer;
-		}
-	}
-	
-	//PrintToChatAll("iRandom: %i, iSize: %i", iRandom, iSize);
-	//TF2_SetPlayerClass(client, Class, _, true);
-	
-	BotClass[client] = Class;
-	
+	bool bGiants = false;
+	//TFClassType Class;
 	
 	// sentry buster
 /* 	if(iAvailable & 512)
 	{
 		
 	} */
+	if(iAvailable & 1024)
+	{
+		bGiants = true;
+	}	
+	
+	// convert int to tfclass
+	switch( iClass )
+	{
+		case 1: // scout
+		{
+			PickRandomVariant( client, TFClass_Scout, bGiants);
+		}
+		case 2: // sniper
+		{
+			PickRandomVariant( client, TFClass_Sniper, false);
+		}
+		case 3: // soldier
+		{
+			PickRandomVariant( client, TFClass_Soldier, bGiants);
+		}
+		case 4: // demoman
+		{
+			PickRandomVariant( client, TFClass_DemoMan, bGiants);
+		}
+		case 5: // medic
+		{
+			PickRandomVariant( client, TFClass_Medic, bGiants);
+		}
+		case 6: // heavy
+		{
+			PickRandomVariant( client, TFClass_Heavy, bGiants);
+		}
+		case 7: // pyro
+		{
+			PickRandomVariant( client, TFClass_Pyro, bGiants);
+		}
+		case 8: // spy
+		{
+			PickRandomVariant( client, TFClass_Spy, false);
+		}
+		case 9: // engineer
+		{
+			PickRandomVariant( client, TFClass_Engineer, false);
+		}
+	}
+	BotClass[client] = Class;
 }
 
 // selects a random variant based on the player's class
-void PickRandomVariant(TFClassType TFClass)
+void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 {
-	if( GetRandomInt(0, 100) <= 0)
+	if( GetRandomInt(0, 100) <= c_iGiantChance.IntValue && bGiants )
 	{
 		// giant
-		
+		iBotType[client] = Bot_Giant;
+		switch( TFClass )
+		{
+			case TFClass_Scout:
+			{
+				iBotVariant[client] = GetRandomInt(0, MAX_SCOUT_GIANT);
+				BotClass[client] = TFClass_Scout;
+			}
+			case TFClass_Soldier:
+			{
+				iBotVariant[client] = GetRandomInt(0, MAX_SOLDIER_GIANT);
+				BotClass[client] = TFClass_Soldier;
+			}
+			case TFClass_Pyro:
+			{
+				iBotVariant[client] = GetRandomInt(0, MAX_PYRO_GIANT);
+				BotClass[client] = TFClass_Pyro;
+			}
+			case TFClass_DemoMan:
+			{
+				iBotVariant[client] = GetRandomInt(0, MAX_DEMO_GIANT);
+				BotClass[client] = TFClass_DemoMan;
+			}
+			case TFClass_Heavy:
+			{
+				iBotVariant[client] = GetRandomInt(0, MAX_HEAVY_GIANT);
+				BotClass[client] = TFClass_Heavy;
+			}
+			case TFClass_Engineer:
+			{
+				iBotVariant[client] = GetRandomInt(0, MAX_ENGINEER_GIANT);
+				BotClass[client] = TFClass_Engineer;
+			}
+			case TFClass_Medic:
+			{
+				iBotVariant[client] = GetRandomInt(0, MAX_MEDIC_GIANT);
+				BotClass[client] = TFClass_Medic;
+			}
+			case TFClass_Sniper:
+			{
+				iBotVariant[client] = GetRandomInt(0, MAX_SNIPER_GIANT);
+				BotClass[client] = TFClass_Sniper;
+			}
+			case TFClass_Spy:
+			{
+				iBotVariant[client] = GetRandomInt(0, MAX_SPY_GIANT);
+				BotClass[client] = TFClass_Spy;
+			}
+		}
 	}
 	else
 	{
 		// normal
+		iBotType[client] = Bot_Normal;
+		switch( TFClass )
+		{
+			case TFClass_Scout:
+			{
+				iBotVariant[client] = GetRandomInt(-1, MAX_SCOUT);
+				BotClass[client] = TFClass_Scout;
+			}
+			case TFClass_Soldier:
+			{
+				iBotVariant[client] = GetRandomInt(-1, MAX_SOLDIER);
+				BotClass[client] = TFClass_Soldier;
+			}
+			case TFClass_Pyro:
+			{
+				iBotVariant[client] = GetRandomInt(-1, MAX_PYRO);
+				BotClass[client] = TFClass_Pyro;
+			}
+			case TFClass_DemoMan:
+			{
+				iBotVariant[client] = GetRandomInt(-1, MAX_DEMO);
+				BotClass[client] = TFClass_DemoMan;
+			}
+			case TFClass_Heavy:
+			{
+				iBotVariant[client] = GetRandomInt(-1, MAX_HEAVY);
+				BotClass[client] = TFClass_Heavy;
+			}
+			case TFClass_Engineer:
+			{
+				iBotVariant[client] = GetRandomInt(-1, MAX_ENGINEER);
+				BotClass[client] = TFClass_Engineer;
+			}
+			case TFClass_Medic:
+			{
+				iBotVariant[client] = GetRandomInt(-1, MAX_MEDIC);
+				BotClass[client] = TFClass_Medic;
+			}
+			case TFClass_Sniper:
+			{
+				iBotVariant[client] = GetRandomInt(-1, MAX_SNIPER);
+				BotClass[client] = TFClass_Sniper;
+			}
+			case TFClass_Spy:
+			{
+				iBotVariant[client] = GetRandomInt(-1, MAX_SPY);
+				BotClass[client] = TFClass_Spy;
+			}
+		}
 	}
+	
 }

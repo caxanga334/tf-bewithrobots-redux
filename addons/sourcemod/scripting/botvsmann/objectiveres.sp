@@ -5,7 +5,7 @@ int iCurrentWave; // current wave
 int iMaxWave; // total wave
 int iPopFileType; // Event popfile?
 int iAvailableClasses; // which classes are available for the current wave
-bool bClasses[10]; // temporary solution
+bool bClasses[11]; // temporary solution
 // 0 - none (how?)
 // 1 - scout
 // 2 - soldier
@@ -133,6 +133,11 @@ void OR_Update()
 				{
 					iAvailableClasses += 512;
 					bClasses[9] = true;
+				}
+				if(StrContains(strIcon, "giant", false) != -1 && bClasses[10] == false)
+				{
+					iAvailableClasses += 1024;
+					bClasses[10] = true;
 				}
 			}
 		}
