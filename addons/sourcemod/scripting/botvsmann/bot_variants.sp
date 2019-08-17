@@ -70,7 +70,7 @@ int SpawnWeapon(int client,char[] name,int index,int level,int qual,bool bWearab
 	return entity;
 }
 
-void GiveNormalInventory(int client ,int botbotvariant)
+void GiveNormalInventory(int client ,int botvariant)
 {
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	int iWeapon;

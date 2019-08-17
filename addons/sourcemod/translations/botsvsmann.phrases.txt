@@ -1,0 +1,16 @@
+"Phrases"
+{
+	"Used Upgrade"
+	{
+		"en"	"{white}[BVM] {cyan}You need to refund your upgrades in order to join {blue}BLU{cyan}."
+	}
+	"Need Red"
+	{
+		"en"	"{white}[BVM] {cyan}You can't join {blue}ROBOT{cyan}. There aren't enough players in {red}RED{cyan} team."
+	}
+	"Num Red"
+	{
+		"#format"	"{1:d}"
+		"en"	"{cyan}There must be at least {1} players on {red}RED{cyan}."
+	}
+}

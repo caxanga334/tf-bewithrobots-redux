@@ -37,6 +37,7 @@
 // player robot variants
 int iBotType[MAXPLAYERS + 1];
 int iBotVariant[MAXPLAYERS + 1];
+int iBotEffect[MAXPLAYERS + 1];
 TFClassType BotClass[MAXPLAYERS + 1];
 
 ArrayList ay_avclass; // array containing available classes
@@ -108,7 +109,12 @@ public void OnPluginStart()
 	CreateConVar("sm_botvsmann_version", PLUGIN_VERSION, "Robots vs Mann plugin version.", FCVAR_NOTIFY);
 	c_iMinRed = CreateConVar("sm_bvm_minred", "3", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NOTIFY, true, 0.0, true, 10.0);
 	c_iGiantChance = CreateConVar("sm_bmv_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NOTIFY, true, 0.0, true, 100.0);
-
+	
+	// translations
+	LoadTranslations("botsvsmann.phrases");
+	LoadTranslations("common.phrases");
+	
+	// commands
 	RegConsoleCmd( "sm_joinred", Command_JoinRED, "Joins RED team." );
 	RegConsoleCmd( "sm_joinblu", Command_JoinBLU, "Joins BLU/Robot team." );
 	RegConsoleCmd( "sm_joinblue", Command_JoinBLU, "Joins BLU/Robot team." );
@@ -171,30 +177,33 @@ public void OnGameFrame()
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if(!IsClientInGame(i) || IsFakeClient(i))
-			return;
-			
-		if(TF2_GetClientTeam(i) == TFTeam_Blue)
-		{
-
+		if(IsClientInGame(i) || !IsFakeClient(i))
+		{		
+			if(TF2_GetClientTeam(i) == TFTeam_Blue)
+			{
+				if( iBotEffect[i] & BotEffect_InfiniteCloak )
+				{
+					SetEntPropFloat( i, Prop_Send, "m_flCloakMeter", 100.0 );
+				}
+			}
 		}
-	}	
+	}
 }
 
 public void TF2Spawn_EnterSpawn(client, entity)
 {
-	if(TF2_GetClientTeam(client) == TFTeam_Blue)
+	if(TF2_GetClientTeam(client) == TFTeam_Blue || !IsFakeClient(client))
 	{
-
+		TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
 	}	
 }
 
 public void TF2Spawn_LeaveSpawn(client, entity)
 {
-	if(TF2_GetClientTeam(client) == TFTeam_Blue)
+	if(TF2_GetClientTeam(client) == TFTeam_Blue || !IsFakeClient(client))
 	{
-
-	}	
+		TF2_RemoveCondition(client, TFCond_UberchargedHidden);
+	}
 }
 
 // IsMvM code by FlaminSarge
@@ -224,7 +233,10 @@ public Action OnTouchUpgradeStation(int entity, int other)
 {
 	if(IsValidClient(other))
 	{
-		LogMessage("%N touched an upgrade station!", other);
+		if(!g_bUpgradeStation[other])
+		{
+			g_bUpgradeStation[other] = true;
+		}
 	}
 }
 
@@ -234,6 +246,24 @@ public Action OnTouchUpgradeStation(int entity, int other)
 
 public Action Command_JoinBLU( int client, int nArgs )
 {
+	if( !IsClientInGame(client) || IsFakeClient(client) )
+		return Plugin_Continue;
+		
+	int iMinRed = c_iMinRed.IntValue;
+	
+	if( GetTeamClientCount(2) < iMinRed )
+	{
+		CPrintToChat(client,"%t","Need Red");
+		CPrintToChat(client,"%t","Num Red",iMinRed);
+		return Plugin_Handled;
+	}
+	
+	if( g_bUpgradeStation[client] )
+	{
+		CPrintToChat(client,"%t","Used Upgrade");
+		return Plugin_Handled;
+	}
+	
 	MovePlayerToBLU(client);	
 	return Plugin_Handled;
 }
@@ -251,13 +281,15 @@ public Action Command_Debug( int client, int nArgs )
 {
 	int iClasses = OR_GetAvailableClasses();
 	int iCur = OR_GetCurrentWave();
-	int iMaxWave = OR_GetMaxWave();
+	int iTotalWaveNum = OR_GetMaxWave();
 	
 	ReplyToCommand(client, "Available Classes: %i", iClasses);
-	ReplyToCommand(client, "Current Wave: %i, Max Wave: %i", iCur, iMaxWave);
+	ReplyToCommand(client, "Current Wave: %i, Max Wave: %i", iCur, iTotalWaveNum);
 	
 	if(OR_IsHalloweenMission())
+	{
 		ReplyToCommand(client, "Halloween Popfile");
+	}
 	
 	return Plugin_Handled;
 }
@@ -306,7 +338,17 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 
 public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
-	PrintToChatAll("E_Pre_PlayerDeath");
+	int deathflags = event.GetInt("death_flags");
+	if(deathflags & TF_DEATHFLAG_DEADRINGER)
+		return Plugin_Handled;
+		
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if( GameRules_GetRoundState() == RoundState_BetweenRounds && TF2_GetClientTeam(client) == TFTeam_Blue )
+	{
+		event.SetBool("silent_kill", true);
+	}
+	
+	return Plugin_Continue;
 }
 
 public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
@@ -316,7 +358,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 
 public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = event.GetInt("userid");
+	int client = GetClientOfUserId(event.GetInt("userid"));
 	
 	if(IsValidClient(client))
 	{
@@ -326,23 +368,32 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 		{
 			if( iBotVariant[client] >= 0 )
 			{
-				StripItems(client, true);
+				StripItems(client, true); // true: remove weapons
+				
+				if( iBotType[client] == Bot_Giant )
+				{
+					GiveGiantInventory(client,iBotVariant[client]);
+				}
+				else
+				{
+					GiveNormalInventory(client,iBotVariant[client]);
+				}
 			}
 			else
 			{
-				StripItems(client, false);
+				StripItems(client, false); // remove misc but not weapons, allow own loadout
 			}
 		}
 	}
 }
 
 /****************************************************
-				USER MESSAGE
+					USER MESSAGE
 *****************************************************/
 
 public Action MsgHook_MVMRespec(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
 {
-    int client = BfReadByte(msg); //client that used the respec    
+	int client = BfReadByte(msg); //client that used the respec    
 	OnRefund(client);
 }
 
@@ -384,6 +435,23 @@ void MovePlayerToBLU(int client)
 	OR_Update();
 	UpdateClassArray();
 	PickRandomRobot(client);
+}
+
+// returns the number of human players on BLU/ROBOT team
+int GetHumanRobotCount()
+{
+	int count = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientInGame(i) || !IsFakeClient(i))
+		{			
+			if(TF2_GetClientTeam(i) == TFTeam_Blue)
+			{
+				count++;
+			}
+		}
+	}
+	return count;
 }
 
 // updates ay_avclass
@@ -605,6 +673,52 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 				iBotVariant[client] = GetRandomInt(-1, MAX_SPY);
 				BotClass[client] = TFClass_Spy;
 			}
+		}
+	}
+}
+
+// set effects and bot mode for variants
+void SetVariantExtras(int client,TFClassType TFClass)
+{
+	iBotEffect[client] = 0; //reset
+	
+	switch( TFClass )
+	{
+		case TFClass_Scout:
+		{
+			
+		}
+		case TFClass_Soldier:
+		{
+			
+		}
+		case TFClass_Pyro:
+		{
+			
+		}
+		case TFClass_DemoMan:
+		{
+			
+		}
+		case TFClass_Heavy:
+		{
+			
+		}
+		case TFClass_Engineer:
+		{
+			
+		}
+		case TFClass_Medic:
+		{
+			
+		}
+		case TFClass_Sniper:
+		{
+			
+		}
+		case TFClass_Spy:
+		{
+			iBotEffect += BotEffect_AutoDisguise; // global to all spies
 		}
 	}
 }
