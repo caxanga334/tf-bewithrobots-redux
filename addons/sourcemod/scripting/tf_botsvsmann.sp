@@ -9,6 +9,7 @@
 #define AUTOLOAD_EXTENSIONS
 #include <tf2items>
 #include "botvsmann/objectiveres.sp"
+#include "botvsmann/bot_variants.sp"
 
 // maximum class variants that exists
 #define MAX_SCOUT 1
@@ -286,7 +287,7 @@ void UpdateClassArray()
 }
 
 // ***ROBOT VARIANT***
-public void PickRandomRobot(int client)
+void PickRandomRobot(int client)
 {
 	if(!IsClientInGame(client))
 		return;
@@ -339,7 +340,9 @@ public void PickRandomRobot(int client)
 	}
 	
 	//PrintToChatAll("iRandom: %i, iSize: %i", iRandom, iSize);
-	TF2_SetPlayerClass(client, Class, _, true);
+	//TF2_SetPlayerClass(client, Class, _, true);
+	
+	BotClass[client] = Class;
 	
 	
 	// sentry buster
@@ -347,4 +350,18 @@ public void PickRandomRobot(int client)
 	{
 		
 	} */
+}
+
+// selects a random variant based on the player's class
+void PickRandomVariant(TFClassType TFClass)
+{
+	if( GetRandomInt(0, 100) <= 0)
+	{
+		// giant
+		
+	}
+	else
+	{
+		// normal
+	}
 }
