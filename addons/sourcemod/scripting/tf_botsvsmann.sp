@@ -1,12 +1,13 @@
 #include <sourcemod>
 #include <tf2>
 #include <tf2_stocks>
-// #include <tf2attributes>
-// #include <tf2_isPlayerInSpawn>
-// #include <tf2wearables>
+#include <tf2attributes>
+#include <tf2_isPlayerInSpawn>
+#include <tf2wearables>
 #include <morecolors>
 #define REQUIRE_EXTENSIONS
 #define AUTOLOAD_EXTENSIONS
+#include <sdkhooks>
 #include <tf2items>
 #include "botvsmann/objectiveres.sp"
 #include "botvsmann/bot_variants.sp"
@@ -47,6 +48,8 @@ bool g_bUpgradeStation[MAXPLAYERS + 1];
 ConVar c_iMinRed;
 ConVar c_iGiantChance;
 
+UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
+
 enum
 {
 	BotSkill_Easy,
@@ -63,6 +66,16 @@ enum
 	Bot_Giant = 3,
 	Bot_Buster = 4,
 	Bot_Boss = 5,
+};
+
+enum
+{
+	BotEffect_None = 0,
+	BotEffect_AlwaysCrits = 1,
+	BotEffect_FullCharge = 2,
+	BotEffect_InfiniteCloak = 4,
+	BotEffect_AutoDisguise = 8,
+	BotEffect_AlwaysMiniCrits = 16,
 };
  
 public Plugin myinfo =
@@ -93,8 +106,8 @@ public void OnPluginStart()
 {	
 	// convars
 	CreateConVar("sm_botvsmann_version", PLUGIN_VERSION, "Robots vs Mann plugin version.", FCVAR_NOTIFY);
-	c_iMinRed = CreateConVar("sm_bvm_minred", 3, "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NOTIFY, true, 0.0, true, 10.0);
-	c_iGiantChance = CreateConVar("sm_bmv_giantchance", 30, "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NOTIFY, true, 0.0, true, 100.0);
+	c_iMinRed = CreateConVar("sm_bvm_minred", "3", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NOTIFY, true, 0.0, true, 10.0);
+	c_iGiantChance = CreateConVar("sm_bmv_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NOTIFY, true, 0.0, true, 100.0);
 
 	RegConsoleCmd( "sm_joinred", Command_JoinRED, "Joins RED team." );
 	RegConsoleCmd( "sm_joinblu", Command_JoinBLU, "Joins BLU/Robot team." );
@@ -115,6 +128,12 @@ public void OnPluginStart()
 	HookEvent( "player_spawn", E_PlayerSpawn );
 	HookEvent( "post_inventory_application", E_Inventory );
 	
+	ID_MVMResetUpgrade = GetUserMessageId("MVMResetPlayerUpgradeSpending");
+	if(ID_MVMResetUpgrade == INVALID_MESSAGE_ID)
+		LogError("Unable to hook user message.");
+		
+	HookUserMessage(ID_MVMResetUpgrade, MsgHook_MVMRespec);
+	
 	ay_avclass = new ArrayList(10);
 }
 
@@ -124,18 +143,58 @@ public void OnMapStart()
 	{
 		SetFailState("This plugin is for Mann vs Machine Only.") // probably easier than add IsMvM everywhere
 	}
+	
+	int i;
+	
+	while ((i = FindEntityByClassname(i, "func_upgradestation")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			SDKHook(i, SDKHook_StartTouch, OnTouchUpgradeStation);
+		} 
+	}
 }
 
-/* public OnClientConnected(client)
+/* public void OnClientConnected(client)
 {
 
 } */
 
-public OnClientDisconnect(client)
+public void OnClientDisconnect(client)
 {
 	iBotType[client] = Bot_Normal;
 	iBotVariant[client] = 0;
 	g_bUpgradeStation[client] = false;
+}
+
+public void OnGameFrame()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if(!IsClientInGame(i) || IsFakeClient(i))
+			return;
+			
+		if(TF2_GetClientTeam(i) == TFTeam_Blue)
+		{
+
+		}
+	}	
+}
+
+public void TF2Spawn_EnterSpawn(client, entity)
+{
+	if(TF2_GetClientTeam(client) == TFTeam_Blue)
+	{
+
+	}	
+}
+
+public void TF2Spawn_LeaveSpawn(client, entity)
+{
+	if(TF2_GetClientTeam(client) == TFTeam_Blue)
+	{
+
+	}	
 }
 
 // IsMvM code by FlaminSarge
@@ -155,6 +214,18 @@ bool IsMvM(bool forceRecalc = false)
 		found = true;
 	}
 	return ismvm;
+}
+
+/****************************************************
+					SDKHOOKS
+*****************************************************/
+
+public Action OnTouchUpgradeStation(int entity, int other)
+{
+	if(IsValidClient(other))
+	{
+		LogMessage("%N touched an upgrade station!", other);
+	}
 }
 
 /****************************************************
@@ -179,7 +250,14 @@ public Action Command_JoinRED( int client, int nArgs )
 public Action Command_Debug( int client, int nArgs )
 {
 	int iClasses = OR_GetAvailableClasses();
+	int iCur = OR_GetCurrentWave();
+	int iMaxWave = OR_GetMaxWave();
+	
 	ReplyToCommand(client, "Available Classes: %i", iClasses);
+	ReplyToCommand(client, "Current Wave: %i, Max Wave: %i", iCur, iMaxWave);
+	
+	if(OR_IsHalloweenMission())
+		ReplyToCommand(client, "Halloween Popfile");
 	
 	return Plugin_Handled;
 }
@@ -239,21 +317,39 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = event.GetInt("userid");
-	TFTeam Team = TF2_GetClientTeam(client);
 	
-	if(Team == TFTeam_Blue && !IsFakeClient(client) && IsClientInGame(client))
+	if(IsValidClient(client))
 	{
-		if( iBotVariant[client] >= 0 )
+		TFTeam Team = TF2_GetClientTeam(client);
+		
+		if(Team == TFTeam_Blue && !IsFakeClient(client) && IsClientInGame(client))
 		{
-			StripItems(client, true);
+			if( iBotVariant[client] >= 0 )
+			{
+				StripItems(client, true);
+			}
+			else
+			{
+				StripItems(client, false);
+			}
 		}
-		else
-		{
-			StripItems(client, false);
-		}
-
 	}
 }
+
+/****************************************************
+				USER MESSAGE
+*****************************************************/
+
+public Action MsgHook_MVMRespec(UserMsg msg_id, BfRead msg, const int[] players, int playersNum, bool reliable, bool init)
+{
+    int client = BfReadByte(msg); //client that used the respec    
+	OnRefund(client);
+}
+
+/****************************************************
+					TIMERS
+*****************************************************/
+
 
 
 /****************************************************
@@ -261,6 +357,14 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 *****************************************************/
 
 // ***PLAYER***
+
+bool IsValidClient( int client )
+{
+	if( client <= 0 ) return false;
+	if( client > MaxClients ) return false;
+	if( !IsClientConnected(client) ) return false;
+	return IsClientInGame(client);
+}
 
 // moves player to BLU team.
 void MovePlayerToBLU(int client)
@@ -392,7 +496,6 @@ void PickRandomRobot(int client)
 			PickRandomVariant( client, TFClass_Engineer, false);
 		}
 	}
-	BotClass[client] = Class;
 }
 
 // selects a random variant based on the player's class
@@ -504,5 +607,28 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 			}
 		}
 	}
-	
+}
+
+void ScalePlayerModel(const int client, const float fScale)
+{
+	static const float vecTF2PlayerMin[3] = { -24.5, -24.5, 0.0 }, Float:vecTF2PlayerMax[3] = { 24.5,  24.5, 83.0 };
+
+	float vecScaledPlayerMin[3];
+	float vecScaledPlayerMax[3];
+
+	vecScaledPlayerMin = vecTF2PlayerMin;
+	vecScaledPlayerMax = vecTF2PlayerMax;
+
+	ScaleVector(vecScaledPlayerMin, fScale);
+	ScaleVector(vecScaledPlayerMax, fScale);
+
+	SetEntPropVector(client, Prop_Send, "m_vecSpecifiedSurroundingMins", vecScaledPlayerMin);
+	SetEntPropVector(client, Prop_Send, "m_vecSpecifiedSurroundingMaxs", vecScaledPlayerMax);
+	SetEntPropFloat( client, Prop_Send, "m_flModelScale", fScale );
+}
+
+// fired when a players refund
+void OnRefund(int client)
+{
+	LogMessage("%N refunded!", client);
 }

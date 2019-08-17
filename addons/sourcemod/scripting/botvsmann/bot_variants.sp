@@ -3,7 +3,7 @@
 // remove items from the player
 void StripItems( int client, bool RemoveWeapons = true )
 {	
-	if( !IsClientInGame(client) ) || IsFakeClient( client ) || !IsPlayerAlive( client ) )
+	if( !IsClientInGame(client) || IsFakeClient( client ) || !IsPlayerAlive( client ) )
 		return;
 		
 	int iEntity;
@@ -70,7 +70,7 @@ int SpawnWeapon(int client,char[] name,int index,int level,int qual,bool bWearab
 	return entity;
 }
 
-void GiveNormalInventory(int client ,int variant)
+void GiveNormalInventory(int client ,int botbotvariant)
 {
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	int iWeapon;
@@ -79,23 +79,23 @@ void GiveNormalInventory(int client ,int variant)
 	{
 		case TFClass_Scout:
 		{
-			if(variant == 0) // standard scout
+			if(botvariant == 0) // standard scout
 			{
 				SpawnWeapon( client, "tf_weapon_scattergun", 13, 1, 6, false ); // client, classname, item index, level, quality, Is Wearable?
 			}
-			else if(variant == 1) // melee scout
+			else if(botvariant == 1) // melee scout
 			{
 				SpawnWeapon( client, "tf_weapon_bat", 0, 1, 6, false );
 			}
 		}
 		case TFClass_Soldier:
 		{
-			if(variant == 0) // standard soldier
+			if(botvariant == 0) // standard soldier
 			{
 				SpawnWeapon( client, "tf_weapon_rocketlauncher", 18, 1, 6, false );
 				SpawnWeapon( client, "tf_weapon_shovel", 6, 1, 6, false );
 			}
-			else if(variant == 1) // direct hit soldier
+			else if(botvariant == 1) // direct hit soldier
 			{
 				SpawnWeapon( client, "tf_weapon_rocketlauncher_directhit", 127, 1, 6, false );
 				SpawnWeapon( client, "tf_weapon_shovel", 6, 1, 6, false );				
@@ -103,77 +103,77 @@ void GiveNormalInventory(int client ,int variant)
 		}
 		case TFClass_Pyro:
 		{
-			if(variant == 0)
+			if(botvariant == 0)
 			{
 				
 			}
-			else if(variant == 1)
+			else if(botvariant == 1)
 			{
 				
 			}			
 		}
 		case TFClass_DemoMan:
 		{
-			if(variant == 0)
+			if(botvariant == 0)
 			{
 				
 			}
-			else if(variant == 1)
+			else if(botvariant == 1)
 			{
 				
 			}			
 		}
 		case TFClass_Heavy:
 		{
-			if(variant == 0)
+			if(botvariant == 0)
 			{
 				
 			}
-			else if(variant == 1)
+			else if(botvariant == 1)
 			{
 				
 			}			
 		}
 		case TFClass_Engineer:
 		{
-			if(variant == 0)
+			if(botvariant == 0)
 			{
 				
 			}
-			else if(variant == 1)
+			else if(botvariant == 1)
 			{
 				
 			}			
 		}
 		case TFClass_Medic:
 		{
-			if(variant == 0)
+			if(botvariant == 0)
 			{
 				
 			}
-			else if(variant == 1)
+			else if(botvariant == 1)
 			{
 				
 			}			
 		}
 		case TFClass_Sniper:
 		{
-			if(variant == 0)
+			if(botvariant == 0)
 			{
 				
 			}
-			else if(variant == 1)
+			else if(botvariant == 1)
 			{
 				
 			}
 		}
 		case TFClass_Spy:
 		{
-			if(variant == 0)
+			if(botvariant == 0)
 			{
 				
 			}
-			else if(variant == 1)
+			else if(botvariant == 1)
 			{
 				
 			}
@@ -181,7 +181,7 @@ void GiveNormalInventory(int client ,int variant)
 	}
 }
 
-void GiveGiantInventory(int client ,int variant)
+void GiveGiantInventory(int client ,int botvariant)
 {
 	
 }
