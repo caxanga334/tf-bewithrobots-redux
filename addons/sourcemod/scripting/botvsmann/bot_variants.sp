@@ -181,7 +181,109 @@ void GiveNormalInventory(int client ,int botvariant)
 	}
 }
 
+// giant inventory
 void GiveGiantInventory(int client ,int botvariant)
 {
 	
+}
+
+// returns the variant name
+// TODO: set names
+char GetVariantName(TFClassType TFClass, int botvariant)
+{
+	char strBotName[64]
+	
+	switch( TFClass )
+	{
+		case TFClass_Scout:
+		{
+			switch( botvariant )
+			{
+				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Scout" );
+				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Scout" );
+				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
+				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+			}
+		}
+		case TFClass_Soldier:
+		{
+			switch( botvariant )
+			{
+				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Soldier" );
+				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Soldier" );
+				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
+				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+			}			
+		}
+		case TFClass_Pyro:
+		{
+			switch( botvariant )
+			{
+				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Pyro" );
+				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Pyro" );
+				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
+				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+			}		
+		}
+		case TFClass_DemoMan:
+		{
+			switch( botvariant )
+			{
+				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Demoman" );
+				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Demoman" );
+				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
+				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+			}		
+		}
+		case TFClass_Heavy:
+		{
+			switch( botvariant )
+			{
+				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Heavy" );
+				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Heavy" );
+				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
+				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+			}		
+		}
+		case TFClass_Engineer:
+		{
+			switch( botvariant )
+			{
+				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Engineer" );
+				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Engineer" );
+				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
+				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+			}			
+		}
+		case TFClass_Medic:
+		{
+			switch( botvariant )
+			{
+				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Medic" );
+				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Medic" );
+				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
+				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+			}			
+		}
+		case TFClass_Sniper:
+		{
+			switch( botvariant )
+			{
+				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Sniper" );
+				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Sniper" );
+				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
+				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+			}
+		}
+		case TFClass_Spy:
+		{
+			switch( botvariant )
+			{
+				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Spy" );
+				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Spy" );
+				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
+				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+			}
+		}
+	}
 }

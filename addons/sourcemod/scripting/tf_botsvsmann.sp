@@ -14,6 +14,16 @@
 
 #define PLUGIN_VERSION "0.0.1"
 
+// TODO
+/**
+- add spawn point selection
+- add robot variants
+- finish robot inventory
+- add giant inventory
+- add robot model to players
+- add spawn on teleporter
+**/
+
 // maximum class variants that exists
 #define MAX_SCOUT 1
 #define MAX_SCOUT_GIANT 1
@@ -177,7 +187,7 @@ public void OnGameFrame()
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if(IsClientInGame(i) || !IsFakeClient(i))
+		if(IsClientInGame(i) && !IsFakeClient(i))
 		{		
 			if(TF2_GetClientTeam(i) == TFTeam_Blue)
 			{
@@ -192,7 +202,7 @@ public void OnGameFrame()
 
 public void TF2Spawn_EnterSpawn(client, entity)
 {
-	if(TF2_GetClientTeam(client) == TFTeam_Blue || !IsFakeClient(client))
+	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
 		TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
 	}	
@@ -200,7 +210,7 @@ public void TF2Spawn_EnterSpawn(client, entity)
 
 public void TF2Spawn_LeaveSpawn(client, entity)
 {
-	if(TF2_GetClientTeam(client) == TFTeam_Blue || !IsFakeClient(client))
+	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
 		TF2_RemoveCondition(client, TFCond_UberchargedHidden);
 	}
@@ -328,7 +338,19 @@ public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 
 public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
-	PrintToChatAll("E_Pre_PlayerSpawn");
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	{
+		if( iBotEffect[client] & BotEffect_AlwaysCrits )
+		{
+			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
+		}
+		if( iBotEffect[client] & BotEffect_AlwaysMiniCrits )
+		{
+			TF2_AddCondition(client, TFCond_Buffed, TFCondDuration_Infinite);
+		}		
+	}
 }
 
 public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -353,7 +375,12 @@ public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadca
 
 public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
-	PrintToChatAll("E_PlayerDeath");
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	{
+		PickRandomRobot(client);
+	}
 }
 
 public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
@@ -401,6 +428,42 @@ public Action MsgHook_MVMRespec(UserMsg msg_id, BfRead msg, const int[] players,
 					TIMERS
 *****************************************************/
 
+public Action Timer_OnPlayerSpawn(Handle timer, any client)
+{
+	if( !IsClientInGame(client) )
+		return Plugin_Stop;
+		
+	TFClassType TFClass = TF2_GetPlayerClass(client);
+		
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	{
+		if( TFClass == TFClass_Spy && iBotEffect[client] & BotEffect_AutoDisguise )
+		{
+			int iTarget = GetRandomPlayer(TFTeam_Red, false);
+			TF2_DisguisePlayer(client, TFTeam_Red, TF2_GetPlayerClass(iTarget), iTarget);
+		}
+		
+		// TO DO: pyro's gas passer and phlog
+		if( iBotEffect[client] & BotEffect_FullCharge )
+		{
+			if( TFClass == TFClass_Medic )
+			{
+				int iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary);
+				if( IsValidEdict( iWeapon ) )
+					SetEntPropFloat( iWeapon, Prop_Send, "m_flChargeLevel", 1.0 );
+			}
+			else if( TFClass == TFClass_Soldier )
+			{
+				SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
+			}			
+		}
+		
+		if(OR_IsHalloweenMission)
+		{
+			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
+		}
+	}
+}
 
 
 /****************************************************
@@ -436,6 +499,38 @@ void MovePlayerToBLU(int client)
 	UpdateClassArray();
 	PickRandomRobot(client);
 }
+// selects a random player from a team
+int GetRandomPlayer(TFTeam Team, bool bIncludeBots = false)
+{
+	int players_available[MAXPLAYERS+1];
+	int counter = 0; // counts how many valid players we have
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if(bIncludeBots)
+		{
+			if(IsClientInGame(i) && TF2_GetClientTeam(i) == Team)
+			{
+				players_available[counter] = i; // stores the client userid
+				counter++;
+			}			
+		}
+		else
+		{
+			if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == Team)
+			{
+				players_available[counter] = i; // stores the client userid
+				counter++;
+			}				
+		}
+
+	}
+	
+	// now we should have an array filled with user ids and exactly how many players we have in game.
+	int iRandomMax = counter - 1;
+	int iRandom = GetRandomInt(0,iRandomMax); // get a random number between 0 and counted players
+	// now we get the user id from the array cell selected via iRandom
+	return players_available[iRandom];
+}
 
 // returns the number of human players on BLU/ROBOT team
 int GetHumanRobotCount()
@@ -443,7 +538,7 @@ int GetHumanRobotCount()
 	int count = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if(IsClientInGame(i) || !IsFakeClient(i))
+		if(IsClientInGame(i) && !IsFakeClient(i))
 		{			
 			if(TF2_GetClientTeam(i) == TFTeam_Blue)
 			{
@@ -569,6 +664,7 @@ void PickRandomRobot(int client)
 // selects a random variant based on the player's class
 void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 {
+	TF2_SetPlayerClass(client, TFClass);
 	if( GetRandomInt(0, 100) <= c_iGiantChance.IntValue && bGiants )
 	{
 		// giant
@@ -675,6 +771,7 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 			}
 		}
 	}
+	SetVariantExtras(client, TFClass);
 }
 
 // set effects and bot mode for variants
@@ -684,7 +781,7 @@ void SetVariantExtras(int client,TFClassType TFClass)
 	
 	switch( TFClass )
 	{
-		case TFClass_Scout:
+/* 		case TFClass_Scout:
 		{
 			
 		}
@@ -715,10 +812,10 @@ void SetVariantExtras(int client,TFClassType TFClass)
 		case TFClass_Sniper:
 		{
 			
-		}
+		} */
 		case TFClass_Spy:
 		{
-			iBotEffect += BotEffect_AutoDisguise; // global to all spies
+			iBotEffect[client] += BotEffect_AutoDisguise; // global to all spies
 		}
 	}
 }
@@ -744,5 +841,8 @@ void ScalePlayerModel(const int client, const float fScale)
 // fired when a players refund
 void OnRefund(int client)
 {
-	LogMessage("%N refunded!", client);
+	if(g_bUpgradeStation[client])
+	{
+		g_bUpgradeStation[client] = false;
+	}
 }
