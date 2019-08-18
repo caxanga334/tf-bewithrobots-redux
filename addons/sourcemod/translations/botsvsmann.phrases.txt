@@ -13,4 +13,9 @@
 		"#format"	"{1:d}"
 		"en"	"{cyan}There must be at least {1} players on {red}RED{cyan}."
 	}
+	"Bot Spawn"
+	{
+		"#format"	"{1:s}"
+		"en"	"{white}[BVM] {cyan}You've spawn as {green}{1}{cyan}."
+	}
 }

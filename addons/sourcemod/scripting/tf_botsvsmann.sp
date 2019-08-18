@@ -131,6 +131,8 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_bwr", Command_JoinBLU, "Joins BLU/Robot team." );
 	RegConsoleCmd( "sm_bewithrobots", Command_JoinBLU, "Joins BLU/Robot team." );
 	RegAdminCmd( "sm_bvm_debug", Command_Debug, ADMFLAG_ROOT, "Debug command" );
+	RegAdminCmd( "sm_bvm_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
+	RegAdminCmd( "sm_bvm_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
 	
 	// EVENTS
 	HookEvent( "mvm_begin_wave", E_WaveStart );
@@ -151,6 +153,8 @@ public void OnPluginStart()
 	HookUserMessage(ID_MVMResetUpgrade, MsgHook_MVMRespec);
 	
 	ay_avclass = new ArrayList(10);
+	
+	AutoExecConfig(true, "plugin.botsvsmachine");
 }
 
 public void OnMapStart()
@@ -169,6 +173,8 @@ public void OnMapStart()
 			SDKHook(i, SDKHook_StartTouch, OnTouchUpgradeStation);
 		} 
 	}
+	
+	ay_avclass.Clear();
 }
 
 /* public void OnClientConnected(client)
@@ -259,6 +265,14 @@ public Action Command_JoinBLU( int client, int nArgs )
 	if( !IsClientInGame(client) || IsFakeClient(client) )
 		return Plugin_Continue;
 		
+	if( ay_avclass.Length < 1 )
+	{
+		CPrintToChat(client, "Wave Data isn't ready, rebuilding... Please try again."); // to-do: translate
+		OR_Update();
+		UpdateClassArray();
+		return Plugin_Handled;
+	}
+		
 	int iMinRed = c_iMinRed.IntValue;
 	
 	if( GetTeamClientCount(2) < iMinRed )
@@ -301,7 +315,221 @@ public Action Command_Debug( int client, int nArgs )
 		ReplyToCommand(client, "Halloween Popfile");
 	}
 	
-	TF2_RespawnPlayer(client);
+	ReplyToCommand(client, "Class Array Size: %i", ay_avclass.Length);
+	
+	return Plugin_Handled;
+}
+
+public Action Command_ForceBot( int client, int nArgs )
+{
+	char arg1[MAX_NAME_LENGTH], arg2[16], arg3[4], arg4[4];
+	bool bForceGiants = false;
+	
+	if( nArgs < 4 )
+	{
+		ReplyToCommand(client, "Usage: sm_bvm_forcebot <target> <class> <type: 0 normal | 1 giant> <variant id>");
+		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy");
+		return Plugin_Handled;
+	}
+	
+	GetCmdArg(1, arg1, sizeof(arg1));
+	
+	char target_name[MAX_TARGET_LENGTH];
+	int target_list[MAXPLAYERS], target_count;
+	bool tn_is_ml;
+	
+	if((target_count = ProcessTargetString(arg1, client, target_list, MAXPLAYERS, COMMAND_FILTER_NO_BOTS, target_name, sizeof(target_name), tn_is_ml)) <= 0)
+	{
+		ReplyToTargetError(client, target_count);
+		return Plugin_Handled;
+	}
+	
+	TFClassType TargetClass = TFClass_Unknown;
+	
+	GetCmdArg(2, arg2, sizeof(arg2));
+	
+	if( StrEqual(arg2, "scout", false) )
+	{
+		TargetClass = TFClass_Scout;
+	}
+	else if( StrEqual(arg2, "soldier", false) )
+	{
+		TargetClass = TFClass_Soldier;
+	}
+	else if( StrEqual(arg2, "pyro", false) )
+	{
+		TargetClass = TFClass_Pyro;
+	}
+	else if( StrEqual(arg2, "demoman", false) )
+	{
+		TargetClass = TFClass_DemoMan;
+	}
+	else if( StrEqual(arg2, "heavy", false) )
+	{
+		TargetClass = TFClass_Heavy;
+	}
+	else if( StrEqual(arg2, "engineer", false) )
+	{
+		TargetClass = TFClass_Engineer;
+	}
+	else if( StrEqual(arg2, "medic", false) )
+	{
+		TargetClass = TFClass_Medic;
+	}
+	else if( StrEqual(arg2, "sniper", false) )
+	{
+		TargetClass = TFClass_Sniper;
+	}
+	else if( StrEqual(arg2, "spy", false) )
+	{
+		TargetClass = TFClass_Spy;
+	}
+	
+	if( TargetClass == TFClass_Unknown )
+	{
+		ReplyToCommand(client, "ERROR: Invalid class");
+		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy");
+		return Plugin_Handled;
+	}
+	
+	GetCmdArg(3, arg3, sizeof(arg3));
+	int iArg3 = StringToInt(arg3);
+	if( iArg3 < 0 || iArg3 > 1 )
+	{
+		ReplyToCommand(client, "ERROR: Use 0 for Normal Bot and 1 for Giant Bot");
+		return Plugin_Handled;
+	}
+	else if( iArg3 == 1 )
+	{
+		bForceGiants = true;
+	}
+	
+	GetCmdArg(4, arg4, sizeof(arg4));
+	int iArg4 = StringToInt(arg4);
+	
+	if( iArg4 < -1 )
+	{
+		ReplyToCommand(client, "ERROR: Invalid Variant");
+		return Plugin_Handled;
+	}
+	
+	for(int i = 0; i < target_count; i++)
+	{
+		if( TF2_GetClientTeam(target_list[i]) == TFTeam_Blue )
+		{
+			iBotVariant[target_list[i]] = iArg4;
+			BotClass[target_list[i]] = TargetClass;
+			if(bForceGiants)
+			{
+				iBotType[target_list[i]] = Bot_Giant;
+				SetGiantVariantExtras(target_list[i],TargetClass);
+			}
+			else
+			{
+				iBotType[target_list[i]] = Bot_Normal;
+				SetVariantExtras(target_list[i],TargetClass);
+			}
+			TF2_SetPlayerClass(target_list[i], TargetClass, _, true);
+			TF2_RespawnPlayer(target_list[i]);
+			LogAction(client, target_list[i], "\"%L\" Forced a robot variant on \"%L\".", client, target_list[i]);
+		}
+		else
+		{
+			ReplyToCommand(client, "ERROR: This command can only be used on BLU team.");
+			return Plugin_Handled;
+		}
+	}
+	
+	if (tn_is_ml)
+	{
+		ShowActivity2(client, "[SM] ", "Forced a robot variant on %t.", target_name);
+	}
+	else
+	{
+		ShowActivity2(client, "[SM] ", "Forced a robot variant on %s.", target_name);
+	}
+	return Plugin_Handled;
+}
+
+public Action Command_MoveTeam( int client, int nArgs )
+{
+	char arg1[MAX_NAME_LENGTH], arg2[16];
+	TFTeam NewTargetTeam = TFTeam_Spectator; // default to spectator if no team is specified
+	int iArgTeam;
+	
+	if( nArgs < 1 )
+	{
+		ReplyToCommand(client, "Usage: sm_bvm_move <target> <team: 1 - Spectator, 2 - Red, 3 - Blue>");
+		return Plugin_Handled;
+	}
+	
+	GetCmdArg(1, arg1, sizeof(arg1));
+	
+	char target_name[MAX_TARGET_LENGTH];
+	int target_list[MAXPLAYERS], target_count;
+	bool tn_is_ml;
+	
+	if((target_count = ProcessTargetString(arg1, client, target_list, MAXPLAYERS, COMMAND_FILTER_NO_BOTS, target_name, sizeof(target_name), tn_is_ml)) <= 0)
+	{
+		ReplyToTargetError(client, target_count);
+		return Plugin_Handled;
+	}
+	
+	if( nArgs == 2 )
+	{
+		GetCmdArg(2, arg2, sizeof(arg2));
+		iArgTeam = StringToInt(arg2);
+		if( iArgTeam <= 0 || iArgTeam > 3 )
+		{
+			ReplyToCommand(client, "ERROR: Invalid Team. Valid Teams: 1 - Spectator, 2 - Red, 3 - Blue");
+			return Plugin_Handled;
+		}
+		else
+		{
+			NewTargetTeam = view_as<TFTeam>(iArgTeam);
+		}
+	}
+	
+	char strLogTeam[16];
+	
+	switch( iArgTeam )
+	{
+		case 1: strcopy(strLogTeam, 16, "Spectator");
+		case 2: strcopy(strLogTeam, 16, "RED");
+		case 3: strcopy(strLogTeam, 16, "BLU");
+	}
+	
+	for(int i = 0; i < target_count; i++)
+	{
+		if( NewTargetTeam == TFTeam_Blue )
+		{
+			if( ay_avclass.Length < 1 )
+			{
+				ReplyToCommand(client, "Wave data needs to be built. Building data...");
+				OR_Update();
+				UpdateClassArray();
+				return Plugin_Handled;
+			}
+			else
+			{
+				MovePlayerToBLU(target_list[i]);
+			}
+		}
+		else
+		{
+			TF2_ChangeClientTeam(target_list[i], NewTargetTeam);
+		}
+		LogAction(client, target_list[i], "\"%L\" changed \"%L\"'s team to %s", client, target_list[i], strLogTeam);
+	}
+	
+	if (tn_is_ml)
+	{
+		ShowActivity2(client, "[SM] ", "Changed %t's team to %s.", target_name, strLogTeam);
+	}
+	else
+	{
+		ShowActivity2(client, "[SM] ", "Changed %s's team to %s.", target_name, strLogTeam);
+	}
 	
 	return Plugin_Handled;
 }
@@ -373,6 +601,12 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 	PrintToChatAll("E_PlayerSpawn");
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	CreateTimer(0.1, Timer_OnPlayerSpawn, client);
+	
+	if( ay_avclass.Length < 1 )
+	{
+		OR_Update();
+		UpdateClassArray();
+	}
 }
 
 public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
@@ -449,17 +683,21 @@ public Action MsgHook_MVMRespec(UserMsg msg_id, BfRead msg, const int[] players,
 
 public Action Timer_OnPlayerSpawn(Handle timer, any client)
 {
-	if( !IsClientInGame(client) )
+	if( !IsValidClient(client) )
 		return Plugin_Stop;
 		
 	TFClassType TFClass = TF2_GetPlayerClass(client);
+	char strBotName[64];
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
 		if( TFClass == TFClass_Spy && iBotEffect[client] & BotEffect_AutoDisguise )
 		{
 			int iTarget = GetRandomPlayer(TFTeam_Red, false);
-			TF2_DisguisePlayer(client, TFTeam_Red, TF2_GetPlayerClass(iTarget), iTarget);
+			if( iTarget >= 1 && iTarget <= MaxClients )
+			{
+				TF2_DisguisePlayer(client, TFTeam_Red, TF2_GetPlayerClass(iTarget), iTarget);
+			}
 		}
 		
 		// TO DO: pyro's gas passer and phlog
@@ -481,7 +719,13 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 		}
+		
+		// spawn messages
+		strBotName = GetVariantName(TFClass, iBotVariant[client]);
+		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
 	}
+	
+	return Plugin_Handled;
 }
 
 public Action Timer_SetRobotClass(Handle timer, any client)
@@ -490,6 +734,8 @@ public Action Timer_SetRobotClass(Handle timer, any client)
 		return Plugin_Stop;
 		
 	TF2_SetPlayerClass(client, BotClass[client], _, true);
+	
+	return Plugin_Handled;
 }
 
 
@@ -518,12 +764,9 @@ void MovePlayerToBLU(int client)
 	
 	int iEntFlags = GetEntityFlags( client );
 	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
-	//ChangeClientTeam( client, _:TFTeam_Blue );
 	TF2_ChangeClientTeam(client, TFTeam_Blue);
 	SetEntityFlags( client, iEntFlags );
 	
-	OR_Update();
-	UpdateClassArray();
 	PickRandomRobot(client);
 }
 // selects a random player from a team

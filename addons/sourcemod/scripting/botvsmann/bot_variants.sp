@@ -8,25 +8,36 @@ void StripItems( int client, bool RemoveWeapons = true )
 		
 	int iEntity;
 	int iOwner;
+	int iWeapon;
 	
 	if(RemoveWeapons)
 	{
-		int iPrimary = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary, true);
-		if(iPrimary != -1)
+		iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary, true);
+		if(iWeapon != -1)
 		{
-			TF2_RemovePlayerWearable(client, iPrimary);
+			TF2_RemovePlayerWearable(client, iWeapon);
 		}
-		int iSecondary = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary, true);
-		if(iSecondary != -1)
+		
+		iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary, true);
+		if(iWeapon != -1)
 		{
-			TF2_RemovePlayerWearable(client, iSecondary);
+			TF2_RemovePlayerWearable(client, iWeapon);
 		}
 		
 		TF2_RemoveAllWeapons(client);
+		// bug: sappers and toolboxes aren't removed however this shouldn't be a problem.
 	}
 	
-	TF2_RemoveAllWearables(client);
-	TF2_RemoveAllTaunts(client);
+	iEntity = -1;
+	while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable" ) ) > MaxClients )
+	{
+		iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
+		if( iOwner == client )
+		{
+			TF2_RemoveWearable( client, iEntity );
+			AcceptEntityInput( iEntity, "Kill" );
+		}
+	}
 	
 	iEntity = -1;
 	while( ( iEntity = FindEntityByClassname( iEntity, "tf_powerup_bottle" ) ) > MaxClients )
@@ -200,90 +211,90 @@ char GetVariantName(TFClassType TFClass, int botvariant)
 		{
 			switch( botvariant )
 			{
-				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Scout" );
-				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Scout" );
-				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
-				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+				case -1: strcopy( strBotName, 64, "Your own Scout" );
+				case 0: strcopy( strBotName, 64, "Standard Scout" );
+				case 1: strcopy( strBotName, 64, "Batsaber Scout" );
+				default: strcopy( strBotName, 64, "Undefined" );
 			}
 		}
 		case TFClass_Soldier:
 		{
 			switch( botvariant )
 			{
-				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Soldier" );
-				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Soldier" );
-				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
-				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+				case -1: strcopy( strBotName, 64, "Your own Soldier" );
+				case 0: strcopy( strBotName, 64, "Standard Soldier" );
+				case 1: strcopy( strBotName, 64, "Batsaber Scout" );
+				default: strcopy( strBotName, 64, "Undefined" );
 			}			
 		}
 		case TFClass_Pyro:
 		{
 			switch( botvariant )
 			{
-				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Pyro" );
-				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Pyro" );
-				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
-				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+				case -1: strcopy( strBotName, 64, "Your own Pyro" );
+				case 0: strcopy( strBotName, 64, "Standard Pyro" );
+				case 1: strcopy( strBotName, 64, "Batsaber Scout" );
+				default: strcopy( strBotName, 64, "Undefined" );
 			}		
 		}
 		case TFClass_DemoMan:
 		{
 			switch( botvariant )
 			{
-				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Demoman" );
-				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Demoman" );
-				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
-				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+				case -1: strcopy( strBotName, 64, "Your own Demoman" );
+				case 0: strcopy( strBotName, 64, "Standard Demoman" );
+				case 1: strcopy( strBotName, 64, "Batsaber Scout" );
+				default: strcopy( strBotName, 64, "Undefined" );
 			}		
 		}
 		case TFClass_Heavy:
 		{
 			switch( botvariant )
 			{
-				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Heavy" );
-				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Heavy" );
-				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
-				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+				case -1: strcopy( strBotName, 64, "Your own Heavy" );
+				case 0: strcopy( strBotName, 64, "Standard Heavy" );
+				case 1: strcopy( strBotName, 64, "Batsaber Scout" );
+				default: strcopy( strBotName, 64, "Undefined" );
 			}		
 		}
 		case TFClass_Engineer:
 		{
 			switch( botvariant )
 			{
-				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Engineer" );
-				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Engineer" );
-				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
-				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+				case -1: strcopy( strBotName, 64, "Your own Engineer" );
+				case 0: strcopy( strBotName, 64, "Standard Engineer" );
+				case 1: strcopy( strBotName, 64, "Batsaber Scout" );
+				default: strcopy( strBotName, 64, "Undefined" );
 			}			
 		}
 		case TFClass_Medic:
 		{
 			switch( botvariant )
 			{
-				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Medic" );
-				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Medic" );
-				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
-				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+				case -1: strcopy( strBotName, 64, "Your own Medic" );
+				case 0: strcopy( strBotName, 64, "Standard Medic" );
+				case 1: strcopy( strBotName, 64, "Batsaber Scout" );
+				default: strcopy( strBotName, 64, "Undefined" );
 			}			
 		}
 		case TFClass_Sniper:
 		{
 			switch( botvariant )
 			{
-				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Sniper" );
-				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Sniper" );
-				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
-				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+				case -1: strcopy( strBotName, 64, "Your own Sniper" );
+				case 0: strcopy( strBotName, 64, "Standard Sniper" );
+				case 1: strcopy( strBotName, 64, "Batsaber Scout" );
+				default: strcopy( strBotName, 64, "Undefined" );
 			}
 		}
 		case TFClass_Spy:
 		{
 			switch( botvariant )
 			{
-				case -1: strcopy( strBotName, sizeof(strBotName), "Your own Spy" );
-				case 0: strcopy( strBotName, sizeof(strBotName), "Standard Spy" );
-				case 1: strcopy( strBotName, sizeof(strBotName), "Batsaber Scout" );
-				default: strcopy( strBotName, sizeof(strBotName), "Undefined" );
+				case -1: strcopy( strBotName, 64, "Your own Spy" );
+				case 0: strcopy( strBotName, 64, "Standard Spy" );
+				case 1: strcopy( strBotName, 64, "Batsaber Scout" );
+				default: strcopy( strBotName, 64, "Undefined" );
 			}
 		}
 	}
