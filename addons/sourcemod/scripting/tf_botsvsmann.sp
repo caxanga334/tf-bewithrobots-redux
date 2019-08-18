@@ -118,7 +118,7 @@ public void OnPluginStart()
 	// convars
 	CreateConVar("sm_botvsmann_version", PLUGIN_VERSION, "Robots vs Mann plugin version.", FCVAR_NOTIFY);
 	c_iMinRed = CreateConVar("sm_bvm_minred", "3", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NOTIFY, true, 0.0, true, 10.0);
-	c_iGiantChance = CreateConVar("sm_bmv_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NOTIFY, true, 0.0, true, 100.0);
+	c_iGiantChance = CreateConVar("sm_bvm_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NOTIFY, true, 0.0, true, 100.0);
 	
 	// translations
 	LoadTranslations("botsvsmann.phrases");
