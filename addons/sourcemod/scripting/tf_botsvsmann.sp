@@ -301,6 +301,8 @@ public Action Command_Debug( int client, int nArgs )
 		ReplyToCommand(client, "Halloween Popfile");
 	}
 	
+	TF2_RespawnPlayer(client);
+	
 	return Plugin_Handled;
 }
 
@@ -334,14 +336,27 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 {
 	PrintToChatAll("E_ChangeClass");
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	TFClassType TFClass = view_as<TFClassType>(event.GetInt("class"));
+	
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	{
+		BotClass[client] = TFClass;
+		PickRandomVariant(client,TFClass,false);
+		SetVariantExtras(client,TFClass);
+	}
 }
 
 public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
+	PrintToChatAll("E_Pre_PlayerSpawn");
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
+/* 		TF2_SetPlayerClass(client, BotClass[client]);
+		TF2_RegeneratePlayer(client); */
+	
 		if( iBotEffect[client] & BotEffect_AlwaysCrits )
 		{
 			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
@@ -356,10 +371,13 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	PrintToChatAll("E_PlayerSpawn");
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	CreateTimer(0.1, Timer_OnPlayerSpawn, client);
 }
 
 public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
+	PrintToChatAll("E_Pre_PlayerDeath");
 	int deathflags = event.GetInt("death_flags");
 	if(deathflags & TF_DEATHFLAG_DEADRINGER)
 		return Plugin_Handled;
@@ -375,6 +393,7 @@ public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadca
 
 public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
+	PrintToChatAll("E_PlayerDeath");
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
@@ -458,11 +477,19 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}			
 		}
 		
-		if(OR_IsHalloweenMission)
+		if(OR_IsHalloweenMission())
 		{
 			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 		}
 	}
+}
+
+public Action Timer_SetRobotClass(Handle timer, any client)
+{
+	if( !IsClientInGame(client) )
+		return Plugin_Stop;
+		
+	TF2_SetPlayerClass(client, BotClass[client], _, true);
 }
 
 
@@ -664,7 +691,8 @@ void PickRandomRobot(int client)
 // selects a random variant based on the player's class
 void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 {
-	TF2_SetPlayerClass(client, TFClass);
+	//TF2_SetPlayerClass(client, TFClass);
+	CreateTimer(1.0, Timer_SetRobotClass, client);
 	if( GetRandomInt(0, 100) <= c_iGiantChance.IntValue && bGiants )
 	{
 		// giant
@@ -717,6 +745,7 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 				BotClass[client] = TFClass_Spy;
 			}
 		}
+		SetGiantVariantExtras(client, TFClass);
 	}
 	else
 	{
@@ -770,12 +799,57 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 				BotClass[client] = TFClass_Spy;
 			}
 		}
+		SetVariantExtras(client, TFClass);
 	}
-	SetVariantExtras(client, TFClass);
 }
 
 // set effects and bot mode for variants
 void SetVariantExtras(int client,TFClassType TFClass)
+{
+	iBotEffect[client] = 0; //reset
+	
+	switch( TFClass )
+	{
+/* 		case TFClass_Scout:
+		{
+			
+		}
+		case TFClass_Soldier:
+		{
+			
+		}
+		case TFClass_Pyro:
+		{
+			
+		}
+		case TFClass_DemoMan:
+		{
+			
+		}
+		case TFClass_Heavy:
+		{
+			
+		}
+		case TFClass_Engineer:
+		{
+			
+		}
+		case TFClass_Medic:
+		{
+			
+		}
+		case TFClass_Sniper:
+		{
+			
+		} */
+		case TFClass_Spy:
+		{
+			iBotEffect[client] += BotEffect_AutoDisguise; // global to all spies
+		}
+	}
+}
+
+void SetGiantVariantExtras(int client,TFClassType TFClass)
 {
 	iBotEffect[client] = 0; //reset
 	

@@ -127,11 +127,12 @@ void GiveNormalInventory(int client ,int botvariant)
 		{
 			if(botvariant == 0)
 			{
-				
+				SpawnWeapon( client, "tf_weapon_minigun", 15, 1, 6, false );
 			}
 			else if(botvariant == 1)
 			{
-				
+				iWeapon = SpawnWeapon( client, "tf_weapon_minigun", 15, 1, 6, false );
+				TF2Attrib_SetByName(iWeapon, "damage bonus", 3.0);
 			}			
 		}
 		case TFClass_Engineer:
