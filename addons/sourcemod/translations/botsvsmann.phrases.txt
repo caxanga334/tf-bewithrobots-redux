@@ -16,6 +16,6 @@
 	"Bot Spawn"
 	{
 		"#format"	"{1:s}"
-		"en"	"{white}[BVM] {cyan}You've spawn as {green}{1}{cyan}."
+		"en"	"{white}[BVM] {cyan}You've spawned as {green}{1}{cyan}."
 	}
 }

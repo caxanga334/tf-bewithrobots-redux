@@ -197,6 +197,11 @@ public void OnGameFrame()
 		{		
 			if(TF2_GetClientTeam(i) == TFTeam_Blue)
 			{
+				if( TF2Spawn_IsClientInSpawn2(i) )
+				{
+					TF2_AddCondition(i, TFCond_UberchargedHidden, 0.255);
+				}
+				
 				if( iBotEffect[i] & BotEffect_InfiniteCloak )
 				{
 					SetEntPropFloat( i, Prop_Send, "m_flCloakMeter", 100.0 );
@@ -316,6 +321,29 @@ public Action Command_Debug( int client, int nArgs )
 	}
 	
 	ReplyToCommand(client, "Class Array Size: %i", ay_avclass.Length);
+	
+	TFClassType TFClass;
+	char strClass[16]
+	for( int i = 1; i <= 9; i++ )
+	{
+		TFClass = view_as<TFClassType>(i);
+		if( IsClassAvailable(TFClass) )
+		{
+			switch( TFClass )
+			{
+				case TFClass_Scout: strcopy(strClass, 16, "Scout");
+				case TFClass_Soldier: strcopy(strClass, 16, "Soldier");
+				case TFClass_Pyro: strcopy(strClass, 16, "Pyro");
+				case TFClass_DemoMan: strcopy(strClass, 16, "Demoman");
+				case TFClass_Heavy: strcopy(strClass, 16, "Heavy");
+				case TFClass_Engineer: strcopy(strClass, 16, "Engineer");
+				case TFClass_Medic: strcopy(strClass, 16, "Medic");
+				case TFClass_Sniper: strcopy(strClass, 16, "Sniper");
+				case TFClass_Spy: strcopy(strClass, 16, "Spy");
+			}
+			ReplyToCommand(client, "Found %s", strClass);
+		}
+	}
 	
 	return Plugin_Handled;
 }
@@ -687,10 +715,12 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		return Plugin_Stop;
 		
 	TFClassType TFClass = TF2_GetPlayerClass(client);
-	char strBotName[64];
+	char strBotName[128];
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
+		//TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
+		
 		if( TFClass == TFClass_Spy && iBotEffect[client] & BotEffect_AutoDisguise )
 		{
 			int iTarget = GetRandomPlayer(TFTeam_Red, false);
@@ -720,8 +750,15 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 		}
 		
-		// spawn messages
-		strBotName = GetVariantName(TFClass, iBotVariant[client]);
+		// prints the robot variant name to the player.
+		if( iBotType[client] == Bot_Giant )
+		{
+			strBotName = GetGiantVariantName(TFClass, iBotVariant[client]);
+		}
+		else
+		{
+			strBotName = GetNormalVariantName(TFClass, iBotVariant[client]);
+		}
 		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
 	}
 	
@@ -864,6 +901,20 @@ void UpdateClassArray()
 	{
 		ay_avclass.Push(8);
 	}
+}
+
+// returns true if the specified class is available for the current wave
+bool IsClassAvailable(TFClassType TFClass)
+{
+	if( ay_avclass.Length < 1 )
+		return false;
+		
+	int iClass = view_as<int>(TFClass);
+	
+	if( ay_avclass.FindValue(iClass) != -1 )
+		return true;
+
+	return false;	
 }
 
 // ***ROBOT VARIANT***

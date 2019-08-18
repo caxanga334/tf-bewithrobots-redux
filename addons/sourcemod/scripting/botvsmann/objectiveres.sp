@@ -134,7 +134,7 @@ void OR_Update()
 					iAvailableClasses += 512;
 					bClasses[9] = true;
 				}
-				if(StrContains(strIcon, "giant", false) != -1 && bClasses[10] == false)
+				if(StrContains(strIcon, "_giant", false) != -1 && bClasses[10] == false)
 				{
 					iAvailableClasses += 1024;
 					bClasses[10] = true;
