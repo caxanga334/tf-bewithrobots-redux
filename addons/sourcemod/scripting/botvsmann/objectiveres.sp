@@ -17,6 +17,7 @@ bool bClasses[11]; // temporary solution
 // 128 - sniper
 // 256 - spy
 // 512 - sentrybuster
+// 1024 - giant
 
 enum MvMWaveClassFlags
 {
@@ -33,7 +34,7 @@ void OR_Update()
 {
 	iAvailableClasses = 0;
 	
-	for(int i = 0; i < 10; i++)
+	for(int i = 0; i <= 10; i++)
 	{
 		bClasses[i] = false;
 	}
@@ -134,10 +135,14 @@ void OR_Update()
 					iAvailableClasses += 512;
 					bClasses[9] = true;
 				}
-				if(StrContains(strIcon, "_giant", false) != -1 && bClasses[10] == false)
+				//if(StrContains(strIcon, "_giant", false) != -1 && bClasses[10] == false)
+				if(iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && bClasses[10] == false)
 				{
-					iAvailableClasses += 1024;
-					bClasses[10] = true;
+					if( StrContains(strIcon, "sentry_buster", false) == -1 && StrContains(strIcon, "tank", false) == -1 )
+					{
+						iAvailableClasses += 1024;
+						bClasses[10] = true;
+					}
 				}
 			}
 		}

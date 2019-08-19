@@ -6,7 +6,7 @@
 	}
 	"Need Red"
 	{
-		"en"	"{white}[BVM] {cyan}You can't join {blue}ROBOT{cyan}. There aren't enough players in {red}RED{cyan} team."
+		"en"	"{white}[BVM] {cyan}You can't join {blue}BLU{cyan}. There aren't enough players in {red}RED{cyan} team."
 	}
 	"Num Red"
 	{
@@ -17,5 +17,9 @@
 	{
 		"#format"	"{1:s}"
 		"en"	"{white}[BVM] {cyan}You've spawned as {green}{1}{cyan}."
+	}
+	"Unready"
+	{
+		"en"	"{white}[BVM] {cyan}You cannot join {blue}BLU{cyan} while ready."
 	}
 }

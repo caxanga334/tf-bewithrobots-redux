@@ -287,6 +287,13 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
+	bool bReady = view_as<bool>(GameRules_GetProp( "m_bPlayerReady", _, client));
+	if( bReady )
+	{
+		CPrintToChat(client,"%t","Unready");
+		return Plugin_Handled;
+	}
+	
 	if( g_bUpgradeStation[client] )
 	{
 		CPrintToChat(client,"%t","Used Upgrade");
@@ -344,6 +351,20 @@ public Action Command_Debug( int client, int nArgs )
 			ReplyToCommand(client, "Found %s", strClass);
 		}
 	}
+	
+	bool bReady = view_as<bool>(GameRules_GetProp( "m_bPlayerReady", _, client));
+	if( bReady )
+	{
+		ReplyToCommand(client, "Ready");
+	}
+	else
+	{
+		ReplyToCommand(client, "Not Ready");
+	}
+	
+	int iEntFlags = GetEntityFlags( client );
+	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
+	//SetEntityFlags( client, iEntFlags );
 	
 	return Plugin_Handled;
 }
@@ -483,7 +504,7 @@ public Action Command_MoveTeam( int client, int nArgs )
 {
 	char arg1[MAX_NAME_LENGTH], arg2[16];
 	TFTeam NewTargetTeam = TFTeam_Spectator; // default to spectator if no team is specified
-	int iArgTeam;
+	int iArgTeam = 1;
 	
 	if( nArgs < 1 )
 	{
