@@ -196,7 +196,114 @@ void GiveNormalInventory(int client ,int botvariant)
 // giant inventory
 void GiveGiantInventory(int client ,int botvariant)
 {
+	TFClassType TFClass = TF2_GetPlayerClass(client);
+	int iWeapon;
 	
+	switch( TFClass )
+	{
+		case TFClass_Scout:
+		{
+			if(botvariant == 0) // standard scout
+			{
+				SpawnWeapon( client, "tf_weapon_scattergun", 13, 1, 6, false ); // client, classname, item index, level, quality, Is Wearable?
+			}
+			else if(botvariant == 1) // melee scout
+			{
+				SpawnWeapon( client, "tf_weapon_bat", 0, 1, 6, false );
+			}
+		}
+		case TFClass_Soldier:
+		{
+			if(botvariant == 0) // standard soldier
+			{
+				SpawnWeapon( client, "tf_weapon_rocketlauncher", 18, 1, 6, false );
+				SpawnWeapon( client, "tf_weapon_shovel", 6, 1, 6, false );
+			}
+			else if(botvariant == 1) // direct hit soldier
+			{
+				SpawnWeapon( client, "tf_weapon_rocketlauncher_directhit", 127, 1, 6, false );
+				SpawnWeapon( client, "tf_weapon_shovel", 6, 1, 6, false );				
+			}			
+		}
+		case TFClass_Pyro:
+		{
+			if(botvariant == 0)
+			{
+				
+			}
+			else if(botvariant == 1)
+			{
+				
+			}			
+		}
+		case TFClass_DemoMan:
+		{
+			if(botvariant == 0)
+			{
+				
+			}
+			else if(botvariant == 1)
+			{
+				
+			}			
+		}
+		case TFClass_Heavy:
+		{
+			if(botvariant == 0)
+			{
+				SpawnWeapon( client, "tf_weapon_minigun", 15, 1, 6, false );
+			}
+			else if(botvariant == 1)
+			{
+				iWeapon = SpawnWeapon( client, "tf_weapon_minigun", 15, 1, 6, false );
+				TF2Attrib_SetByName(iWeapon, "damage bonus", 3.0);
+			}			
+		}
+		case TFClass_Engineer:
+		{
+			if(botvariant == 0)
+			{
+				
+			}
+			else if(botvariant == 1)
+			{
+				
+			}			
+		}
+		case TFClass_Medic:
+		{
+			if(botvariant == 0)
+			{
+				
+			}
+			else if(botvariant == 1)
+			{
+				
+			}			
+		}
+		case TFClass_Sniper:
+		{
+			if(botvariant == 0)
+			{
+				
+			}
+			else if(botvariant == 1)
+			{
+				
+			}
+		}
+		case TFClass_Spy:
+		{
+			if(botvariant == 0)
+			{
+				
+			}
+			else if(botvariant == 1)
+			{
+				
+			}
+		}
+	}
 }
 
 // returns the variant name

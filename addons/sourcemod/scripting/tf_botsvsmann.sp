@@ -59,6 +59,10 @@ bool g_bUpgradeStation[MAXPLAYERS + 1];
 ConVar c_iMinRed;
 ConVar c_iMinRedinProg; // minimum red players to join BLU while the wave is in progress.
 ConVar c_iGiantChance;
+ConVar c_iGiantMinRed; // minimum red players to allow giants.
+ConVar c_iMaxBlu; // maximum blu players allowed
+ConVar c_bAutoTeamBalance;
+ConVar c_bSmallMap; // change robot scale to avoid getting stuck in maps such as mvm_2fort
 
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
 
@@ -118,9 +122,13 @@ public void OnPluginStart()
 {	
 	// convars
 	CreateConVar("sm_botvsmann_version", PLUGIN_VERSION, "Robots vs Mann plugin version.", FCVAR_NOTIFY);
-	c_iMinRed = CreateConVar("sm_bvm_minred", "4", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NOTIFY, true, 0.0, true, 10.0);
-	c_iMinRedinProg = CreateConVar("sm_bvm_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NOTIFY, true, 0.0, true, 10.0);
-	c_iGiantChance = CreateConVar("sm_bvm_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NOTIFY, true, 0.0, true, 100.0);
+	c_iMinRed = CreateConVar("sm_bvm_minred", "4", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
+	c_iMinRedinProg = CreateConVar("sm_bvm_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
+	c_iGiantChance = CreateConVar("sm_bvm_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_iGiantMinRed = CreateConVar("sm_bvm_giantminred", "5", "Minimum amount of players on RED team to allow human giants. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 8.0);
+	c_iMaxBlu = CreateConVar("sm_bvm_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 5.0);
+	c_bAutoTeamBalance = CreateConVar("sm_bvm_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bSmallMap = CreateConVar("sm_bvm_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
 	
 	// translations
 	LoadTranslations("botsvsmann.phrases");
@@ -301,6 +309,12 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
+	if( GetHumanRobotCount() > c_iMaxBlu.IntValue )
+	{
+		CPrintToChat(client, "%t", "Blu Full");
+		return Plugin_Handled;
+	}
+	
 	bool bReady = view_as<bool>(GameRules_GetProp( "m_bPlayerReady", _, client));
 	if( bReady )
 	{
@@ -314,7 +328,8 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
-	MovePlayerToBLU(client);	
+	MovePlayerToBLU(client);
+	ScalePlayerModel(client, 1.0);
 	return Plugin_Handled;
 }
 public Action Command_JoinRED( int client, int nArgs )
@@ -326,6 +341,7 @@ public Action Command_JoinRED( int client, int nArgs )
 		return Plugin_Handled;
 		
 	TF2_ChangeClientTeam(client, TFTeam_Red);
+	ScalePlayerModel(client, 1.0);
 
 	return Plugin_Handled;
 }
@@ -580,6 +596,7 @@ public Action Command_MoveTeam( int client, int nArgs )
 		else
 		{
 			TF2_ChangeClientTeam(target_list[i], NewTargetTeam);
+			ScalePlayerModel(target_list[i], 1.0);
 		}
 		LogAction(client, target_list[i], "\"%L\" changed \"%L\"'s team to %s", client, target_list[i], strLogTeam);
 	}
@@ -604,6 +621,37 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 {
 	OR_Update();
 	UpdateClassArray();
+	
+	int iMaxBlu = c_iMaxBlu.IntValue;
+	int iInBlu = GetHumanRobotCount();
+	int iInRed = GetTeamClientCount(2);
+	int iTarget;
+	bool bAutoBalance = c_bAutoTeamBalance.BoolValue;
+	// checks BLU player count
+	if( iInBlu > iMaxBlu )
+	{
+		int iOverLimit = iInBlu - iMaxBlu;
+		for( int i = 1; i <= iOverLimit; i++ )
+		{
+			iTarget = GetRandomPlayer(TFTeam_Blue, false);
+			if( iTarget > 0 )
+				TF2_ChangeClientTeam(iTarget, TFTeam_Red);
+		}
+	}
+	if( bAutoBalance )
+	{
+		// if the number of players in RED is less than the minimum to join BLU
+		if( iInRed < c_iMinRed.IntValue )
+		{
+			int iCount = c_iMinRed.IntValue - iInRed;
+			for( int i = 1; i <= iCount; i++ )
+			{
+				iTarget = GetRandomPlayer(TFTeam_Blue, false);
+				if( iTarget > 0 )
+					TF2_ChangeClientTeam(iTarget, TFTeam_Red);
+			}
+		}
+	}
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
@@ -1021,7 +1069,7 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 {
 	//TF2_SetPlayerClass(client, TFClass);
 	CreateTimer(1.0, Timer_SetRobotClass, client);
-	if( GetRandomInt(0, 100) <= c_iGiantChance.IntValue && bGiants )
+	if( GetRandomInt(0, 100) <= c_iGiantChance.IntValue && bGiants && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue )
 	{
 		// giant
 		iBotType[client] = Bot_Giant;
@@ -1222,6 +1270,52 @@ void SetGiantVariantExtras(int client,TFClassType TFClass)
 	}
 }
 
+// sets the player scale based on robot type
+void SetRobotScale(client)
+{
+	bool bSmallMap = c_bSmallMap.BoolValue;
+	
+	if( bSmallMap )
+	{
+		if( iBotType[client] == Bot_Giant || iBotType[client] == Bot_Boss || iBotType[client] == Bot_Buster || iBotType[client] == Bot_Big )
+		{
+			ScalePlayerModel(client, 1.10);
+		}
+		else if( iBotType[client] == Bot_Small )
+		{
+			ScalePlayerModel(client, 0.65);
+		}
+		else
+		{
+			ScalePlayerModel(client, 1.00);
+		}
+	}
+	else
+	{
+		if( iBotType[client] == Bot_Giant || iBotType[client] == Bot_Buster )
+		{
+			ScalePlayerModel(client, 1.75);
+		}
+		else if( iBotType[client] == Bot_Boss )
+		{
+			ScalePlayerModel(client, 1.90);
+		}
+		else if( iBotType[client] == Bot_Big )
+		{
+			ScalePlayerModel(client, 1.65); // placeholder, not all classes uses 1.65 for big mode
+		}
+		else if( iBotType[client] == Bot_Small )
+		{
+			ScalePlayerModel(client, 0.65); // placeholder, not all classes uses 1.65 for big mode
+		}
+		else
+		{
+			ScalePlayerModel(client, 1.00);
+		}
+	}
+}
+
+// change player size and update hitbox
 void ScalePlayerModel(const int client, const float fScale)
 {
 	static const float vecTF2PlayerMin[3] = { -24.5, -24.5, 0.0 }, Float:vecTF2PlayerMax[3] = { 24.5,  24.5, 83.0 };
