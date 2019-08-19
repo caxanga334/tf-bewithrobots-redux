@@ -57,6 +57,7 @@ bool g_bUpgradeStation[MAXPLAYERS + 1];
 
 // convars
 ConVar c_iMinRed;
+ConVar c_iMinRedinProg; // minimum red players to join BLU while the wave is in progress.
 ConVar c_iGiantChance;
 
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -117,7 +118,8 @@ public void OnPluginStart()
 {	
 	// convars
 	CreateConVar("sm_botvsmann_version", PLUGIN_VERSION, "Robots vs Mann plugin version.", FCVAR_NOTIFY);
-	c_iMinRed = CreateConVar("sm_bvm_minred", "3", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NOTIFY, true, 0.0, true, 10.0);
+	c_iMinRed = CreateConVar("sm_bvm_minred", "4", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NOTIFY, true, 0.0, true, 10.0);
+	c_iMinRedinProg = CreateConVar("sm_bvm_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NOTIFY, true, 0.0, true, 10.0);
 	c_iGiantChance = CreateConVar("sm_bvm_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NOTIFY, true, 0.0, true, 100.0);
 	
 	// translations
@@ -186,6 +188,8 @@ public void OnClientDisconnect(client)
 {
 	iBotType[client] = Bot_Normal;
 	iBotVariant[client] = 0;
+	iBotEffect[client] = 0;
+	BotClass[client] = TFClass_Unknown;
 	g_bUpgradeStation[client] = false;
 }
 
@@ -270,6 +274,9 @@ public Action Command_JoinBLU( int client, int nArgs )
 	if( !IsClientInGame(client) || IsFakeClient(client) )
 		return Plugin_Continue;
 		
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+		return Plugin_Handled;
+		
 	if( ay_avclass.Length < 1 )
 	{
 		CPrintToChat(client, "Wave Data isn't ready, rebuilding... Please try again."); // to-do: translate
@@ -277,9 +284,16 @@ public Action Command_JoinBLU( int client, int nArgs )
 		UpdateClassArray();
 		return Plugin_Handled;
 	}
-		
-	int iMinRed = c_iMinRed.IntValue;
 	
+	int iMinRed = c_iMinRedinProg.IntValue;
+	if( GameRules_GetRoundState() == RoundState_RoundRunning && GetTeamClientCount(2) < iMinRed )
+	{
+		CPrintToChat(client,"%t", "Not in Prog");
+		CPrintToChat(client,"%t","Num Red",iMinRed);
+		return Plugin_Handled;
+	}
+	
+	iMinRed = c_iMinRed.IntValue;
 	if( GetTeamClientCount(2) < iMinRed )
 	{
 		CPrintToChat(client,"%t","Need Red");
@@ -307,6 +321,9 @@ public Action Command_JoinRED( int client, int nArgs )
 {
 	if( !IsClientInGame(client) || IsFakeClient(client) )
 		return Plugin_Continue;
+		
+	if( TF2_GetClientTeam(client) == TFTeam_Red )
+		return Plugin_Handled;
 		
 	TF2_ChangeClientTeam(client, TFTeam_Red);
 
@@ -361,10 +378,6 @@ public Action Command_Debug( int client, int nArgs )
 	{
 		ReplyToCommand(client, "Not Ready");
 	}
-	
-	int iEntFlags = GetEntityFlags( client );
-	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
-	//SetEntityFlags( client, iEntFlags );
 	
 	return Plugin_Handled;
 }
