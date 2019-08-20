@@ -51,9 +51,11 @@ int iBotEffect[MAXPLAYERS + 1];
 TFClassType BotClass[MAXPLAYERS + 1];
 
 ArrayList ay_avclass; // array containing available classes
+ArrayList array_spawns; // spawn points for human players
 
 // others
 bool g_bUpgradeStation[MAXPLAYERS + 1];
+char MapName[64];
 
 // convars
 ConVar c_iMinRed;
@@ -65,6 +67,16 @@ ConVar c_bAutoTeamBalance;
 ConVar c_bSmallMap; // change robot scale to avoid getting stuck in maps such as mvm_2fort
 
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
+
+enum SpawnType
+{
+	Spawn_Normal = 0,
+	Spawn_Giant = 1,
+	Spawn_Sniper = 2,
+	Spawn_Spy = 3,
+	Spawn_Buster = 4,
+	Spawn_Boss = 5
+}
 
 enum
 {
@@ -148,6 +160,8 @@ public void OnPluginStart()
 	AddCommandListener( Listener_Ready, "tournament_player_readystate" );
 	AddCommandListener( Listener_Suicide, "kill" );
 	AddCommandListener( Listener_Suicide, "explode" );
+	AddCommandListener( Listener_Suicide, "dropitem" ); // not a suicide command but same blocking rule
+	AddCommandListener( Listener_Build, "build" );
 	
 	// EVENTS
 	HookEvent( "mvm_begin_wave", E_WaveStart );
@@ -180,6 +194,8 @@ public void OnMapStart()
 	{
 		SetFailState("This plugin is for Mann vs Machine Only.") // probably easier than add IsMvM everywhere
 	}
+	
+	GetCurrentMap(MapName, sizeof(MapName));
 	
 	int i;
 	
@@ -665,6 +681,16 @@ public Action Listener_Suicide(int client, const char[] command, int argc)
 	return Plugin_Continue;
 }
 
+public Action Listener_Build(int client, const char[] command, int argc)
+{
+	if( TF2_GetClientTeam(client) == TFTeam_Blue && TF2Spawn_IsClientInSpawn2(client) )
+	{
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
+}
+
 /****************************************************
 					EVENTS
 *****************************************************/
@@ -924,6 +950,9 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
 		SetRobotScale(client);
+		
+		// teleport player
+		TeleportToSpawnPoint(client, TFClass);
 	}
 	
 	return Plugin_Handled;
@@ -1453,4 +1482,216 @@ bool IsMvM(bool forceRecalc = false)
 		found = true;
 	}
 	return ismvm;
+}
+
+// teleports robot players to random spawn points
+void TeleportToSpawnPoint(int client, TFClassType TFClass)
+{
+	int iSpawn;
+	float vecOrigin[3];
+	float vecAngles[3];
+	
+	if( iBotType[client] == Bot_Giant || iBotType[client] == Bot_Big )
+	{
+		iSpawn = FindRandomSpawnPoint( Spawn_Giant );
+	}
+	else if( iBotType[client] == Bot_Buster )
+	{
+		iSpawn = FindRandomSpawnPoint( Spawn_Buster );		
+	}
+	else if( iBotType[client] == Bot_Boss )
+	{
+		iSpawn = FindRandomSpawnPoint( Spawn_Boss );		
+	}
+	else if( TFClass == TFClass_Sniper )
+	{
+		iSpawn = FindRandomSpawnPoint( Spawn_Sniper );
+	}
+	else if( TFClass == TFClass_Spy )
+	{
+		iSpawn = FindRandomSpawnPoint( Spawn_Spy );
+	}
+	else
+	{
+		iSpawn = FindRandomSpawnPoint( Spawn_Normal );
+	}
+	
+	if( iSpawn > MaxClients && IsValidEntity(iSpawn) )
+	{
+		GetEntPropVector( iSpawn, Prop_Send, "m_vecOrigin", vecOrigin );
+		GetEntPropVector( iSpawn, Prop_Data, "m_angRotation", vecAngles );		
+		TeleportEntity(client, vecOrigin, vecAngles, NULL_VECTOR);
+	}
+}
+
+// finds a random spawn point for human players
+int FindRandomSpawnPoint( SpawnType iType )
+{
+	int iEnt = -1;
+	char strSpawnName[64];
+	
+	array_spawns = new ArrayList();
+	
+	while( ( iEnt = FindEntityByClassname( iEnt, "info_player_teamspawn") ) != -1 )
+		if( GetEntProp( iEnt, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) && GetEntProp( iEnt, Prop_Data, "m_bDisabled" ) == 0 ) // ignore disabled spawn points
+		{
+			GetEntPropString( iEnt, Prop_Data, "m_iName", strSpawnName, sizeof(strSpawnName) );
+			
+			if( iType == Spawn_Normal )
+			{
+				if( StrEqual( strSpawnName, "spawnbot" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_bwr" ) ) // compatibility with old stripper files
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_bvm" ) ) // custom spawn point
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_invasion" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_lower" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_left" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_right" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_single_flag" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_main0" ) ) // mannhattan
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_main1" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_main2" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_upper0" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_upper1" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_upper2" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+			}
+			else if( iType == Spawn_Giant || iType == Spawn_Buster )
+			{
+				if( StrEqual( strSpawnName, "spawnbot_giant" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_main0_squad" ) ) // mannhattan
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_main1" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_main2_giants" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_mission_sentry_buster" ) && iType == Spawn_Buster )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_mission_sentrybuster" ) && iType == Spawn_Buster )
+				{
+					array_spawns.Push( iEnt );
+				}
+			}
+			else if( iType == Spawn_Sniper )
+			{
+				if( StrEqual( strSpawnName, "spawnbot_mission_sniper" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_mission_sniper0" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_mission_sniper1" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_mission_sniper2" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_mission_sniper3" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+			}
+			else if( iType == Spawn_Spy )
+			{
+				if( StrEqual( strSpawnName, "spawnbot_mission_spy" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+			}
+			else if( iType == Spawn_Boss )
+			{
+				// look for boss spawn points first
+				if( StrEqual( strSpawnName, "spawnbot_chief" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_boss" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+
+				// if none is found, use giant spawn points.
+				if( array_spawns.Length < 1 )
+				{
+					if( StrEqual( strSpawnName, "spawnbot_giant" ) )
+					{
+						array_spawns.Push( iEnt );
+					}
+					else if( StrEqual( strSpawnName, "spawnbot_main0_squad" ) ) // mannhattan
+					{
+						array_spawns.Push( iEnt );
+					}
+					else if( StrEqual( strSpawnName, "spawnbot_main1" ) )
+					{
+						array_spawns.Push( iEnt );
+					}
+					else if( StrEqual( strSpawnName, "spawnbot_main2_giants" ) )
+					{
+						array_spawns.Push( iEnt );
+					}			
+				}
+			}
+		}
+	if( array_spawns.Length > 0 )
+	{
+		int iCell = GetRandomInt(0, (array_spawns.Length - 1));
+		return array_spawns.Get(iCell);
+	}
+		
+	return -1;
 }
