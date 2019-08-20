@@ -751,7 +751,6 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 
 public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 {
-	PrintToChatAll("E_ChangeClass");
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	TFClassType TFClass = view_as<TFClassType>(event.GetInt("class"));
 	
@@ -762,19 +761,20 @@ public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 			BotClass[client] = TFClass;
 			PickRandomVariant(client,TFClass,false);
 			SetVariantExtras(client,TFClass);
+			TeleportToSpawnPoint(client,TFClass)
 		}
 		else
 		{
 			PickRandomVariant(client,BotClass[client],false);
 			SetVariantExtras(client,BotClass[client]);
 			TF2_SetPlayerClass(client,BotClass[client]);
+			TeleportToSpawnPoint(client,BotClass[client])
 		}
 	}
 }
 
 public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
-	PrintToChatAll("E_Pre_PlayerSpawn");
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
@@ -795,7 +795,6 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 
 public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
-	PrintToChatAll("E_PlayerSpawn");
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	CreateTimer(0.1, Timer_OnPlayerSpawn, client);
 	
@@ -808,7 +807,6 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 
 public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
-	PrintToChatAll("E_Pre_PlayerDeath");
 	int deathflags = event.GetInt("death_flags");
 	if(deathflags & TF_DEATHFLAG_DEADRINGER)
 		return Plugin_Handled;
@@ -824,7 +822,6 @@ public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadca
 
 public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
-	PrintToChatAll("E_PlayerDeath");
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
