@@ -146,6 +146,8 @@ public void OnPluginStart()
 	
 	// listener
 	AddCommandListener( Listener_Ready, "tournament_player_readystate" );
+	AddCommandListener( Listener_Suicide, "kill" );
+	AddCommandListener( Listener_Suicide, "explode" );
 	
 	// EVENTS
 	HookEvent( "mvm_begin_wave", E_WaveStart );
@@ -647,6 +649,16 @@ public Action Listener_Ready(int client, const char[] command, int argc)
 {
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{ // todo: add translated message
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
+}
+
+public Action Listener_Suicide(int client, const char[] command, int argc)
+{
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	{
 		return Plugin_Handled;
 	}
 	
