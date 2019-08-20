@@ -50,6 +50,9 @@ int iBotVariant[MAXPLAYERS + 1];
 int iBotEffect[MAXPLAYERS + 1];
 TFClassType BotClass[MAXPLAYERS + 1];
 
+// bomb
+bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
+
 ArrayList ay_avclass; // array containing available classes
 ArrayList array_spawns; // spawn points for human players
 
@@ -173,8 +176,8 @@ public void OnPluginStart()
 	HookEvent( "player_death", E_Pre_PlayerDeath, EventHookMode_Pre );
 	HookEvent( "player_spawn", E_Pre_PlayerSpawn, EventHookMode_Pre );
 	HookEvent( "player_spawn", E_PlayerSpawn );
-	HookEvent("teamplay_flag_event", E_FlagPickup);
-	HookEvent("teamplay_flag_event", E_FlagDrop);
+	HookEvent( "teamplay_flag_event", E_FlagPickup );
+	HookEvent( "teamplay_flag_event", E_FlagDrop );
 	HookEvent( "post_inventory_application", E_Inventory );
 	
 	ID_MVMResetUpgrade = GetUserMessageId("MVMResetPlayerUpgradeSpending");
@@ -386,6 +389,9 @@ public Action Command_JoinRED( int client, int nArgs )
 		
 	TF2_ChangeClientTeam(client, TFTeam_Red);
 	ScalePlayerModel(client, 1.0);
+	ResetRobotData(client);
+	SetVariantString( "" );
+	AcceptEntityInput( client, "SetCustomModel" );
 
 	return Plugin_Handled;
 }
@@ -761,14 +767,12 @@ public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 			BotClass[client] = TFClass;
 			PickRandomVariant(client,TFClass,false);
 			SetVariantExtras(client,TFClass);
-			TeleportToSpawnPoint(client,TFClass)
 		}
 		else
 		{
 			PickRandomVariant(client,BotClass[client],false);
 			SetVariantExtras(client,BotClass[client]);
 			TF2_SetPlayerClass(client,BotClass[client]);
-			TeleportToSpawnPoint(client,BotClass[client])
 		}
 	}
 }
@@ -947,6 +951,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
 		SetRobotScale(client);
+		SetRobotModel(client,TFClass);
 		
 		// teleport player
 		TeleportToSpawnPoint(client, TFClass);
@@ -1412,7 +1417,7 @@ void SetRobotScale(client)
 		}
 		else if( iBotType[client] == Bot_Big )
 		{
-			ScalePlayerModel(client, 1.65); // placeholder, not all classes uses 1.65 for big mode
+			ScalePlayerModel(client, 1.5); // placeholder, not all classes uses 1.65 for big mode
 		}
 		else if( iBotType[client] == Bot_Small )
 		{
@@ -1459,6 +1464,7 @@ void ResetRobotData(int client)
 	iBotVariant[client] = 0;
 	iBotEffect[client] = 0;
 	BotClass[client] = TFClass_Unknown;
+	g_bIsCarrier[client] = false;
 	g_bUpgradeStation[client] = false;
 }
 
@@ -1479,6 +1485,56 @@ bool IsMvM(bool forceRecalc = false)
 		found = true;
 	}
 	return ismvm;
+}
+
+// sets robot model
+void SetRobotModel(int client, TFClassType TFClass)
+{
+	char strModel[PLATFORM_MAX_PATH];
+	
+	switch( TFClass )
+	{
+		case TFClass_Scout: strcopy( strModel, sizeof(strModel), "scout" );
+		case TFClass_Sniper: strcopy( strModel, sizeof(strModel), "sniper" );
+		case TFClass_Soldier: strcopy( strModel, sizeof(strModel), "soldier" );
+		case TFClass_DemoMan: strcopy( strModel, sizeof(strModel), "demo" );
+		case TFClass_Medic: strcopy( strModel, sizeof(strModel), "medic" );
+		case TFClass_Heavy: strcopy( strModel, sizeof(strModel), "heavy" );
+		case TFClass_Pyro: strcopy( strModel, sizeof(strModel), "pyro" );
+		case TFClass_Spy: strcopy( strModel, sizeof(strModel), "spy" );
+		case TFClass_Engineer: strcopy( strModel, sizeof(strModel), "engineer" );
+	}
+	
+	if( strlen(strModel) > 0 )
+	{
+		if( iBotType[client] == Bot_Giant || iBotType[client] == Bot_Boss )
+		{
+			if( TFClass == TFClass_DemoMan || TFClass == TFClass_Heavy || TFClass == TFClass_Pyro || TFClass == TFClass_Scout || TFClass == TFClass_Soldier )
+				Format( strModel, sizeof( strModel ), "models/bots/%s_boss/bot_%s_boss.mdl", strModel, strModel );
+			else
+				Format( strModel, sizeof( strModel ), "models/bots/%s/bot_%s.mdl", strModel, strModel );
+		}
+		else if( iBotType[client] == Bot_Buster )
+		{
+			Format( strModel, sizeof( strModel ), "models/bots/demo/bot_sentry_buster.mdl" );
+		}
+		else
+		{
+			Format( strModel, sizeof( strModel ), "models/bots/%s/bot_%s.mdl", strModel, strModel );
+		}
+		
+		if( OR_IsHalloweenMission() )
+		{
+			SetVariantString( "" );
+			AcceptEntityInput( client, "SetCustomModel" );
+		}
+		else
+		{
+			SetVariantString( strModel );
+			AcceptEntityInput( client, "SetCustomModel" );
+			SetEntProp( client, Prop_Send, "m_bUseClassAnimations", 1 );
+		}
+	}
 }
 
 // teleports robot players to random spawn points
