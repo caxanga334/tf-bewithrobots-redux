@@ -144,6 +144,9 @@ public void OnPluginStart()
 	RegAdminCmd( "sm_bvm_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
 	RegAdminCmd( "sm_bvm_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
 	
+	// listener
+	AddCommandListener( Listener_Ready, "tournament_player_readystate" );
+	
 	// EVENTS
 	HookEvent( "mvm_begin_wave", E_WaveStart );
 	HookEvent( "mvm_wave_complete", E_WaveEnd );
@@ -239,6 +242,11 @@ public void TF2Spawn_LeaveSpawn(client, entity)
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
 		TF2_RemoveCondition(client, TFCond_UberchargedHidden);
+		
+		if( GameRules_GetRoundState() == RoundState_BetweenRounds )
+		{
+			TF2_RespawnPlayer(client);
+		}
 	}
 }
 
@@ -629,6 +637,20 @@ public Action Command_MoveTeam( int client, int nArgs )
 	}
 	
 	return Plugin_Handled;
+}
+
+/****************************************************
+					LISTENER
+*****************************************************/
+
+public Action Listener_Ready(int client, const char[] command, int argc)
+{
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	{ // todo: add translated message
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
 }
 
 /****************************************************
