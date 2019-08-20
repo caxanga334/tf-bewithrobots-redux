@@ -216,6 +216,11 @@ public void OnGameFrame()
 				{
 					SetEntPropFloat( i, Prop_Send, "m_flCloakMeter", 100.0 );
 				}
+				
+				if( GameRules_GetRoundState() == RoundState_BetweenRounds )
+				{
+					TF2_AddCondition(i, TFCond_FreezeInput, 0.255);
+				}
 			}
 		}
 	}
@@ -237,23 +242,39 @@ public void TF2Spawn_LeaveSpawn(client, entity)
 	}
 }
 
-// IsMvM code by FlaminSarge
-bool IsMvM(bool forceRecalc = false)
+public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
-	static bool found = false;
-	static bool ismvm = false;
-	if (forceRecalc)
+	if( IsFakeClient(client) || !IsPlayerAlive(client) )
+		return Plugin_Continue;
+		
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
-		found = false;
-		ismvm = false;
+		if( TF2Spawn_IsClientInSpawn2(client) )
+		{
+			if( buttons & IN_ATTACK )
+			{
+				buttons &= ~IN_ATTACK;
+				buttons &= ~IN_ATTACK2;
+				buttons &= ~IN_ATTACK3;
+				return Plugin_Changed;
+			}
+			else if( buttons & IN_ATTACK2 )
+			{
+				buttons &= ~IN_ATTACK;
+				buttons &= ~IN_ATTACK2;
+				buttons &= ~IN_ATTACK3;
+				return Plugin_Changed;
+			}
+			else if( buttons & IN_ATTACK3 )
+			{
+				buttons &= ~IN_ATTACK;
+				buttons &= ~IN_ATTACK2;
+				buttons &= ~IN_ATTACK3;
+				return Plugin_Changed;
+			}
+		}
 	}
-	if (!found)
-	{
-		int i = FindEntityByClassname(-1, "tf_logic_mann_vs_machine");
-		if (i > MaxClients && IsValidEntity(i)) ismvm = true;
-		found = true;
-	}
-	return ismvm;
+	return Plugin_Continue;
 }
 
 /****************************************************
@@ -314,7 +335,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 	}
 	
 	bool bReady = view_as<bool>(GameRules_GetProp( "m_bPlayerReady", _, client));
-	if( bReady )
+	if( bReady && GameRules_GetRoundState() == RoundState_BetweenRounds )
 	{
 		CPrintToChat(client,"%t","Unready");
 		return Plugin_Handled;
@@ -1379,4 +1400,23 @@ void ResetRobotData(int client)
 	iBotEffect[client] = 0;
 	BotClass[client] = TFClass_Unknown;
 	g_bUpgradeStation[client] = false;
+}
+
+// IsMvM code by FlaminSarge
+bool IsMvM(bool forceRecalc = false)
+{
+	static bool found = false;
+	static bool ismvm = false;
+	if (forceRecalc)
+	{
+		found = false;
+		ismvm = false;
+	}
+	if (!found)
+	{
+		int i = FindEntityByClassname(-1, "tf_logic_mann_vs_machine");
+		if (i > MaxClients && IsValidEntity(i)) ismvm = true;
+		found = true;
+	}
+	return ismvm;
 }
