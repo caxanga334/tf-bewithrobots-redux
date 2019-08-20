@@ -320,7 +320,7 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 			{
 				case -1: strcopy( strBotName, 128, "Your own Scout" );
 				case 0: strcopy( strBotName, 128, "Standard Scout" );
-				case 1: strcopy( strBotName, 128, "Batsaber Scout" );
+				case 1: strcopy( strBotName, 128, "Bat Scout" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}
 		}
@@ -340,7 +340,7 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 			{
 				case -1: strcopy( strBotName, 128, "Your own Pyro" );
 				case 0: strcopy( strBotName, 128, "Standard Pyro" );
-				case 1: strcopy( strBotName, 128, "Batsaber Scout" );
+				case 1: strcopy( strBotName, 128, "Pyro" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}		
 		}
@@ -350,7 +350,7 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 			{
 				case -1: strcopy( strBotName, 128, "Your own Demoman" );
 				case 0: strcopy( strBotName, 128, "Standard Demoman" );
-				case 1: strcopy( strBotName, 128, "Batsaber Scout" );
+				case 1: strcopy( strBotName, 128, "General Kenobi" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}		
 		}
@@ -360,7 +360,7 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 			{
 				case -1: strcopy( strBotName, 128, "Your own Heavy" );
 				case 0: strcopy( strBotName, 128, "Standard Heavy" );
-				case 1: strcopy( strBotName, 128, "Batsaber Scout" );
+				case 1: strcopy( strBotName, 128, "Gabe Newell" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}		
 		}
@@ -370,7 +370,7 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 			{
 				case -1: strcopy( strBotName, 128, "Your own Engineer" );
 				case 0: strcopy( strBotName, 128, "Standard Engineer" );
-				case 1: strcopy( strBotName, 128, "Batsaber Scout" );
+				case 1: strcopy( strBotName, 128, "virus.exe" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}			
 		}
@@ -380,7 +380,7 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 			{
 				case -1: strcopy( strBotName, 128, "Your own Medic" );
 				case 0: strcopy( strBotName, 128, "Standard Medic" );
-				case 1: strcopy( strBotName, 128, "Batsaber Scout" );
+				case 1: strcopy( strBotName, 128, "item_healthkit" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}			
 		}
@@ -390,7 +390,7 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 			{
 				case -1: strcopy( strBotName, 128, "Your own Sniper" );
 				case 0: strcopy( strBotName, 128, "Standard Sniper" );
-				case 1: strcopy( strBotName, 128, "Batsaber Scout" );
+				case 1: strcopy( strBotName, 128, "aimbot" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}
 		}
@@ -400,7 +400,7 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 			{
 				case -1: strcopy( strBotName, 128, "Your own Spy" );
 				case 0: strcopy( strBotName, 128, "Standard Spy" );
-				case 1: strcopy( strBotName, 128, "Batsaber Scout" );
+				case 1: strcopy( strBotName, 128, "baguette" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}
 		}

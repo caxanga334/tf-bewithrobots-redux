@@ -154,6 +154,8 @@ public void OnPluginStart()
 	HookEvent( "player_death", E_Pre_PlayerDeath, EventHookMode_Pre );
 	HookEvent( "player_spawn", E_Pre_PlayerSpawn, EventHookMode_Pre );
 	HookEvent( "player_spawn", E_PlayerSpawn );
+	HookEvent("teamplay_flag_event", E_FlagPickup);
+	HookEvent("teamplay_flag_event", E_FlagDrop);
 	HookEvent( "post_inventory_application", E_Inventory );
 	
 	ID_MVMResetUpgrade = GetUserMessageId("MVMResetPlayerUpgradeSpending");
@@ -194,11 +196,7 @@ public void OnMapStart()
 
 public void OnClientDisconnect(client)
 {
-	iBotType[client] = Bot_Normal;
-	iBotVariant[client] = 0;
-	iBotEffect[client] = 0;
-	BotClass[client] = TFClass_Unknown;
-	g_bUpgradeStation[client] = false;
+	ResetRobotData(client);
 }
 
 public void OnGameFrame()
@@ -329,7 +327,6 @@ public Action Command_JoinBLU( int client, int nArgs )
 	}
 	
 	MovePlayerToBLU(client);
-	ScalePlayerModel(client, 1.0);
 	return Plugin_Handled;
 }
 public Action Command_JoinRED( int client, int nArgs )
@@ -628,7 +625,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	int iTarget;
 	bool bAutoBalance = c_bAutoTeamBalance.BoolValue;
 	// checks BLU player count
-	if( iInBlu > iMaxBlu )
+	if( iInBlu > iMaxBlu && iInBlu > 0 )
 	{
 		int iOverLimit = iInBlu - iMaxBlu;
 		for( int i = 1; i <= iOverLimit; i++ )
@@ -641,7 +638,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	if( bAutoBalance )
 	{
 		// if the number of players in RED is less than the minimum to join BLU
-		if( iInRed < c_iMinRed.IntValue )
+		if( iInRed < c_iMinRed.IntValue && iInBlu > 0 )
 		{
 			int iCount = c_iMinRed.IntValue - iInRed;
 			for( int i = 1; i <= iCount; i++ )
@@ -679,9 +676,18 @@ public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
-		BotClass[client] = TFClass;
-		PickRandomVariant(client,TFClass,false);
-		SetVariantExtras(client,TFClass);
+		if( IsClassAvailable(TFClass) )
+		{
+			BotClass[client] = TFClass;
+			PickRandomVariant(client,TFClass,false);
+			SetVariantExtras(client,TFClass);
+		}
+		else
+		{
+			PickRandomVariant(client,BotClass[client],false);
+			SetVariantExtras(client,BotClass[client]);
+			TF2_SetPlayerClass(client,BotClass[client]);
+		}
 	}
 }
 
@@ -777,6 +783,26 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
+public Action E_FlagPickup(Event event, const char[] name, bool dontBroadcast)
+{
+	if( event.GetInt("eventtype") == TF_FLAGEVENT_PICKEDUP )
+	{
+		int client = event.GetInt("player");
+		if( !IsFakeClient(client) )
+			PrintToChatAll("%N picked up the bomb", client);
+	}
+}
+
+public Action E_FlagDrop(Event event, const char[] name, bool dontBroadcast)
+{
+	if( event.GetInt("eventtype") == TF_FLAGEVENT_DROPPED )
+	{
+		int client = event.GetInt("player");
+		if( !IsFakeClient(client) )
+			PrintToChatAll("%N dropped the bomb", client);
+	}
+}
+
 /****************************************************
 					USER MESSAGE
 *****************************************************/
@@ -842,6 +868,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			strBotName = GetNormalVariantName(TFClass, iBotVariant[client]);
 		}
 		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
+		SetRobotScale(client);
 	}
 	
 	return Plugin_Handled;
@@ -878,7 +905,7 @@ void MovePlayerToBLU(int client)
 	if( !IsFakeClient(client) )
 	{
 		SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
-		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", _:false );
+		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 	}
 	
 	int iEntFlags = GetEntityFlags( client );
@@ -886,8 +913,10 @@ void MovePlayerToBLU(int client)
 	TF2_ChangeClientTeam(client, TFTeam_Blue);
 	SetEntityFlags( client, iEntFlags );
 	
+	ScalePlayerModel(client, 1.0);
 	PickRandomRobot(client);
 }
+
 // selects a random player from a team
 int GetRandomPlayer(TFTeam Team, bool bIncludeBots = false)
 {
@@ -1306,7 +1335,7 @@ void SetRobotScale(client)
 		}
 		else if( iBotType[client] == Bot_Small )
 		{
-			ScalePlayerModel(client, 0.65); // placeholder, not all classes uses 1.65 for big mode
+			ScalePlayerModel(client, 0.65);
 		}
 		else
 		{
@@ -1318,7 +1347,7 @@ void SetRobotScale(client)
 // change player size and update hitbox
 void ScalePlayerModel(const int client, const float fScale)
 {
-	static const float vecTF2PlayerMin[3] = { -24.5, -24.5, 0.0 }, Float:vecTF2PlayerMax[3] = { 24.5,  24.5, 83.0 };
+	static const float vecTF2PlayerMin[3] = { -24.5, -24.5, 0.0 }, vecTF2PlayerMax[3] = { 24.5,  24.5, 83.0 };
 
 	float vecScaledPlayerMin[3];
 	float vecScaledPlayerMax[3];
@@ -1341,4 +1370,13 @@ void OnRefund(int client)
 	{
 		g_bUpgradeStation[client] = false;
 	}
+}
+
+void ResetRobotData(int client)
+{
+	iBotType[client] = Bot_Normal;
+	iBotVariant[client] = 0;
+	iBotEffect[client] = 0;
+	BotClass[client] = TFClass_Unknown;
+	g_bUpgradeStation[client] = false;
 }
