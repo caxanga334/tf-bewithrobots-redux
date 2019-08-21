@@ -169,11 +169,7 @@ void GiveNormalInventory(int client ,int botvariant)
 				}
 				case 1: // Heavyweight Champ
 				{
-					iWeapon = SpawnWeapon( client, "tf_weapon_grenadelauncher", 19, 1, 6, false );
-					TF2Attrib_SetByName(iWeapon, "faster reload rate", 1.75);
-					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 0.05);
-					TF2Attrib_SetByName(iWeapon, "clip size penalty", 0.5);
-					TF2Attrib_SetByName(iWeapon, "projectile spread angle penalty", 3.0);
+					iWeapon = SpawnWeapon( client, "tf_weapon_fists", 43, 1, 6, false );
 					return;					
 				}
 			}			
@@ -285,15 +281,6 @@ void GiveGiantInventory(int client ,int botvariant)
 		{
 			switch( botvariant )
 			{
-				case -1: // own giant scout
-				{
-					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
-					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1475.0);
-					TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.7);
-					TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.7);
-					TF2Attrib_SetByName(iWeapon, "override footstep sound set", 5.0);
-					return;
-				}
 				case 0: // giant scout
 				{
 					iWeapon = SpawnWeapon( client, "tf_weapon_scattergun", 13, 1, 6, false ); // client, classname, item index, level, quality, Is Wearable?
@@ -319,16 +306,6 @@ void GiveGiantInventory(int client ,int botvariant)
 		{
 			switch( botvariant )
 			{
-				case -1: // own giant soldier
-				{
-					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
-					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 3600.0);
-					TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-					TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
-					TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
-					TF2Attrib_SetByName(iWeapon, "override footstep sound set", 3.0);
-					return;
-				}
 				case 0: // giant soldier
 				{
 					iWeapon = SpawnWeapon( client, "tf_weapon_rocketlauncher", 18, 1, 6, false );
@@ -358,16 +335,6 @@ void GiveGiantInventory(int client ,int botvariant)
 		{
 			switch( botvariant )
 			{
-				case -1: // own giant pyro
-				{
-					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
-					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 2825.0);
-					TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-					TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.6);
-					TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.6);
-					TF2Attrib_SetByName(iWeapon, "override footstep sound set", 6.0);
-					return;
-				}
 				case 0: // giant pyro
 				{
 					iWeapon = SpawnWeapon( client, "tf_weapon_flamethrower", 21, 1, 6, false );
@@ -396,16 +363,6 @@ void GiveGiantInventory(int client ,int botvariant)
 		{
 			switch( botvariant )
 			{
-				case -1: // own giant demo
-				{
-					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
-					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 3125.0);
-					TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-					TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.5);
-					TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.5);
-					TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
-					return;
-				}
 				case 0: // giant rapid fire demoman
 				{
 					iWeapon = SpawnWeapon( client, "tf_weapon_grenadelauncher", 19, 1, 6, false );
@@ -435,16 +392,6 @@ void GiveGiantInventory(int client ,int botvariant)
 		{
 			switch( botvariant )
 			{
-				case -1: // own giant heavy
-				{
-					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
-					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 4700.0);
-					TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-					TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.3);
-					TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.3);
-					TF2Attrib_SetByName(iWeapon, "override footstep sound set", 2.0);
-					return;
-				}
 				case 0: // giant heavy
 				{
 					iWeapon = SpawnWeapon( client, "tf_weapon_minigun", 15, 1, 6, false );
@@ -470,35 +417,20 @@ void GiveGiantInventory(int client ,int botvariant)
 				}
 			}		
 		}
-		case TFClass_Engineer:
+/* 		case TFClass_Engineer:
 		{
 			switch( botvariant )
 			{
 				case -1: // own giant engineer
 				{
-					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
-					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1775.0);
-					TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-					TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
-					TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
-					TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
-					return;
+
 				}
 			}		
-		}
+		} */
 		case TFClass_Medic:
 		{
 			switch( botvariant )
 			{
-				case -1: // own giant medic
-				{
-					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
-					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 4350.0);
-					TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-					TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.6);
-					TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.6);
-					return;
-				}
 				case 0: // giant medic
 				{
 					SpawnWeapon( client, "tf_weapon_syringegun_medic", 17, 1, 6, false );
@@ -524,19 +456,13 @@ void GiveGiantInventory(int client ,int botvariant)
 				}
 			}		
 		}
-		case TFClass_Sniper:
+/* 		case TFClass_Sniper:
 		{
 			switch( botvariant )
 			{
-				case -1: // own giant sniper
+				case 0: // own giant sniper
 				{
-					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
-					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1275.0);
-					TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-					TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
-					TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
-					TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
-					return;
+
 				}
 			}
 		}
@@ -544,18 +470,12 @@ void GiveGiantInventory(int client ,int botvariant)
 		{
 			switch( botvariant )
 			{
-				case -1: // own giant spy
+				case 0: // own giant spy
 				{
-					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Melee);
-					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1175.0);
-					TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-					TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
-					TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
-					TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
-					return;
+
 				}
 			}
-		}
+		} */
 	}
 }
 
@@ -760,4 +680,149 @@ char GetGiantVariantName(TFClassType TFClass, int botvariant)
 	}
 	
 	return strBotName;
+}
+
+// add attributes to own variants
+void SetOwnAttributes(int client , bool bGiant)
+{
+	TFClassType TFClass = TF2_GetPlayerClass(client);
+	int iWeapon;
+	
+	if( bGiant )
+	{
+		switch( TFClass )
+		{
+			case TFClass_Scout:
+			{
+				iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1475.0);
+				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.7);
+				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.7);
+				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 5.0);
+				return;
+			}
+			case TFClass_Soldier:
+			{
+				iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 3600.0);
+				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
+				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
+				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 3.0);
+				return;
+			}
+			case TFClass_Pyro:
+			{
+				iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 2825.0);
+				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.6);
+				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.6);
+				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 6.0);
+				return;
+			}
+			case TFClass_DemoMan:
+			{
+				iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 3125.0);
+				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.5);
+				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.5);
+				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
+				return;
+			}
+			case TFClass_Heavy:
+			{
+				iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 4700.0);
+				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.3);
+				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.3);
+				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 2.0);
+				return;
+			}
+			case TFClass_Engineer:
+			{
+				iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1775.0);
+				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
+				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
+				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
+				return;
+			}
+			case TFClass_Medic:
+			{
+				iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 4350.0);
+				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.6);
+				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.6);
+				return;
+			}
+			case TFClass_Sniper:
+			{
+				iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary);
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1275.0);
+				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
+				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
+				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
+				return;
+			}
+			case TFClass_Spy:
+			{
+				iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Melee);
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1175.0);
+				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
+				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
+				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
+				return;
+			}
+		}
+	}
+	else
+	{
+		switch( TFClass )
+		{
+/* 			case TFClass_Scout:
+			{
+			}
+			case TFClass_Soldier:
+			{
+						
+			}
+			case TFClass_Pyro:
+			{
+			
+			}
+			case TFClass_DemoMan:
+			{
+
+			}
+			case TFClass_Heavy:
+			{
+		
+			} */
+			case TFClass_Engineer:
+			{
+				iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Utility);
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 375.0);	
+				return;
+			}
+/* 			case TFClass_Medic:
+			{
+
+			}
+			case TFClass_Sniper:
+			{
+
+			}
+			case TFClass_Spy:
+			{
+
+			} */
+		}
+	}
 }

@@ -11,16 +11,17 @@
 #include <tf2items>
 #include "botvsmann/objectiveres.sp"
 #include "botvsmann/bot_variants.sp"
+#include "botvsmann/functions.sp"
 
 #define PLUGIN_VERSION "0.0.1"
 
 // TODO
 /**
-- add spawn point selection
-- add robot variants
+- add spawn point selection (done)
+- add robot variants (done)
 - finish robot inventory
 - add giant inventory
-- add robot model to players
+- add robot model to players (done)
 - add spawn on teleporter
 **/
 
@@ -107,6 +108,7 @@ enum
 	BotEffect_InfiniteCloak = 4,
 	BotEffect_AutoDisguise = 8,
 	BotEffect_AlwaysMiniCrits = 16,
+	BotEffect_TeleportToHint = 32, // teleport engineers to a nest near the bomb.
 };
  
 public Plugin myinfo =
@@ -155,6 +157,8 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_joinblue", Command_JoinBLU, "Joins BLU/Robot team." );
 	RegConsoleCmd( "sm_bwr", Command_JoinBLU, "Joins BLU/Robot team." );
 	RegConsoleCmd( "sm_bewithrobots", Command_JoinBLU, "Joins BLU/Robot team." );
+	RegConsoleCmd( "sm_robotclass", Command_BotClass, "Changes your robot variant." );
+	RegConsoleCmd( "sm_rc", Command_BotClass, "Changes your robot variant." );
 	RegAdminCmd( "sm_bvm_debug", Command_Debug, ADMFLAG_ROOT, "Debug command" );
 	RegAdminCmd( "sm_bvm_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
 	RegAdminCmd( "sm_bvm_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
@@ -187,6 +191,7 @@ public void OnPluginStart()
 	HookUserMessage(ID_MVMResetUpgrade, MsgHook_MVMRespec);
 	
 	ay_avclass = new ArrayList(10);
+	array_spawns = new ArrayList();
 	
 	AutoExecConfig(true, "plugin.botsvsmachine");
 }
@@ -198,6 +203,7 @@ public void OnMapStart()
 		SetFailState("This plugin is for Mann vs Machine Only.") // probably easier than add IsMvM everywhere
 	}
 	
+	CheckMapForEntities();
 	GetCurrentMap(MapName, sizeof(MapName));
 	
 	int i;
@@ -267,6 +273,26 @@ public void TF2Spawn_LeaveSpawn(client, entity)
 		if( GameRules_GetRoundState() == RoundState_BetweenRounds )
 		{
 			TF2_RespawnPlayer(client);
+		}
+	}
+}
+
+public void OnEntityCreated(int iEntity,const char[] name)
+{
+	if ( StrEqual( name, "entity_revive_marker", false) )
+	{
+		CreateTimer(0.1, Timer_KillReviveMarker, iEntity);
+	}
+	if( StrEqual( name, "entity_medigun_shield", false ) )
+	{
+		if(IsValidEntity(iEntity))
+		{
+			int iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
+			if( IsValidClient(iOwner) && TF2_GetClientTeam(iOwner) == TFTeam_Blue )
+			{
+				SetVariantInt(1);
+				AcceptEntityInput(iEntity, "Skin" );
+			}
 		}
 	}
 }
@@ -376,9 +402,11 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
+	LogMessage("\"%L\" joined BLU.", client);
 	MovePlayerToBLU(client);
 	return Plugin_Handled;
 }
+
 public Action Command_JoinRED( int client, int nArgs )
 {
 	if( !IsClientInGame(client) || IsFakeClient(client) )
@@ -550,12 +578,12 @@ public Action Command_ForceBot( int client, int nArgs )
 			if(bForceGiants)
 			{
 				iBotType[target_list[i]] = Bot_Giant;
-				SetGiantVariantExtras(target_list[i],TargetClass);
+				SetGiantVariantExtras(target_list[i],TargetClass, iArg4);
 			}
 			else
 			{
 				iBotType[target_list[i]] = Bot_Normal;
-				SetVariantExtras(target_list[i],TargetClass);
+				SetVariantExtras(target_list[i],TargetClass, iArg4);
 			}
 			TF2_SetPlayerClass(target_list[i], TargetClass, _, true);
 			TF2_RespawnPlayer(target_list[i]);
@@ -663,6 +691,26 @@ public Action Command_MoveTeam( int client, int nArgs )
 	return Plugin_Handled;
 }
 
+public Action Command_BotClass( int client, int nArgs )
+{
+	if( !IsClientInGame(client) || IsFakeClient(client) )
+		return Plugin_Continue;
+		
+	if( TF2_GetClientTeam(client) == TFTeam_Red )
+		return Plugin_Handled;
+		
+	if( !TF2Spawn_IsClientInSpawn2(client) )
+	{
+		ReplyToCommand(client, "This command can only be used inside the spawn");
+		return Plugin_Handled;
+	}
+
+	PickRandomRobot(client);
+	TF2_RespawnPlayer(client);
+
+	return Plugin_Handled;
+}
+
 /****************************************************
 					LISTENER
 *****************************************************/
@@ -766,12 +814,12 @@ public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 		{
 			BotClass[client] = TFClass;
 			PickRandomVariant(client,TFClass,false);
-			SetVariantExtras(client,TFClass);
+			SetVariantExtras(client,TFClass, iBotVariant[client]);
 		}
 		else
 		{
 			PickRandomVariant(client,BotClass[client],false);
-			SetVariantExtras(client,BotClass[client]);
+			SetVariantExtras(client,BotClass[client], iBotVariant[client]);
 			TF2_SetPlayerClass(client,BotClass[client]);
 		}
 	}
@@ -783,9 +831,6 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
-/* 		TF2_SetPlayerClass(client, BotClass[client]);
-		TF2_RegeneratePlayer(client); */
-	
 		if( iBotEffect[client] & BotEffect_AlwaysCrits )
 		{
 			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
@@ -871,7 +916,9 @@ public Action E_FlagPickup(Event event, const char[] name, bool dontBroadcast)
 	{
 		int client = event.GetInt("player");
 		if( !IsFakeClient(client) )
-			PrintToChatAll("%N picked up the bomb", client);
+		{
+			g_bIsCarrier[client] = true;
+		}
 	}
 }
 
@@ -881,7 +928,9 @@ public Action E_FlagDrop(Event event, const char[] name, bool dontBroadcast)
 	{
 		int client = event.GetInt("player");
 		if( !IsFakeClient(client) )
-			PrintToChatAll("%N dropped the bomb", client);
+		{
+			g_bIsCarrier[client] = false;
+		}
 	}
 }
 
@@ -906,6 +955,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	char strBotName[128];
+	int iTeleTarget = -1;
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
@@ -954,7 +1004,53 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		SetRobotModel(client,TFClass);
 		
 		// teleport player
-		TeleportToSpawnPoint(client, TFClass);
+		if( GameRules_GetRoundState() == RoundState_RoundRunning )
+		{
+			switch( TFClass )
+			{
+				case TFClass_Spy:
+				{
+					iTeleTarget = FindNearestSpyHint();
+					if( iTeleTarget != -1 )
+					{
+						TF2_AddCondition(client, TFCond_StealthedUserBuffFade, 2.0);
+						TeleportPlayerToEntity(iTeleTarget, client)
+					}
+					else
+					{
+						TeleportToSpawnPoint(client, TFClass);
+					}				
+				}
+				case TFClass_Engineer:
+				{
+					iTeleTarget = FindEngineerNestNearBomb();
+					if( iTeleTarget != -1 && iBotEffect[client] & BotEffect_TeleportToHint )
+					{
+						TF2_AddCondition(client, TFCond_StealthedUserBuffFade, 2.0);
+						TeleportPlayerToEntity(iTeleTarget, client)
+					}
+					else
+					{
+						TeleportToSpawnPoint(client, TFClass);
+					}					
+				}
+			}
+		}
+		else
+		{
+			TeleportToSpawnPoint(client, TFClass);
+		}
+		
+		// apply attributes to own loadout
+		if( iBotVariant[client] == -1 )
+		{
+			if( iBotType[client] == Bot_Giant )
+				SetOwnAttributes(client ,true);
+			else
+				SetOwnAttributes(client ,false);
+				
+			TF2_RegeneratePlayer(client);
+		}
 	}
 	
 	return Plugin_Handled;
@@ -970,20 +1066,25 @@ public Action Timer_SetRobotClass(Handle timer, any client)
 	return Plugin_Handled;
 }
 
+public Action Timer_KillReviveMarker(Handle timer, any revivemarker)
+{
+	if( IsValidEntity(revivemarker) )
+	{
+		int client = GetEntPropEnt(revivemarker, Prop_Send, "m_hOwner");
+		if( TF2_GetClientTeam(client) == TFTeam_Blue )
+		{
+			AcceptEntityInput(revivemarker,"Kill");
+		}
+	}
+	
+	return Plugin_Handled;
+}
 
 /****************************************************
 					FUNCTIONS
 *****************************************************/
 
 // ***PLAYER***
-
-bool IsValidClient( int client )
-{
-	if( client <= 0 ) return false;
-	if( client > MaxClients ) return false;
-	if( !IsClientConnected(client) ) return false;
-	return IsClientInGame(client);
-}
 
 // moves player to BLU team.
 void MovePlayerToBLU(int client)
@@ -1001,56 +1102,6 @@ void MovePlayerToBLU(int client)
 	
 	ScalePlayerModel(client, 1.0);
 	PickRandomRobot(client);
-}
-
-// selects a random player from a team
-int GetRandomPlayer(TFTeam Team, bool bIncludeBots = false)
-{
-	int players_available[MAXPLAYERS+1];
-	int counter = 0; // counts how many valid players we have
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if(bIncludeBots)
-		{
-			if(IsClientInGame(i) && TF2_GetClientTeam(i) == Team)
-			{
-				players_available[counter] = i; // stores the client userid
-				counter++;
-			}			
-		}
-		else
-		{
-			if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == Team)
-			{
-				players_available[counter] = i; // stores the client userid
-				counter++;
-			}				
-		}
-
-	}
-	
-	// now we should have an array filled with user ids and exactly how many players we have in game.
-	int iRandomMax = counter - 1;
-	int iRandom = GetRandomInt(0,iRandomMax); // get a random number between 0 and counted players
-	// now we get the user id from the array cell selected via iRandom
-	return players_available[iRandom];
-}
-
-// returns the number of human players on BLU/ROBOT team
-int GetHumanRobotCount()
-{
-	int count = 0;
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if(IsClientInGame(i) && !IsFakeClient(i))
-		{			
-			if(TF2_GetClientTeam(i) == TFTeam_Blue)
-			{
-				count++;
-			}
-		}
-	}
-	return count;
 }
 
 // updates ay_avclass
@@ -1192,51 +1243,51 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		{
 			case TFClass_Scout:
 			{
-				iBotVariant[client] = GetRandomInt(0, MAX_SCOUT_GIANT);
+				iBotVariant[client] = GetRandomInt(-1, MAX_SCOUT_GIANT);
 				BotClass[client] = TFClass_Scout;
 			}
 			case TFClass_Soldier:
 			{
-				iBotVariant[client] = GetRandomInt(0, MAX_SOLDIER_GIANT);
+				iBotVariant[client] = GetRandomInt(-1, MAX_SOLDIER_GIANT);
 				BotClass[client] = TFClass_Soldier;
 			}
 			case TFClass_Pyro:
 			{
-				iBotVariant[client] = GetRandomInt(0, MAX_PYRO_GIANT);
+				iBotVariant[client] = GetRandomInt(-1, MAX_PYRO_GIANT);
 				BotClass[client] = TFClass_Pyro;
 			}
 			case TFClass_DemoMan:
 			{
-				iBotVariant[client] = GetRandomInt(0, MAX_DEMO_GIANT);
+				iBotVariant[client] = GetRandomInt(-1, MAX_DEMO_GIANT);
 				BotClass[client] = TFClass_DemoMan;
 			}
 			case TFClass_Heavy:
 			{
-				iBotVariant[client] = GetRandomInt(0, MAX_HEAVY_GIANT);
+				iBotVariant[client] = GetRandomInt(-1, MAX_HEAVY_GIANT);
 				BotClass[client] = TFClass_Heavy;
 			}
 			case TFClass_Engineer:
 			{
-				iBotVariant[client] = GetRandomInt(0, MAX_ENGINEER_GIANT);
+				iBotVariant[client] = GetRandomInt(-1, MAX_ENGINEER_GIANT);
 				BotClass[client] = TFClass_Engineer;
 			}
 			case TFClass_Medic:
 			{
-				iBotVariant[client] = GetRandomInt(0, MAX_MEDIC_GIANT);
+				iBotVariant[client] = GetRandomInt(-1, MAX_MEDIC_GIANT);
 				BotClass[client] = TFClass_Medic;
 			}
 			case TFClass_Sniper:
 			{
-				iBotVariant[client] = GetRandomInt(0, MAX_SNIPER_GIANT);
+				iBotVariant[client] = GetRandomInt(-1, MAX_SNIPER_GIANT);
 				BotClass[client] = TFClass_Sniper;
 			}
 			case TFClass_Spy:
 			{
-				iBotVariant[client] = GetRandomInt(0, MAX_SPY_GIANT);
+				iBotVariant[client] = GetRandomInt(-1, MAX_SPY_GIANT);
 				BotClass[client] = TFClass_Spy;
 			}
 		}
-		SetGiantVariantExtras(client, TFClass);
+		SetGiantVariantExtras(client, TFClass, iBotVariant[client]);
 	}
 	else
 	{
@@ -1290,12 +1341,12 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 				BotClass[client] = TFClass_Spy;
 			}
 		}
-		SetVariantExtras(client, TFClass);
+		SetVariantExtras(client, TFClass, iBotVariant[client]);
 	}
 }
 
 // set effects and bot mode for variants
-void SetVariantExtras(int client,TFClassType TFClass)
+void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
 	iBotEffect[client] = 0; //reset
 	
@@ -1320,12 +1371,16 @@ void SetVariantExtras(int client,TFClassType TFClass)
 		case TFClass_Heavy:
 		{
 			
-		}
+		} */
 		case TFClass_Engineer:
 		{
-			
+			switch( iVariant )
+			{
+				case -1: iBotEffect[client] += BotEffect_TeleportToHint;
+				case 1: iBotEffect[client] += BotEffect_TeleportToHint;
+			}			
 		}
-		case TFClass_Medic:
+/* 		case TFClass_Medic:
 		{
 			
 		}
@@ -1336,11 +1391,15 @@ void SetVariantExtras(int client,TFClassType TFClass)
 		case TFClass_Spy:
 		{
 			iBotEffect[client] += BotEffect_AutoDisguise; // global to all spies
+			switch( iVariant )
+			{
+				case 0: iBotEffect[client] += BotEffect_InfiniteCloak;
+			}
 		}
 	}
 }
 
-void SetGiantVariantExtras(int client,TFClassType TFClass)
+void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
 	iBotEffect[client] = 0; //reset
 	
@@ -1349,12 +1408,15 @@ void SetGiantVariantExtras(int client,TFClassType TFClass)
 /* 		case TFClass_Scout:
 		{
 			
-		}
+		} */
 		case TFClass_Soldier:
 		{
-			
+			switch( iVariant )
+			{
+				case 1: iBotEffect[client] += BotEffect_AlwaysCrits;
+			}			
 		}
-		case TFClass_Pyro:
+/* 		case TFClass_Pyro:
 		{
 			
 		}
@@ -1468,25 +1530,6 @@ void ResetRobotData(int client)
 	g_bUpgradeStation[client] = false;
 }
 
-// IsMvM code by FlaminSarge
-bool IsMvM(bool forceRecalc = false)
-{
-	static bool found = false;
-	static bool ismvm = false;
-	if (forceRecalc)
-	{
-		found = false;
-		ismvm = false;
-	}
-	if (!found)
-	{
-		int i = FindEntityByClassname(-1, "tf_logic_mann_vs_machine");
-		if (i > MaxClients && IsValidEntity(i)) ismvm = true;
-		found = true;
-	}
-	return ismvm;
-}
-
 // sets robot model
 void SetRobotModel(int client, TFClassType TFClass)
 {
@@ -1583,7 +1626,7 @@ int FindRandomSpawnPoint( SpawnType iType )
 	int iEnt = -1;
 	char strSpawnName[64];
 	
-	array_spawns = new ArrayList();
+	array_spawns.Clear();
 	
 	while( ( iEnt = FindEntityByClassname( iEnt, "info_player_teamspawn") ) != -1 )
 		if( GetEntProp( iEnt, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) && GetEntProp( iEnt, Prop_Data, "m_bDisabled" ) == 0 ) // ignore disabled spawn points
@@ -1593,10 +1636,6 @@ int FindRandomSpawnPoint( SpawnType iType )
 			if( iType == Spawn_Normal )
 			{
 				if( StrEqual( strSpawnName, "spawnbot" ) )
-				{
-					array_spawns.Push( iEnt );
-				}
-				else if( StrEqual( strSpawnName, "spawnbot_bwr" ) ) // compatibility with old stripper files
 				{
 					array_spawns.Push( iEnt );
 				}
