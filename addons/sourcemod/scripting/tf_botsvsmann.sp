@@ -706,7 +706,7 @@ public Action Command_BotClass( int client, int nArgs )
 	}
 
 	PickRandomRobot(client);
-	TF2_RespawnPlayer(client);
+	CreateTimer(0.5, Timer_Respawn, client);
 
 	return Plugin_Handled;
 }
@@ -1066,6 +1066,16 @@ public Action Timer_SetRobotClass(Handle timer, any client)
 	return Plugin_Handled;
 }
 
+public Action Timer_Respawn(Handle timer, any client)
+{
+	if( !IsClientInGame(client) )
+		return Plugin_Stop;
+		
+	TF2_RespawnPlayer(client);
+	
+	return Plugin_Handled;
+}
+
 public Action Timer_KillReviveMarker(Handle timer, any revivemarker)
 {
 	if( IsValidEntity(revivemarker) )
@@ -1234,7 +1244,7 @@ void PickRandomRobot(int client)
 void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 {
 	//TF2_SetPlayerClass(client, TFClass);
-	CreateTimer(1.0, Timer_SetRobotClass, client);
+	CreateTimer(0.1, Timer_SetRobotClass, client);
 	if( GetRandomInt(0, 100) <= c_iGiantChance.IntValue && bGiants && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue )
 	{
 		// giant
