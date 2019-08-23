@@ -17,12 +17,9 @@
 
 // TODO
 /**
-- add spawn point selection (done)
-- add robot variants (done)
-- finish robot inventory
-- add giant inventory
-- add robot model to players (done)
-- add spawn on teleporter
+- add particle for when engineers spawn on map hint
+- set building levels for human robot engineers
+- add code for humans to deploy the bomb
 **/
 
 // maximum class variants that exists
@@ -425,7 +422,6 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
-	LogMessage("\"%L\" joined BLU.", client);
 	MovePlayerToBLU(client);
 	return Plugin_Handled;
 }
@@ -443,6 +439,7 @@ public Action Command_JoinRED( int client, int nArgs )
 	ResetRobotData(client);
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
+	LogMessage("Player \"%L\" joined RED team.", client);
 
 	return Plugin_Handled;
 }
@@ -776,37 +773,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 {
 	OR_Update();
 	UpdateClassArray();
-	
-	int iMaxBlu = c_iMaxBlu.IntValue;
-	int iInBlu = GetHumanRobotCount();
-	int iInRed = GetTeamClientCount(2);
-	int iTarget;
-	bool bAutoBalance = c_bAutoTeamBalance.BoolValue;
-	// checks BLU player count
-	if( iInBlu > iMaxBlu && iInBlu > 0 )
-	{
-		int iOverLimit = iInBlu - iMaxBlu;
-		for( int i = 1; i <= iOverLimit; i++ )
-		{
-			iTarget = GetRandomPlayer(TFTeam_Blue, false);
-			if( iTarget > 0 )
-				TF2_ChangeClientTeam(iTarget, TFTeam_Red);
-		}
-	}
-	if( bAutoBalance )
-	{
-		// if the number of players in RED is less than the minimum to join BLU
-		if( iInRed < c_iMinRed.IntValue && iInBlu > 0 )
-		{
-			int iCount = c_iMinRed.IntValue - iInRed;
-			for( int i = 1; i <= iCount; i++ )
-			{
-				iTarget = GetRandomPlayer(TFTeam_Blue, false);
-				if( iTarget > 0 )
-					TF2_ChangeClientTeam(iTarget, TFTeam_Red);
-			}
-		}
-	}
+	CheckTeams();
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
@@ -1179,6 +1146,7 @@ void MovePlayerToBLU(int client)
 	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
 	TF2_ChangeClientTeam(client, TFTeam_Blue);
 	SetEntityFlags( client, iEntFlags );
+	LogMessage("Player \"%L\" joined BLU team.", client);
 	
 	ScalePlayerModel(client, 1.0);
 	PickRandomRobot(client);
@@ -1425,7 +1393,14 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 	}
 }
 
-// checks if the variant ID is valid
+/**
+ * Checks if a robot variant is valid.
+ *
+ * @param bGiants       	Is the robot a giant?
+ * @param TFClass     	The player class
+ * @param iVariant      	The variant ID
+ * @return              True if the variant is valid, false otherwise.
+ */
 bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 {
 	switch( TFClass )
@@ -2012,4 +1987,45 @@ void AddPluginTag(const char[] tag)
 		c_svTag.SetString(newTags, _, true);
 		c_svTag.GetString(tags, sizeof(tags));
 	}
-}  
+}
+
+// checks for team balance
+void CheckTeams()
+{
+	int iMaxBlu = c_iMaxBlu.IntValue;
+	int iInBlu = GetHumanRobotCount();
+	int iInRed = GetTeamClientCount(2);
+	int iTarget;
+	bool bAutoBalance = c_bAutoTeamBalance.BoolValue;
+	// checks BLU player count
+	if( iInBlu > iMaxBlu && iInBlu > 0 )
+	{
+		int iOverLimit = iInBlu - iMaxBlu;
+		for( int i = 1; i <= iOverLimit; i++ )
+		{
+			iTarget = GetRandomPlayer(TFTeam_Blue, false);
+			if( iTarget > 0 )
+			{
+				TF2_ChangeClientTeam(iTarget, TFTeam_Red);
+				CPrintToChat(iTarget, "%t", "Moved Blu Full");
+			}
+		}
+	}
+	if( bAutoBalance )
+	{
+		// if the number of players in RED is less than the minimum to join BLU
+		if( iInRed < c_iMinRed.IntValue && iInBlu > 0 )
+		{
+			int iCount = c_iMinRed.IntValue - iInRed;
+			for( int i = 1; i <= iCount; i++ )
+			{
+				iTarget = GetRandomPlayer(TFTeam_Blue, false);
+				if( iTarget > 0 )
+				{
+					TF2_ChangeClientTeam(iTarget, TFTeam_Red);
+					CPrintToChat(iTarget, "%t", "Moved Blu Balance");
+				}
+			}
+		}
+	}
+}

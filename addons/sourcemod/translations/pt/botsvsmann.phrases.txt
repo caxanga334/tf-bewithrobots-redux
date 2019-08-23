@@ -8,6 +8,10 @@
 	{
 		"pt"	"{white}[BVM] {cyan}Você não pode entrar na equipe {blue}BLU{cyan}. Não há jogadores suficientes na equipe {red}RED{cyan}."
 	}
+	"Not in Prog"
+	{
+		"pt"	"{white}[BVM] {cyan}Você não pode entrar na equipe {blue}BLU{cyan} enquanto a onda estiver em progresso. Não há jogadores suficientes na equipe {red}RED{cyan}."
+	}
 	"Num Red"
 	{
 		"#format"	"{1:d}"
@@ -21,5 +25,13 @@
 	"Unready"
 	{
 		"pt"	"{white}[BVM] {cyan}Você não pode entrar na equipe {blue}BLU{cyan} enquanto estiver pronto ."
+	}
+	"Moved Blu Full"
+	{
+		"pt"	"{white}[BVM] {cyan}Você foi movido para a equipe {red}RED{cyan} porque a equipe {blue}BLU{cyan} está cheia."
+	}
+	"Moved Blu Balance"
+	{
+		"pt"	"{white}[BVM] {cyan}Você foi movido para a equipe {red}RED{cyan} para balancear as equipes."
 	}
 }

@@ -26,4 +26,12 @@
 	{
 		"en"	"{white}[BVM] {cyan}You cannot join {blue}BLU{cyan} while ready."
 	}
+	"Moved Blu Full"
+	{
+		"en"	"{white}[BVM] {cyan}You were moved to {red}RED{cyan} because {blue}BLU{cyan} team is full."
+	}
+	"Moved Blu Balance"
+	{
+		"en"	"{white}[BVM] {cyan}You were moved to {red}RED{cyan} to balance teams."
+	}
 }
