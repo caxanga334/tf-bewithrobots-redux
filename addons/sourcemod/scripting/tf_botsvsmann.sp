@@ -953,6 +953,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			return Plugin_Stop;
 		}
+		return Plugin_Handled;
 	}
 		
 	TFClassType TFClass = TF2_GetPlayerClass(client);
