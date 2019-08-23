@@ -179,6 +179,7 @@ void CheckMapForEntities()
 	char map[PLATFORM_MAX_PATH];
 	char display[PLATFORM_MAX_PATH];
 	
+	GetCurrentMap(map, sizeof(map));
 	GetMapDisplayName(map, display, sizeof(display));
 	
 	while((i = FindEntityByClassname(i, "info_target")) != -1)
