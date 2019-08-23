@@ -128,7 +128,7 @@ int FindEngineerNestNearBomb()
 	
 	while( (i = FindEntityByClassname(i, "item_teamflag" )) != -1 )
 	{
-		if( IsValidEntity(i) && GetEntProp( i, Prop_Data, "m_bDisabled" ) == 0 ) // ignore disabled bombs
+		if( IsValidEntity(i) && GetEntProp( i, Prop_Send, "m_bDisabled" ) == 0 ) // ignore disabled bombs
 		{
 			iBomb = i; // use the first bomb found.
 			break;
@@ -224,7 +224,7 @@ int FindBestBluTeleporter()
 	
 	while( (i = FindEntityByClassname(i, "item_teamflag" )) != -1 )
 	{
-		if( IsValidEntity(i) && GetEntProp( i, Prop_Data, "m_bDisabled" ) == 0 ) // ignore disabled bombs
+		if( IsValidEntity(i) && GetEntProp( i, Prop_Send, "m_bDisabled" ) == 0 ) // ignore disabled bombs
 		{
 			iBomb = i; // use the first bomb found.
 			break;
@@ -288,8 +288,8 @@ void SpawnOnTeleporter(int teleporter,int client)
 			OriginVec[2] += 50;
 		}
 		
+		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.1); // 0.1 sec to compensate for a small delay
 		TeleportEntity(client, OriginVec, NULL_VECTOR, NULL_VECTOR);
-		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.0);
 		EmitSoundToAll(")mvm/mvm_tele_deliver.wav", teleporter, SNDCHAN_STATIC, SNDLEVEL_SCREAMING);
 	}
 }

@@ -1050,15 +1050,14 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 					iTeleTarget = FindBestBluTeleporter();
 					if( iTeleTarget != -1 ) // first search for teleporter
 					{
-						TeleportPlayerToEntity(iTeleTarget, client)
-						
+						SpawnOnTeleporter(iTeleTarget,client);						
 					}
 					else // no teleporter found
 					{
 						iTeleTarget = FindEngineerNestNearBomb();
 						if( iTeleTarget != -1 ) // found teleporter
 						{
-							SpawnOnTeleporter(iTeleTarget,client);
+							TeleportPlayerToEntity(iTeleTarget, client);
 						}
 						else
 						{
@@ -1124,10 +1123,17 @@ public Action Timer_KillReviveMarker(Handle timer, any revivemarker)
 {
 	if( IsValidEntity(revivemarker) )
 	{
-		int client = GetEntPropEnt(revivemarker, Prop_Send, "m_hOwner");
-		if( TF2_GetClientTeam(client) == TFTeam_Blue )
+		char classname[64];
+		if( GetEntityClassname(revivemarker, classname, sizeof(classname)) )
 		{
-			AcceptEntityInput(revivemarker,"Kill");
+			if( StrEqual(classname, "entity_revive_marker", false) )
+			{
+				int client = GetEntPropEnt(revivemarker, Prop_Send, "m_hOwner");
+				if( TF2_GetClientTeam(client) == TFTeam_Blue )
+				{
+					AcceptEntityInput(revivemarker,"Kill");
+				}
+			}
 		}
 	}
 	
