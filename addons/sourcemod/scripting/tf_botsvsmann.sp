@@ -586,7 +586,7 @@ public Action Command_ForceBot( int client, int nArgs )
 	GetCmdArg(4, arg4, sizeof(arg4));
 	int iArg4 = StringToInt(arg4);
 	
-	if( iArg4 < -1 )
+	if( IsValidVariant(bForceGiants, TargetClass, iArg4) )
 	{
 		ReplyToCommand(client, "ERROR: Invalid Variant");
 		return Plugin_Handled;
@@ -1423,6 +1423,133 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		}
 		SetVariantExtras(client, TFClass, iBotVariant[client]);
 	}
+}
+
+// checks if the variant ID is valid
+bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
+{
+	switch( TFClass )
+	{
+		case TFClass_Scout:
+		{
+			if( bGiants )
+			{
+				if( iVariant < -1 || iVariant > MAX_SCOUT_GIANT )
+					return false;
+			}
+			else
+			{
+				if( iVariant < -1 || iVariant > MAX_SCOUT )
+					return false;
+			}
+		}
+		case TFClass_Soldier:
+		{
+			if( bGiants )
+			{
+				if( iVariant < -1 || iVariant > MAX_SOLDIER_GIANT )
+					return false;
+			}
+			else
+			{
+				if( iVariant < -1 || iVariant > MAX_SOLDIER )
+					return false;
+			}
+		}
+		case TFClass_Pyro:
+		{
+			if( bGiants )
+			{
+				if( iVariant < -1 || iVariant > MAX_PYRO_GIANT )
+					return false;
+			}
+			else
+			{
+				if( iVariant < -1 || iVariant > MAX_PYRO )
+					return false;
+			}
+		}
+		case TFClass_DemoMan:
+		{
+			if( bGiants )
+			{
+				if( iVariant < -1 || iVariant > MAX_DEMO_GIANT )
+					return false;
+			}
+			else
+			{
+				if( iVariant < -1 || iVariant > MAX_DEMO )
+					return false;
+			}
+		}
+		case TFClass_Heavy:
+		{
+			if( bGiants )
+			{
+				if( iVariant < -1 || iVariant > MAX_HEAVY_GIANT )
+					return false;
+			}
+			else
+			{
+				if( iVariant < -1 || iVariant > MAX_HEAVY )
+					return false;
+			}
+		}
+		case TFClass_Engineer:
+		{
+			if( bGiants )
+			{
+				if( iVariant < -1 || iVariant > MAX_ENGINEER_GIANT )
+					return false;
+			}
+			else
+			{
+				if( iVariant < -1 || iVariant > MAX_ENGINEER )
+					return false;
+			}
+		}
+		case TFClass_Medic:
+		{
+			if( bGiants )
+			{
+				if( iVariant < -1 || iVariant > MAX_MEDIC_GIANT )
+					return false;
+			}
+			else
+			{
+				if( iVariant < -1 || iVariant > MAX_MEDIC )
+					return false;
+			}
+		}
+		case TFClass_Sniper:
+		{
+			if( bGiants )
+			{
+				if( iVariant < -1 || iVariant > MAX_SNIPER_GIANT )
+					return false;
+			}
+			else
+			{
+				if( iVariant < -1 || iVariant > MAX_SNIPER )
+					return false;
+			}
+		}
+		case TFClass_Spy:
+		{
+			if( bGiants )
+			{
+				if( iVariant < -1 || iVariant > MAX_SPY_GIANT )
+					return false;
+			}
+			else
+			{
+				if( iVariant < -1 || iVariant > MAX_SPY )
+					return false;
+			}
+		}
+	}
+	
+	return true;
 }
 
 // set effects and bot mode for variants
