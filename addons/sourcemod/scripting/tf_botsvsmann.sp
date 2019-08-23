@@ -69,6 +69,7 @@ ConVar c_iGiantMinRed; // minimum red players to allow giants.
 ConVar c_iMaxBlu; // maximum blu players allowed
 ConVar c_bAutoTeamBalance;
 ConVar c_bSmallMap; // change robot scale to avoid getting stuck in maps such as mvm_2fort
+ConVar c_svTag; // server tags
 
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
 
@@ -146,6 +147,13 @@ public void OnPluginStart()
 	c_iMaxBlu = CreateConVar("sm_bvm_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 5.0);
 	c_bAutoTeamBalance = CreateConVar("sm_bvm_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_bSmallMap = CreateConVar("sm_bvm_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_svTag = FindConVar("sv_tags");
+	
+	// convar hooks
+	if( c_svTag != null )
+	{
+		c_svTag.AddChangeHook(OnTagsChanged);
+	}
 	
 	// translations
 	LoadTranslations("botsvsmann.phrases");
@@ -217,6 +225,9 @@ public void OnMapStart()
 	}
 	
 	ay_avclass.Clear();
+	
+	// add custom tag
+	AddPluginTag("BVM");
 	
 	// prechace
 	PrecacheSound(")mvm/mvm_tele_deliver.wav");
@@ -333,6 +344,15 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		}
 	}
 	return Plugin_Continue;
+}
+
+/****************************************************
+				CONVAR FUNCTIONS
+*****************************************************/
+
+public void OnTagsChanged(ConVar convar, char[] oldValue, char[] newValue)
+{
+	AddPluginTag("BVM");
 }
 
 /****************************************************
@@ -1851,3 +1871,18 @@ int FindRandomSpawnPoint( SpawnType iType )
 		
 	return -1;
 }
+
+// add plugin tag to sv_tags
+void AddPluginTag(const char[] tag)
+{
+	char tags[255];
+	c_svTag.GetString(tags, sizeof(tags));
+
+	if (!(StrContains(tags, tag, false)>-1))
+	{
+		char newTags[255];
+		Format(newTags, sizeof(newTags), "%s,%s", tags, tag);
+		c_svTag.SetString(newTags, _, true);
+		c_svTag.GetString(tags, sizeof(tags));
+	}
+}  
