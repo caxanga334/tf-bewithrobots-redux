@@ -217,6 +217,9 @@ public void OnMapStart()
 	}
 	
 	ay_avclass.Clear();
+	
+	// prechace
+	PrecacheSound(")mvm/mvm_tele_deliver.wav");
 }
 
 /* public void OnClientConnected(client)
@@ -950,12 +953,23 @@ public Action MsgHook_MVMRespec(UserMsg msg_id, BfRead msg, const int[] players,
 
 public Action Timer_OnPlayerSpawn(Handle timer, any client)
 {
-	if( !IsValidClient(client) )
-		return Plugin_Stop;
+	int iTeleTarget = -1;
+	
+	if( IsClientInGame(client) && IsFakeClient(client) )  // teleport bots to teleporters
+	{
+		iTeleTarget = FindBestBluTeleporter();
+		if( iTeleTarget != -1 )
+		{
+			SpawnOnTeleporter(iTeleTarget,client);
+		}
+		else
+		{
+			return Plugin_Stop;
+		}
+	}
 		
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	char strBotName[128];
-	int iTeleTarget = -1;
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
@@ -1008,31 +1022,61 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			switch( TFClass )
 			{
-				case TFClass_Spy:
+				case TFClass_Spy: // spies should always spawn on their hints
 				{
 					iTeleTarget = FindNearestSpyHint();
-					if( iTeleTarget != -1 )
+					if( iTeleTarget != -1 ) // found spy hint
 					{
 						TF2_AddCondition(client, TFCond_StealthedUserBuffFade, 2.0);
 						TeleportPlayerToEntity(iTeleTarget, client)
+						
 					}
 					else
 					{
-						TeleportToSpawnPoint(client, TFClass);
-					}				
+						iTeleTarget = FindBestBluTeleporter();
+						if( iTeleTarget != -1 ) // found teleporter
+						{
+							TF2_AddCondition(client, TFCond_StealthedUserBuffFade, 5.0);
+							SpawnOnTeleporter(iTeleTarget,client);
+						}
+						else
+						{
+							TeleportToSpawnPoint(client, TFClass);
+						}
+					}		
 				}
 				case TFClass_Engineer:
 				{
-					iTeleTarget = FindEngineerNestNearBomb();
-					if( iTeleTarget != -1 && iBotEffect[client] & BotEffect_TeleportToHint )
+					iTeleTarget = FindBestBluTeleporter();
+					if( iTeleTarget != -1 ) // first search for teleporter
 					{
-						TF2_AddCondition(client, TFCond_StealthedUserBuffFade, 2.0);
 						TeleportPlayerToEntity(iTeleTarget, client)
+						
+					}
+					else // no teleporter found
+					{
+						iTeleTarget = FindEngineerNestNearBomb();
+						if( iTeleTarget != -1 ) // found teleporter
+						{
+							SpawnOnTeleporter(iTeleTarget,client);
+						}
+						else
+						{
+							TeleportToSpawnPoint(client, TFClass);
+						}
+					}					
+				}
+				default: // other classes
+				{
+					iTeleTarget = FindBestBluTeleporter();
+					if( iTeleTarget != -1 ) // found teleporter
+					{
+						SpawnOnTeleporter(iTeleTarget,client);
 					}
 					else
 					{
 						TeleportToSpawnPoint(client, TFClass);
-					}					
+					}
 				}
 			}
 		}
@@ -1365,12 +1409,15 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 /* 		case TFClass_Scout:
 		{
 			
-		}
+		} */
 		case TFClass_Soldier:
 		{
-			
+			switch( iVariant )
+			{
+				case -1: iBotEffect[client] += BotEffect_FullCharge;
+			}
 		}
-		case TFClass_Pyro:
+/* 		case TFClass_Pyro:
 		{
 			
 		}
@@ -1390,11 +1437,11 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 				case 1: iBotEffect[client] += BotEffect_TeleportToHint;
 			}			
 		}
-/* 		case TFClass_Medic:
+		case TFClass_Medic:
 		{
-			
+			iBotEffect[client] += BotEffect_FullCharge;
 		}
-		case TFClass_Sniper:
+/* 		case TFClass_Sniper:
 		{
 			
 		} */
@@ -1423,6 +1470,7 @@ void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 		{
 			switch( iVariant )
 			{
+				case -1: iBotEffect[client] += BotEffect_FullCharge;
 				case 1: iBotEffect[client] += BotEffect_AlwaysCrits;
 			}			
 		}

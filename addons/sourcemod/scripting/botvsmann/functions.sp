@@ -162,7 +162,7 @@ int FindEngineerNestNearBomb()
 // teleports a client to the entity origin.
 void TeleportPlayerToEntity(int iEntity, int client)
 {
-	float OriginVec[3]
+	float OriginVec[3];
 	if( IsValidEntity(iEntity) )
 	{
 		GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", OriginVec);
@@ -209,4 +209,87 @@ void CheckMapForEntities()
 		
 	if( !bEngineer )
 		LogError("Engineer teleport is not supported by the map: %s", display);
+}
+
+// searches for a teleporter exit 
+int FindBestBluTeleporter()
+{
+	float nVec[3]; // nest pos
+	float bVec[3]; // bomb pos
+	float current_dist;
+	float smallest_dist = 15000.0;
+	int iTargetTele = -1; // the closest nest found.
+	int i = -1;
+	int iBomb = -1; // the bomb we're going to use to check distance.
+	
+	while( (i = FindEntityByClassname(i, "item_teamflag" )) != -1 )
+	{
+		if( IsValidEntity(i) && GetEntProp( i, Prop_Data, "m_bDisabled" ) == 0 ) // ignore disabled bombs
+		{
+			iBomb = i; // use the first bomb found.
+			break;
+		}
+	}
+	
+	if( iBomb == -1 )
+		return -1; // no bomb found
+	
+	i = -1;
+	while( (i = FindEntityByClassname(i, "obj_teleporter" )) != -1 )
+	{
+		if( IsValidEntity(i) )
+		{
+			if( GetEntProp( i, Prop_Send, "m_bHasSapper" ) == 0 && GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
+			{
+				GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
+				GetEntPropVector(i, Prop_Send, "m_vecOrigin", nVec); // nest
+				
+				current_dist = GetVectorDistance(bVec, nVec);
+				
+				if( current_dist < smallest_dist )
+				{
+					iTargetTele = i;
+					smallest_dist = current_dist;
+				}
+			}
+		}
+	}
+	
+	return iTargetTele;
+}
+
+// TeleportPlayerToEntity but for teleporters
+void SpawnOnTeleporter(int teleporter,int client)
+{
+	float OriginVec[3];
+	float Scale = GetEntPropFloat(client, Prop_Send, "m_flModelScale");
+	if( IsValidEntity(teleporter) )
+	{
+		GetEntPropVector(teleporter, Prop_Send, "m_vecOrigin", OriginVec);
+		
+		if( Scale <= 1.0 )
+		{
+			OriginVec[2] += 16;
+		}
+		else if( Scale >= 1.1 && Scale <= 1.4 )
+		{
+			OriginVec[2] += 20;
+		}
+		else if( Scale >= 1.5 && Scale <= 1.6 )
+		{
+			OriginVec[2] += 23;
+		}		
+		else if( Scale >= 1.7 && Scale <= 1.8 )
+		{
+			OriginVec[2] += 26;
+		}
+		else if( Scale >= 1.9 )
+		{
+			OriginVec[2] += 50;
+		}
+		
+		TeleportEntity(client, OriginVec, NULL_VECTOR, NULL_VECTOR);
+		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.0);
+		EmitSoundToAll(")mvm/mvm_tele_deliver.wav", teleporter, SNDCHAN_STATIC, SNDLEVEL_SCREAMING);
+	}
 }
