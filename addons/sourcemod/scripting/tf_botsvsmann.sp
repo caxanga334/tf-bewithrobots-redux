@@ -433,13 +433,13 @@ public Action Command_JoinRED( int client, int nArgs )
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Red )
 		return Plugin_Handled;
-		
-	TF2_ChangeClientTeam(client, TFTeam_Red);
+
 	ScalePlayerModel(client, 1.0);
-	ResetRobotData(client);
+	ResetRobotData(client, true);
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
 	LogMessage("Player \"%L\" joined RED team.", client);
+	TF2_ChangeClientTeam(client, TFTeam_Red);
 
 	return Plugin_Handled;
 }
@@ -583,7 +583,8 @@ public Action Command_ForceBot( int client, int nArgs )
 	GetCmdArg(4, arg4, sizeof(arg4));
 	int iArg4 = StringToInt(arg4);
 	
-	if( IsValidVariant(bForceGiants, TargetClass, iArg4) )
+	bool bValid = IsValidVariant(bForceGiants, TargetClass, iArg4);
+	if( !bValid )
 	{
 		ReplyToCommand(client, "ERROR: Invalid Variant");
 		return Plugin_Handled;
@@ -1404,128 +1405,129 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
  */
 bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 {
+	bool bValid = false;
 	switch( TFClass )
 	{
 		case TFClass_Scout:
 		{
 			if( bGiants )
 			{
-				if( iVariant < -1 || iVariant > MAX_SCOUT_GIANT )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_SCOUT_GIANT )
+					bValid = true;
 			}
 			else
 			{
-				if( iVariant < -1 || iVariant > MAX_SCOUT )
-					return false;
+				if( iVariant >= -1 && iVariant <=  MAX_SCOUT )
+					bValid = true;
 			}
 		}
 		case TFClass_Soldier:
 		{
 			if( bGiants )
 			{
-				if( iVariant < -1 || iVariant > MAX_SOLDIER_GIANT )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_SOLDIER_GIANT )
+					bValid = true;
 			}
 			else
 			{
-				if( iVariant < -1 || iVariant > MAX_SOLDIER )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_SOLDIER )
+					bValid = true;
 			}
 		}
 		case TFClass_Pyro:
 		{
 			if( bGiants )
 			{
-				if( iVariant < -1 || iVariant > MAX_PYRO_GIANT )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_PYRO_GIANT )
+					bValid = true;
 			}
 			else
 			{
-				if( iVariant < -1 || iVariant > MAX_PYRO )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_PYRO )
+					bValid = true;
 			}
 		}
 		case TFClass_DemoMan:
 		{
 			if( bGiants )
 			{
-				if( iVariant < -1 || iVariant > MAX_DEMO_GIANT )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_DEMO_GIANT )
+					bValid = true;
 			}
 			else
 			{
-				if( iVariant < -1 || iVariant > MAX_DEMO )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_DEMO )
+					bValid = true;
 			}
 		}
 		case TFClass_Heavy:
 		{
 			if( bGiants )
 			{
-				if( iVariant < -1 || iVariant > MAX_HEAVY_GIANT )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_HEAVY_GIANT )
+					bValid = true;
 			}
 			else
 			{
-				if( iVariant < -1 || iVariant > MAX_HEAVY )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_HEAVY )
+					bValid = true;
 			}
 		}
 		case TFClass_Engineer:
 		{
 			if( bGiants )
 			{
-				if( iVariant < -1 || iVariant > MAX_ENGINEER_GIANT )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_ENGINEER_GIANT )
+					bValid = true;
 			}
 			else
 			{
-				if( iVariant < -1 || iVariant > MAX_ENGINEER )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_ENGINEER )
+					bValid = true;
 			}
 		}
 		case TFClass_Medic:
 		{
 			if( bGiants )
 			{
-				if( iVariant < -1 || iVariant > MAX_MEDIC_GIANT )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_MEDIC_GIANT )
+					bValid = true;
 			}
 			else
 			{
-				if( iVariant < -1 || iVariant > MAX_MEDIC )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_MEDIC )
+					bValid = true;
 			}
 		}
 		case TFClass_Sniper:
 		{
 			if( bGiants )
 			{
-				if( iVariant < -1 || iVariant > MAX_SNIPER_GIANT )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_SNIPER_GIANT )
+					bValid = true;
 			}
 			else
 			{
-				if( iVariant < -1 || iVariant > MAX_SNIPER )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_SNIPER )
+					bValid = true;
 			}
 		}
 		case TFClass_Spy:
 		{
 			if( bGiants )
 			{
-				if( iVariant < -1 || iVariant > MAX_SPY_GIANT )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_SPY_GIANT )
+					bValid = true;
 			}
 			else
 			{
-				if( iVariant < -1 || iVariant > MAX_SPY )
-					return false;
+				if( iVariant >= -1 && iVariant <= MAX_SPY )
+					bValid = true;
 			}
 		}
 	}
 	
-	return true;
+	return bValid;
 }
 
 // set effects and bot mode for variants
@@ -1707,7 +1709,7 @@ void OnRefund(int client)
 	}
 }
 
-void ResetRobotData(int client)
+void ResetRobotData(int client, bool bStrip = false)
 {
 	iBotType[client] = Bot_Normal;
 	iBotVariant[client] = 0;
@@ -1715,6 +1717,8 @@ void ResetRobotData(int client)
 	BotClass[client] = TFClass_Unknown;
 	g_bIsCarrier[client] = false;
 	g_bUpgradeStation[client] = false;
+	if( bStrip )
+		StripWeapons(client);
 }
 
 // sets robot model

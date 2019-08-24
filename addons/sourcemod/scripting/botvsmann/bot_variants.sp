@@ -28,14 +28,17 @@ void StripItems( int client, bool RemoveWeapons = true )
 		// bug: sappers and toolboxes aren't removed however this shouldn't be a problem.
 	}
 	
-	iEntity = -1;
-	while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable" ) ) > MaxClients )
+	if( !OR_IsHalloweenMission() )
 	{
-		iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
-		if( iOwner == client )
+		iEntity = -1;
+		while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable" ) ) > MaxClients )
 		{
-			TF2_RemoveWearable( client, iEntity );
-			AcceptEntityInput( iEntity, "Kill" );
+			iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
+			if( iOwner == client )
+			{
+				TF2_RemoveWearable( client, iEntity );
+				AcceptEntityInput( iEntity, "Kill" );
+			}
 		}
 	}
 	
@@ -54,6 +57,31 @@ void StripItems( int client, bool RemoveWeapons = true )
 			AcceptEntityInput( iEntity, "Kill" );
 	}
 }
+
+// remove items from the player
+void StripWeapons( int client )
+{	
+	if( !IsClientInGame(client) || IsFakeClient( client ) || !IsPlayerAlive( client ) )
+		return;
+		
+	int iWeapon;
+	
+	iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary, true);
+	if(iWeapon != -1)
+	{
+		TF2_RemovePlayerWearable(client, iWeapon);
+	}
+	
+	iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary, true);
+	if(iWeapon != -1)
+	{
+		TF2_RemovePlayerWearable(client, iWeapon);
+	}
+	
+	TF2_RemoveAllWeapons(client);
+	// bug: sappers and toolboxes aren't removed however this shouldn't be a problem.
+}
+
 
 // use TF2Items for giving weapons
 int SpawnWeapon(int client,char[] name,int index,int level,int qual,bool bWearable = false)
