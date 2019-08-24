@@ -358,7 +358,7 @@ void AnnounceEngineerDeath(int client)
 {
 	bool bFoundTele = false;
 	int i = -1;
-	int iOwner;
+	int iOwner = -1;
 	
 	if( IsClientInGame(client) && !IsFakeClient(client) )
 	{
@@ -368,7 +368,8 @@ void AnnounceEngineerDeath(int client)
 			{
 				if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
 				{				
-					iOwner = GetEntPropEnt( i, Prop_Send, "m_hOwnerEntity" );
+					iOwner = GetEntPropEnt( i, Prop_Send, "m_hBuilder" );
+					PrintToChatAll("iOwner: %i", iOwner);
 					if( iOwner == client )
 					{
 						bFoundTele = true;
@@ -377,12 +378,11 @@ void AnnounceEngineerDeath(int client)
 				}
 			}
 		}
-		
 		if( bFoundTele ) // found a teleporter
 		{
 			EmitGSToRed("Announcer.MVM_An_Engineer_Bot_Is_Dead_But_Not_Teleporter");
 		}
-		else
+		else if( GameRules_GetRoundState() == RoundState_RoundRunning )
 		{
 			EmitGSToRed("Announcer.MVM_An_Engineer_Bot_Is_Dead");
 		}

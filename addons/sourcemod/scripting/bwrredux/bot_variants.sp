@@ -8,22 +8,29 @@ void StripItems( int client, bool RemoveWeapons = true )
 		
 	int iEntity;
 	int iOwner;
-	int iWeapon;
 	
 	if(RemoveWeapons)
 	{
-		//iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary, true); // broken on windows
-		iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-		if(iWeapon != -1)
+		iEntity = -1;
+		while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable_demoshield" ) ) > MaxClients )
 		{
-			TF2_RemovePlayerWearable(client, iWeapon);
+			iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
+			if( iOwner == client )
+			{
+				TF2_RemoveWearable( client, iEntity );
+				AcceptEntityInput( iEntity, "Kill" );
+			}
 		}
 		
-		//iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary, true);
-		iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Secondary)
-		if(iWeapon != -1)
+		iEntity = -1;
+		while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable_razorback" ) ) > MaxClients )
 		{
-			TF2_RemovePlayerWearable(client, iWeapon);
+			iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
+			if( iOwner == client )
+			{
+				TF2_RemoveWearable( client, iEntity );
+				AcceptEntityInput( iEntity, "Kill" );
+			}
 		}
 		
 		TF2_RemoveAllWeapons(client);

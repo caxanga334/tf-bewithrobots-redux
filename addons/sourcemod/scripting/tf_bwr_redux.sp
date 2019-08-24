@@ -180,7 +180,9 @@ public void OnPluginStart()
 	AddCommandListener( Listener_Suicide, "kill" );
 	AddCommandListener( Listener_Suicide, "explode" );
 	AddCommandListener( Listener_Suicide, "dropitem" ); // not a suicide command but same blocking rule
+	AddCommandListener( Listener_Suicide, "td_buyback" ); // not a suicide command but same blocking rule
 	AddCommandListener( Listener_Build, "build" );
+	
 	
 	// EVENTS
 	HookEvent( "mvm_begin_wave", E_WaveStart );
@@ -510,6 +512,8 @@ public Action Command_Debug( int client, int nArgs )
 	{
 		ReplyToCommand(client, "Not Ready");
 	}
+	
+	ReplyToCommand(client,"MvM World Money: %i", OR_GetPlayerRefundCredits(client));
 	
 	return Plugin_Handled;
 }
@@ -1322,6 +1326,7 @@ void MovePlayerToSpec(int client)
 // moves player to BLU team.
 void MovePlayerToBLU(int client)
 {
+	ForcePlayerSuicide(client);
 	if( !IsFakeClient(client) )
 	{
 		SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );

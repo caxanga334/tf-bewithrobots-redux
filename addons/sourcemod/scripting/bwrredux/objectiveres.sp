@@ -175,3 +175,14 @@ int OR_GetMaxWave()
 {
 	return iMaxWave;
 }
+
+int OR_GetPlayerRefundCredits(int client)
+{
+	int iEnt = FindEntityByClassname(-1, "tf_player_manager");
+	int iCredits = 0;
+	if( IsValidEntity(iEnt) )
+	{
+		iCredits = GetEntProp(iEnt, Prop_Send, "m_iUpgradeRefundCredits", _, client);
+	}
+	return iCredits;
+}
