@@ -22,6 +22,8 @@
 - add particle for when engineers spawn on map hint
 - set building levels for human robot engineers
 - add code for humans to deploy the bomb
+- add sentry buster
+- find a way to create an explosion
 **/
 
 // maximum class variants that exists
@@ -110,6 +112,7 @@ enum
 	BotEffect_AutoDisguise = 8,
 	BotEffect_AlwaysMiniCrits = 16,
 	BotEffect_TeleportToHint = 32, // teleport engineers to a nest near the bomb.
+	BotEffect_CannotCarryBomb = 64,
 };
  
 public Plugin myinfo =
@@ -172,6 +175,7 @@ public void OnPluginStart()
 	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
 	
 	// listener
+	AddCommandListener( Listener_JoinTeam, "jointeam" );
 	AddCommandListener( Listener_Ready, "tournament_player_readystate" );
 	AddCommandListener( Listener_Suicide, "kill" );
 	AddCommandListener( Listener_Suicide, "explode" );
@@ -452,13 +456,8 @@ public Action Command_JoinRED( int client, int nArgs )
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Red )
 		return Plugin_Handled;
-
-	ScalePlayerModel(client, 1.0);
-	ResetRobotData(client, true);
-	SetVariantString( "" );
-	AcceptEntityInput( client, "SetCustomModel" );
-	LogMessage("Player \"%L\" joined RED team.", client);
-	TF2_ChangeClientTeam(client, TFTeam_Red);
+	
+	MovePlayerToRED(client);
 
 	return Plugin_Handled;
 }
@@ -711,10 +710,13 @@ public Action Command_MoveTeam( int client, int nArgs )
 				MovePlayerToBLU(target_list[i]);
 			}
 		}
+		else if( NewTargetTeam == TFTeam_Red )
+		{
+			MovePlayerToRED(client);
+		}
 		else
 		{
-			TF2_ChangeClientTeam(target_list[i], NewTargetTeam);
-			ScalePlayerModel(target_list[i], 1.0);
+			MovePlayerToSpec(client);
 		}
 		LogAction(client, target_list[i], "\"%L\" changed \"%L\"'s team to %s", client, target_list[i], strLogTeam);
 	}
@@ -754,6 +756,32 @@ public Action Command_BotClass( int client, int nArgs )
 /****************************************************
 					LISTENER
 *****************************************************/
+
+public Action Listener_JoinTeam(int client, const char[] command, int argc)
+{
+	if( !IsValidClient(client) )
+		return Plugin_Handled;
+		
+	char strTeam[16];
+	GetCmdArg(1, strTeam, sizeof(strTeam));
+	if( StrEqual( strTeam, "red", false ) )
+	{
+		FakeClientCommand(client, "sm_joinred");
+		return Plugin_Handled;
+	}
+	else if( StrEqual( strTeam, "blue", false ) )
+	{
+		FakeClientCommand(client, "sm_joinblue");
+		return Plugin_Handled;
+	}
+	else if( StrEqual( strTeam, "spectate", false ) || StrEqual( strTeam, "spectator", false ) )
+	{
+		MovePlayerToSpec(client);
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
+}
 
 public Action Listener_Ready(int client, const char[] command, int argc)
 {
@@ -882,9 +910,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
-	
-	
-	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
 		if( TF2_GetPlayerClass(client) == TFClass_Engineer )
 		{
@@ -1026,6 +1052,10 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
 			}			
 		}
+		else if( iBotEffect[client] & BotEffect_CannotCarryBomb )
+		{
+			BlockBombPickup(client);
+		}
 		
 		if(OR_IsHalloweenMission())
 		{
@@ -1087,7 +1117,14 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 						if( iTeleTarget != -1 ) // found nest
 						{
 							TeleportPlayerToEntity(iTeleTarget, client);
-							EmitGSToRed("Announcer.MVM_Another_Engineer_Teleport_Spawned");
+							if( GetClassCount(TFClass_Engineer, TFTeam_Blue, true) > 1 )
+							{
+								EmitGSToRed("Announcer.MVM_Another_Engineer_Teleport_Spawned");
+							}
+							else
+							{
+								EmitGSToRed("Announcer.MVM_First_Engineer_Teleport_Spawned");
+							}
 						}
 						else
 						{
@@ -1237,6 +1274,7 @@ public Action Timer_OnTeleporterFinished(Handle timer, any index)
 		SetEntProp(index, Prop_Data, "m_iMaxHealth", 300);
 		SetVariantInt(300);
 		AcceptEntityInput(index, "SetHealth");
+		EmitGSToRed("Announcer.MVM_Engineer_Teleporter_Activated");
 		return Plugin_Handled;
 	}
 	
@@ -1256,6 +1294,28 @@ public Action Timer_RemoveSpawnedBool(Handle timer, any client)
 *****************************************************/
 
 // ***PLAYER***
+
+// moves player to RED
+void MovePlayerToRED(int client)
+{
+	ScalePlayerModel(client, 1.0);
+	ResetRobotData(client, true);
+	SetVariantString( "" );
+	AcceptEntityInput( client, "SetCustomModel" );
+	LogMessage("Player \"%L\" joined RED team.", client);
+	TF2_ChangeClientTeam(client, TFTeam_Red);
+}
+
+// moves players to spectator
+void MovePlayerToSpec(int client)
+{
+	ScalePlayerModel(client, 1.0);
+	ResetRobotData(client, true);
+	SetVariantString( "" );
+	AcceptEntityInput( client, "SetCustomModel" );
+	LogMessage("Player \"%L\" joined RED team.", client);
+	TF2_ChangeClientTeam(client, TFTeam_Spectator);
+}
 
 // moves player to BLU team.
 void MovePlayerToBLU(int client)
@@ -1684,6 +1744,7 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 		} */
 		case TFClass_Engineer:
 		{
+			iBotEffect[client] += BotEffect_CannotCarryBomb; // global
 			switch( iVariant )
 			{
 				case -1: iBotEffect[client] += BotEffect_TeleportToHint;
@@ -1692,15 +1753,19 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 		}
 		case TFClass_Medic:
 		{
-			iBotEffect[client] += BotEffect_FullCharge;
+			iBotEffect[client] += (BotEffect_FullCharge + BotEffect_CannotCarryBomb);
 		}
-/* 		case TFClass_Sniper:
+		case TFClass_Sniper:
 		{
-			
-		} */
+			switch( iVariant )
+			{
+				case -1: iBotEffect[client] += BotEffect_CannotCarryBomb;
+				case 0: iBotEffect[client] += BotEffect_CannotCarryBomb;
+			}
+		}
 		case TFClass_Spy:
 		{
-			iBotEffect[client] += BotEffect_AutoDisguise; // global to all spies
+			iBotEffect[client] += (BotEffect_AutoDisguise + BotEffect_CannotCarryBomb); // global to all spies
 			switch( iVariant )
 			{
 				case 0: iBotEffect[client] += BotEffect_InfiniteCloak;
@@ -1738,22 +1803,22 @@ void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 		case TFClass_Heavy:
 		{
 			
-		}
+		} */
 		case TFClass_Engineer:
 		{
-			
+			iBotEffect[client] += BotEffect_CannotCarryBomb;
 		}
 		case TFClass_Medic:
 		{
-			
+			iBotEffect[client] += (BotEffect_FullCharge + BotEffect_CannotCarryBomb);
 		}
 		case TFClass_Sniper:
 		{
-			
-		} */
+			iBotEffect[client] += BotEffect_CannotCarryBomb;
+		}
 		case TFClass_Spy:
 		{
-			iBotEffect[client] += BotEffect_AutoDisguise; // global to all spies
+			iBotEffect[client] += (BotEffect_AutoDisguise + BotEffect_CannotCarryBomb); // global to all spies
 		}
 	}
 }

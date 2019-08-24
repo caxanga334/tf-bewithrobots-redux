@@ -388,3 +388,68 @@ void AnnounceEngineerDeath(int client)
 		}
 	}
 }
+
+// returns the number of classes in a team.
+int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false)
+{
+	int iClassNum = 0;
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if( IsClientInGame(i) )
+		{
+			if( bIncludeBots )
+			{
+				if( TF2_GetClientTeam(i) == Team )
+				{
+					if( TF2_GetPlayerClass(i) == TFClass )
+					{
+						iClassNum++;
+					}
+				}
+			}
+			else
+			{
+				if( !IsFakeClient(i) )
+				{
+					if( TF2_GetClientTeam(i) == Team )
+					{
+						if( TF2_GetPlayerClass(i) == TFClass )
+						{
+							iClassNum++;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	return iClassNum;
+}
+
+// returns the entity index of the first available weapon
+int GetFirstAvailableWeapon(int client)
+{
+	int iWeapon = -1;
+	int iSlot = 0;
+	
+	while( iSlot <= 5 )
+	{
+		iWeapon = GetPlayerWeaponSlot(client, iSlot);
+		iSlot++
+		if( iWeapon != -1 )
+		{
+			break;
+		}
+	}
+	
+	return iWeapon;
+}
+
+void BlockBombPickup(int client)
+{
+	int iWeapon = GetFirstAvailableWeapon(client);
+	if( iWeapon != -1 )
+	{
+		TF2Attrib_SetByName(iWeapon, "cannot pick up intelligence", 1.0);
+	}
+}
