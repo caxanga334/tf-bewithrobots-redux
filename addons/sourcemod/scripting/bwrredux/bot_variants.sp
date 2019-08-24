@@ -850,11 +850,12 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Sniper:
 			{
 
-			}
+			} */
 			case TFClass_Spy:
 			{
-
-			} */
+				iWeapon = GetPlayerWeaponSlot(client, 4); // spy invis watch
+				TF2Attrib_SetByName(iWeapon, "mult cloak meter regen rate", 4.0); // own spy doesn't have inf cloak
+			}
 		}
 	}
 }

@@ -453,3 +453,33 @@ void BlockBombPickup(int client)
 		TF2Attrib_SetByName(iWeapon, "cannot pick up intelligence", 1.0);
 	}
 }
+
+// add particle to the robot engineer teleporter
+void AddParticleToTeleporter(int entity)
+{
+	int particle = CreateEntityByName("info_particle_system");
+
+	char targetname[64];
+	float VecOrigin[3];
+	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", VecOrigin);
+	VecOrigin[2] -= 50;
+	TeleportEntity(particle, VecOrigin, NULL_VECTOR, NULL_VECTOR);
+
+	Format(targetname, sizeof(targetname), "tele_target_%i", entity);
+	DispatchKeyValue(entity, "targetname", targetname);
+
+	DispatchKeyValue(particle, "targetname", "bwrr_tele_particle");
+	DispatchKeyValue(particle, "parentname", targetname);
+	DispatchKeyValue(particle, "effect_name", "teleporter_mvm_bot_persist");
+	DispatchSpawn(particle);
+	SetVariantString(targetname);
+	AcceptEntityInput(particle, "SetParent", particle, particle);
+	SetEntPropEnt(particle, Prop_Send, "m_hOwnerEntity", entity);
+	ActivateEntity(particle);
+	AcceptEntityInput(particle, "start");
+}
+
+void OnDestroyedTeleporter(const char[] output, int caller, int activator, float delay)
+{
+	AcceptEntityInput(caller,"KillHierarchy");
+}

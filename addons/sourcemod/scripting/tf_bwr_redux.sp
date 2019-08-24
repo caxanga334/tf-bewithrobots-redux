@@ -1275,7 +1275,9 @@ public Action Timer_OnTeleporterFinished(Handle timer, any index)
 		SetVariantInt(300);
 		AcceptEntityInput(index, "SetHealth");
 		EmitGSToRed("Announcer.MVM_Engineer_Teleporter_Activated");
-		return Plugin_Handled;
+		AddParticleToTeleporter(index);
+		HookSingleEntityOutput(index, "OnDestroyed", OnDestroyedTeleporter, true);
+		return Plugin_Stop;
 	}
 	
 	return Plugin_Continue;
