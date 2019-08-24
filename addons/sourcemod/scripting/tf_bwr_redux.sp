@@ -9,9 +9,9 @@
 #define AUTOLOAD_EXTENSIONS
 #include <sdkhooks>
 #include <tf2items>
-#include "botvsmann/objectiveres.sp"
-#include "botvsmann/bot_variants.sp"
-#include "botvsmann/functions.sp"
+#include "bwrredux/objectiveres.sp"
+#include "bwrredux/bot_variants.sp"
+#include "bwrredux/functions.sp"
 
 #define PLUGIN_VERSION "0.0.1"
 
