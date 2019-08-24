@@ -12,13 +12,15 @@ void StripItems( int client, bool RemoveWeapons = true )
 	
 	if(RemoveWeapons)
 	{
-		iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary, true);
+		//iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary, true); // broken on windows
+		iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
 		if(iWeapon != -1)
 		{
 			TF2_RemovePlayerWearable(client, iWeapon);
 		}
 		
-		iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary, true);
+		//iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary, true);
+		iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Secondary)
 		if(iWeapon != -1)
 		{
 			TF2_RemovePlayerWearable(client, iWeapon);
@@ -66,13 +68,15 @@ void StripWeapons( int client )
 		
 	int iWeapon;
 	
-	iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary, true);
+	//iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Primary, true); // broken on windows
+	iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
 	if(iWeapon != -1)
 	{
 		TF2_RemovePlayerWearable(client, iWeapon);
 	}
 	
-	iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary, true);
+	//iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary, true);
+	iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Secondary)
 	if(iWeapon != -1)
 	{
 		TF2_RemovePlayerWearable(client, iWeapon);
