@@ -125,12 +125,14 @@ int FindEngineerNestNearBomb()
 	int iTargetNest = -1; // the closest nest found.
 	int i = -1;
 	int iBomb = -1; // the bomb we're going to use to check distance.
+	int iBombOwner = -1; // bomb carrier
 	
 	while( (i = FindEntityByClassname(i, "item_teamflag" )) != -1 )
 	{
 		if( IsValidEntity(i) && GetEntProp( i, Prop_Send, "m_bDisabled" ) == 0 ) // ignore disabled bombs
 		{
 			iBomb = i; // use the first bomb found.
+			iBombOwner = GetEntPropEnt( i, Prop_Send, "m_hOwnerEntity" );
 			break;
 		}
 	}
@@ -143,7 +145,14 @@ int FindEngineerNestNearBomb()
 	{
 		if( IsValidEntity(i) )
 		{
-			GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
+			if( iBombOwner == -1 || iBombOwner > MaxClients)
+			{
+				GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
+			}
+			else // if the bomb is carried by a player, use the eye position of the carrier instead
+			{
+				GetClientEyePosition(iBombOwner, bVec);
+			}
 			GetEntPropVector(i, Prop_Send, "m_vecOrigin", nVec); // nest
 			
 			current_dist = GetVectorDistance(bVec, nVec);
@@ -222,12 +231,14 @@ int FindBestBluTeleporter()
 	int iTargetTele = -1; // the closest nest found.
 	int i = -1;
 	int iBomb = -1; // the bomb we're going to use to check distance.
+	int iBombOwner = -1;
 	
 	while( (i = FindEntityByClassname(i, "item_teamflag" )) != -1 )
 	{
 		if( IsValidEntity(i) && GetEntProp( i, Prop_Send, "m_bDisabled" ) == 0 ) // ignore disabled bombs
 		{
 			iBomb = i; // use the first bomb found.
+			iBombOwner = GetEntPropEnt( i, Prop_Send, "m_hOwnerEntity" );
 			break;
 		}
 	}
@@ -240,9 +251,17 @@ int FindBestBluTeleporter()
 	{
 		if( IsValidEntity(i) )
 		{
-			if( GetEntProp( i, Prop_Send, "m_bHasSapper" ) == 0 && GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
-			{
-				GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
+			if( GetEntProp( i, Prop_Send, "m_bHasSapper" ) == 0 && GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) && GetEntPropFloat(i, Prop_Send, "m_flPercentageConstructed") >= 0.99 )
+			{		
+				if( iBombOwner == -1 || iBombOwner > MaxClients)
+				{
+					GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
+				}
+				else // if the bomb is carried by a player, use the eye position of the carrier instead
+				{
+					GetClientEyePosition(iBombOwner, bVec);
+				}
+				
 				GetEntPropVector(i, Prop_Send, "m_vecOrigin", nVec); // nest
 				
 				current_dist = GetVectorDistance(bVec, nVec);
@@ -292,5 +311,71 @@ void SpawnOnTeleporter(int teleporter,int client)
 		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.1); // 0.1 sec to compensate for a small delay
 		TeleportEntity(client, OriginVec, NULL_VECTOR, NULL_VECTOR);
 		EmitSoundToAll(")mvm/mvm_tele_deliver.wav", teleporter, SNDCHAN_STATIC, SNDLEVEL_SCREAMING);
+	}
+}
+
+// emits game sound to all players in RED
+void EmitGSToRed(const char[] gamesound)
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if( IsClientInGame(i) && !IsFakeClient(i) )
+		{
+			if( TF2_GetClientTeam(i) == TFTeam_Red )
+			{
+				EmitGameSoundToClient(i, gamesound);
+			}
+		}
+	}
+}
+
+// emits sound to all players in RED
+void EmitSoundToRed(const char[] soundpath)
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if( IsClientInGame(i) && !IsFakeClient(i) )
+		{
+			if( TF2_GetClientTeam(i) == TFTeam_Red )
+			{
+				EmitGameSoundToClient(i, soundpath);
+			}
+		}
+	}
+}
+
+// announces when a robot engineer is killed.
+void AnnounceEngineerDeath(int client)
+{
+	bool bFoundTele = false;
+	int i = -1;
+	int iOwner;
+	
+	if( IsClientInGame(client) && !IsFakeClient(client) )
+	{
+		while( (i = FindEntityByClassname(i, "obj_teleporter" )) != -1 )
+		{
+			if( IsValidEntity(i) )
+			{
+				if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
+				{				
+					iOwner = GetEntPropEnt( i, Prop_Send, "m_hOwnerEntity" );
+					if( iOwner == client )
+					{
+						bFoundTele = true;
+						break;
+					}
+				}
+			}
+		}
+		
+		if( bFoundTele ) // found a teleporter
+		{
+			EmitGSToRed("Announcer.MVM_An_Engineer_Bot_Is_Dead_But_Not_Teleporter");
+		}
+		else
+		{
+			EmitGSToRed("Announcer.MVM_An_Engineer_Bot_Is_Dead");
+		}
 	}
 }

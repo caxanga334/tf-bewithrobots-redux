@@ -188,6 +188,7 @@ public void OnPluginStart()
 	HookEvent( "teamplay_flag_event", E_FlagPickup );
 	HookEvent( "teamplay_flag_event", E_FlagDrop );
 	HookEvent( "post_inventory_application", E_Inventory );
+	HookEvent( "player_builtobject", E_BuildObject, EventHookMode_Pre );
 	
 	ID_MVMResetUpgrade = GetUserMessageId("MVMResetPlayerUpgradeSpending");
 	if(ID_MVMResetUpgrade == INVALID_MESSAGE_ID)
@@ -228,6 +229,10 @@ public void OnMapStart()
 	
 	// prechace
 	PrecacheSound(")mvm/mvm_tele_deliver.wav");
+	PrecacheSound("vo/mvm_spy_spawn01.mp3");
+	PrecacheSound("vo/mvm_spy_spawn02.mp3");
+	PrecacheSound("vo/mvm_spy_spawn03.mp3");
+	PrecacheSound("vo/mvm_spy_spawn04.mp3");
 }
 
 /* public void OnClientConnected(client)
@@ -248,7 +253,12 @@ public void OnGameFrame()
 		{		
 			if(TF2_GetClientTeam(i) == TFTeam_Blue)
 			{
-				if( TF2Spawn_IsClientInSpawn2(i) )
+				if( GameRules_GetRoundState() == RoundState_BetweenRounds )
+				{
+					TF2_AddCondition(i, TFCond_FreezeInput, 0.255);
+					TF2_AddCondition(i, TFCond_UberchargedHidden, 0.255);
+				}
+				else if( TF2Spawn_IsClientInSpawn2(i) )
 				{
 					TF2_AddCondition(i, TFCond_UberchargedHidden, 0.255);
 				}
@@ -256,11 +266,6 @@ public void OnGameFrame()
 				if( iBotEffect[i] & BotEffect_InfiniteCloak )
 				{
 					SetEntPropFloat( i, Prop_Send, "m_flCloakMeter", 100.0 );
-				}
-				
-				if( GameRules_GetRoundState() == RoundState_BetweenRounds )
-				{
-					TF2_AddCondition(i, TFCond_FreezeInput, 0.255);
 				}
 			}
 		}
@@ -779,8 +784,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 {
-	OR_Update();
-	UpdateClassArray();
+	CreateTimer(2.0, Timer_UpdateWaveData);
 }
 
 public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
@@ -864,8 +868,15 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
+	
+	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
+		if( TF2_GetPlayerClass(client) == TFClass_Engineer )
+		{
+			AnnounceEngineerDeath(client);
+		}
+		
 		PickRandomRobot(client);
 	}
 }
@@ -925,6 +936,16 @@ public Action E_FlagDrop(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
+public Action E_BuildObject(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	int index = event.GetInt("index");
+	if( !IsFakeClient(client) && GetEntProp( index, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
+	{
+		CreateTimer(0.1, Timer_BuildObject, index);
+	}
+}
+
 /****************************************************
 					USER MESSAGE
 *****************************************************/
@@ -963,6 +984,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
 		//TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
+		g_bIsCarrier[client] = false;
 		
 		if( TFClass == TFClass_Spy && iBotEffect[client] & BotEffect_AutoDisguise )
 		{
@@ -1044,9 +1066,10 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 					else // no teleporter found
 					{
 						iTeleTarget = FindEngineerNestNearBomb();
-						if( iTeleTarget != -1 ) // found teleporter
+						if( iTeleTarget != -1 ) // found nest
 						{
 							TeleportPlayerToEntity(iTeleTarget, client);
+							EmitGSToRed("Announcer.MVM_Another_Engineer_Teleport_Spawned");
 						}
 						else
 						{
@@ -1127,6 +1150,71 @@ public Action Timer_KillReviveMarker(Handle timer, any revivemarker)
 	}
 	
 	return Plugin_Handled;
+}
+
+public Action Timer_UpdateWaveData(Handle timer)
+{
+	OR_Update();
+	UpdateClassArray();
+	
+	return Plugin_Handled;
+}
+
+public Action Timer_BuildObject(Handle timer, any index)
+{
+	char classname[32];
+	
+	if( IsValidEdict(index) )
+	{
+		GetEdictClassname(index, classname, sizeof(classname))
+		
+		if( strcmp(classname, "obj_sentrygun", false) == 0 )
+		{
+			if( GetEntProp( index, Prop_Send, "m_bMiniBuilding" ) == 1 || GetEntProp( index, Prop_Send, "m_bDisposableBuilding" ) == 1 )
+			{
+				DispatchKeyValue(index, "defaultupgrade", "0");
+			}
+			else
+			{
+				DispatchKeyValue(index, "defaultupgrade", "2");
+			}
+		}
+		else if( strcmp(classname, "obj_dispenser", false) == 0 )
+		{
+			SetEntProp(index, Prop_Send, "m_bMiniBuilding", 1);
+			SetEntPropFloat(index, Prop_Send, "m_flModelScale", 0.90);
+			SetVariantInt(100);
+			AcceptEntityInput(index, "SetHealth");			
+		}
+		else if( strcmp(classname, "obj_teleporter", false) == 0 )
+		{
+			DispatchKeyValue(index, "defaultupgrade", "2");
+			SetEntProp(index, Prop_Data, "m_iMaxHealth", 300);
+			SetVariantInt(300);
+			AcceptEntityInput(index, "SetHealth");
+			CreateTimer(0.2, Timer_OnTeleporterFinished, index, TIMER_REPEAT);
+		}
+	}
+	
+	return Plugin_Handled;
+}
+
+public Action Timer_OnTeleporterFinished(Handle timer, any index)
+{
+	if( !IsValidEntity(index) )
+		return Plugin_Stop;
+		
+	float flProgress = GetEntPropFloat(index, Prop_Send, "m_flPercentageConstructed");
+	
+	if( flProgress >= 1.0 )
+	{
+		SetEntProp(index, Prop_Data, "m_iMaxHealth", 300);
+		SetVariantInt(300);
+		AcceptEntityInput(index, "SetHealth");
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
 }
 
 /****************************************************
