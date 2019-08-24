@@ -1054,7 +1054,8 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 						{
 							TeleportToSpawnPoint(client, TFClass);
 						}
-					}		
+					}
+					AnnounceSpySpawn();
 				}
 				case TFClass_Engineer:
 				{

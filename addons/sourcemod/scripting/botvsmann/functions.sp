@@ -338,10 +338,19 @@ void EmitSoundToRed(const char[] soundpath)
 		{
 			if( TF2_GetClientTeam(i) == TFTeam_Red )
 			{
-				EmitGameSoundToClient(i, soundpath);
+				EmitSoundToClient(i, soundpath);
 			}
 		}
 	}
+}
+
+// announces a spy has spawned.
+void AnnounceSpySpawn()
+{
+	char soundpath[PLATFORM_MAX_PATH];
+	
+	Format(soundpath, sizeof(soundpath), "vo/mvm_spy_spawn0%i.mp3", GetRandomInt(1,4));
+	EmitSoundToRed(soundpath);
 }
 
 // announces when a robot engineer is killed.
