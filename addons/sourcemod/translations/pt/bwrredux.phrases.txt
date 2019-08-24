@@ -2,15 +2,15 @@
 {
 	"Used Upgrade"
 	{
-		"pt"	"{white}[BVM] {cyan}Você precisa reembolsar suas melhorias para poder entrar na equipe {blue}BLU{cyan}."
+		"pt"	"{white}[BWRR] {cyan}Você precisa reembolsar suas melhorias para poder entrar na equipe {blue}BLU{cyan}."
 	}
 	"Need Red"
 	{
-		"pt"	"{white}[BVM] {cyan}Você não pode entrar na equipe {blue}BLU{cyan}. Não há jogadores suficientes na equipe {red}RED{cyan}."
+		"pt"	"{white}[BWRR] {cyan}Você não pode entrar na equipe {blue}BLU{cyan}. Não há jogadores suficientes na equipe {red}RED{cyan}."
 	}
 	"Not in Prog"
 	{
-		"pt"	"{white}[BVM] {cyan}Você não pode entrar na equipe {blue}BLU{cyan} enquanto a onda estiver em progresso. Não há jogadores suficientes na equipe {red}RED{cyan}."
+		"pt"	"{white}[BWRR] {cyan}Você não pode entrar na equipe {blue}BLU{cyan} enquanto a onda estiver em progresso. Não há jogadores suficientes na equipe {red}RED{cyan}."
 	}
 	"Num Red"
 	{
@@ -20,18 +20,18 @@
 	"Bot Spawn"
 	{
 		"#format"	"{1:s}"
-		"pt"	"{white}[BVM] {cyan}You've spawned as {green}{1}{cyan}."
+		"pt"	"{white}[BWRR] {cyan}You've spawned as {green}{1}{cyan}."
 	}
 	"Unready"
 	{
-		"pt"	"{white}[BVM] {cyan}Você não pode entrar na equipe {blue}BLU{cyan} enquanto estiver pronto ."
+		"pt"	"{white}[BWRR] {cyan}Você não pode entrar na equipe {blue}BLU{cyan} enquanto estiver pronto ."
 	}
 	"Moved Blu Full"
 	{
-		"pt"	"{white}[BVM] {cyan}Você foi movido para a equipe {red}RED{cyan} porque a equipe {blue}BLU{cyan} está cheia."
+		"pt"	"{white}[BWRR] {cyan}Você foi movido para a equipe {red}RED{cyan} porque a equipe {blue}BLU{cyan} está cheia."
 	}
 	"Moved Blu Balance"
 	{
-		"pt"	"{white}[BVM] {cyan}Você foi movido para a equipe {red}RED{cyan} para balancear as equipes."
+		"pt"	"{white}[BWRR] {cyan}Você foi movido para a equipe {red}RED{cyan} para balancear as equipes."
 	}
 }
