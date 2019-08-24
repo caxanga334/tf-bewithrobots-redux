@@ -9,6 +9,8 @@
 #define AUTOLOAD_EXTENSIONS
 #include <sdkhooks>
 #include <tf2items>
+#undef REQUIRE_EXTENSIONS
+#include <SteamWorks>
 #include "bwrredux/objectiveres.sp"
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
@@ -203,12 +205,23 @@ public void OnPluginStart()
 	AutoExecConfig(true, "plugin.bwrredux");
 }
 
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "SteamWorks", false))
+	{
+		SteamWorks_SetGameDescription("Be With Robots Redux");
+	}
+}
+
 public void OnMapStart()
 {
 	if(!IsMvM())
 	{
 		SetFailState("This plugin is for Mann vs Machine Only.") // probably easier than add IsMvM everywhere
 	}
+	
+	if(LibraryExists("SteamWorks"))
+		SteamWorks_SetGameDescription("Be With Robots Redux");
 	
 	CheckMapForEntities();
 	GetCurrentMap(MapName, sizeof(MapName));
