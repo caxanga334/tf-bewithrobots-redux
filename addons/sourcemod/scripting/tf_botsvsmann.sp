@@ -47,6 +47,7 @@ int iBotType[MAXPLAYERS + 1];
 int iBotVariant[MAXPLAYERS + 1];
 int iBotEffect[MAXPLAYERS + 1];
 TFClassType BotClass[MAXPLAYERS + 1];
+bool bSpawned[MAXPLAYERS + 1]; // store if a player has recently spawned.
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
@@ -286,7 +287,7 @@ public void TF2Spawn_LeaveSpawn(client, entity)
 	{
 		TF2_RemoveCondition(client, TFCond_UberchargedHidden);
 		
-		if( GameRules_GetRoundState() == RoundState_BetweenRounds )
+		if( GameRules_GetRoundState() == RoundState_BetweenRounds && !bSpawned[client] )
 		{
 			TF2_RespawnPlayer(client);
 		}
@@ -985,6 +986,9 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 	{
 		//TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
 		g_bIsCarrier[client] = false;
+		bSpawned[client] = true;
+		CreateTimer(0.2, Timer_RemoveSpawnedBool, client);
+		
 		
 		if( TFClass == TFClass_Spy && iBotEffect[client] & BotEffect_AutoDisguise )
 		{
@@ -1222,6 +1226,14 @@ public Action Timer_OnTeleporterFinished(Handle timer, any index)
 		AcceptEntityInput(index, "SetHealth");
 		return Plugin_Handled;
 	}
+	
+	return Plugin_Continue;
+}
+
+public Action Timer_RemoveSpawnedBool(Handle timer, any client)
+{
+	if( bSpawned[client] )
+		bSpawned[client] = false;
 	
 	return Plugin_Continue;
 }
@@ -1814,6 +1826,7 @@ void ResetRobotData(int client, bool bStrip = false)
 	BotClass[client] = TFClass_Unknown;
 	g_bIsCarrier[client] = false;
 	g_bUpgradeStation[client] = false;
+	bSpawned[client] = false;
 	if( bStrip )
 		StripWeapons(client);
 }
