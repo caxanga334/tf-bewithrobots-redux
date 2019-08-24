@@ -1015,7 +1015,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			return Plugin_Stop;
 		}
-		return Plugin_Handled;
+		return Plugin_Stop;
 	}
 		
 	TFClassType TFClass = TF2_GetPlayerClass(client);
@@ -1163,7 +1163,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 	}
 	
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public Action Timer_SetRobotClass(Handle timer, any client)
@@ -1173,7 +1173,7 @@ public Action Timer_SetRobotClass(Handle timer, any client)
 		
 	TF2_SetPlayerClass(client, BotClass[client], _, true);
 	
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public Action Timer_Respawn(Handle timer, any client)
@@ -1183,7 +1183,7 @@ public Action Timer_Respawn(Handle timer, any client)
 		
 	TF2_RespawnPlayer(client);
 	
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public Action Timer_KillReviveMarker(Handle timer, any revivemarker)
@@ -1204,7 +1204,7 @@ public Action Timer_KillReviveMarker(Handle timer, any revivemarker)
 		}
 	}
 	
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public Action Timer_UpdateWaveData(Handle timer)
@@ -1212,7 +1212,7 @@ public Action Timer_UpdateWaveData(Handle timer)
 	OR_Update();
 	UpdateClassArray();
 	
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public Action Timer_BuildObject(Handle timer, any index)
@@ -1259,7 +1259,7 @@ public Action Timer_BuildObject(Handle timer, any index)
 		}
 	}
 	
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 public Action Timer_OnTeleporterFinished(Handle timer, any index)
@@ -1288,7 +1288,7 @@ public Action Timer_RemoveSpawnedBool(Handle timer, any client)
 	if( bSpawned[client] )
 		bSpawned[client] = false;
 	
-	return Plugin_Continue;
+	return Plugin_Stop;
 }
 
 /****************************************************
