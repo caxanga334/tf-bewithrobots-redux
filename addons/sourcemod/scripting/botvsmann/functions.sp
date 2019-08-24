@@ -93,7 +93,7 @@ int FindNearestSpyHint()
 		{
 			char strName[64];
 			GetEntPropString(i5, Prop_Data, "m_iName", strName, sizeof(strName));
-			if(strcmp(strName, "bvm_spy_spawnpoint") == 0)
+			if(strcmp(strName, "bwr_spy_spawnpoint") == 0)
 			{
 				GetEntPropVector(i5, Prop_Send, "m_vecOrigin", nVec);
 				for (int i = 1; i <= MaxClients; i++)
@@ -197,7 +197,7 @@ void CheckMapForEntities()
 		{
 			char strName[64];
 			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
-			if(strcmp(strName, "bvm_spy_spawnpoint") == 0)
+			if(strcmp(strName, "bwr_spy_spawnpoint") == 0)
 			{
 				bSpy = true;
 				break;

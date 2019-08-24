@@ -112,11 +112,11 @@ enum
  
 public Plugin myinfo =
 {
-	name = "[TF2] Robots vs Mann",
+	name = "[TF2] Be With Robots Redux",
 	author = "caxanga334",
 	description = "Allows players to play as a robot in MvM",
 	version = PLUGIN_VERSION,
-	url = "https://github.com/caxanga334"
+	url = "https://github.com/caxanga334/tf-bewithrobots-redux"
 };
 
 stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -137,14 +137,14 @@ stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 public void OnPluginStart()
 {	
 	// convars
-	CreateConVar("sm_botvsmann_version", PLUGIN_VERSION, "Robots vs Mann plugin version.", FCVAR_NOTIFY);
-	c_iMinRed = CreateConVar("sm_bvm_minred", "4", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
-	c_iMinRedinProg = CreateConVar("sm_bvm_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
-	c_iGiantChance = CreateConVar("sm_bvm_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
-	c_iGiantMinRed = CreateConVar("sm_bvm_giantminred", "5", "Minimum amount of players on RED team to allow human giants. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 8.0);
-	c_iMaxBlu = CreateConVar("sm_bvm_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 5.0);
-	c_bAutoTeamBalance = CreateConVar("sm_bvm_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_bSmallMap = CreateConVar("sm_bvm_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
+	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY);
+	c_iMinRed = CreateConVar("sm_bwrr_minred", "4", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
+	c_iMinRedinProg = CreateConVar("sm_bwrr_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
+	c_iGiantChance = CreateConVar("sm_bwrr_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_iGiantMinRed = CreateConVar("sm_bwrr_giantminred", "5", "Minimum amount of players on RED team to allow human giants. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 8.0);
+	c_iMaxBlu = CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 5.0);
+	c_bAutoTeamBalance = CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bSmallMap = CreateConVar("sm_bwrr_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_svTag = FindConVar("sv_tags");
 	
 	// convar hooks
@@ -154,7 +154,7 @@ public void OnPluginStart()
 	}
 	
 	// translations
-	LoadTranslations("botsvsmann.phrases");
+	LoadTranslations("bwrredux.phrases");
 	LoadTranslations("common.phrases");
 	
 	// commands
@@ -165,9 +165,9 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_bewithrobots", Command_JoinBLU, "Joins BLU/Robot team." );
 	RegConsoleCmd( "sm_robotclass", Command_BotClass, "Changes your robot variant." );
 	RegConsoleCmd( "sm_rc", Command_BotClass, "Changes your robot variant." );
-	RegAdminCmd( "sm_bvm_debug", Command_Debug, ADMFLAG_ROOT, "Debug command" );
-	RegAdminCmd( "sm_bvm_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
-	RegAdminCmd( "sm_bvm_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
+	RegAdminCmd( "sm_bwrr_debug", Command_Debug, ADMFLAG_ROOT, "Prints some debug messages." );
+	RegAdminCmd( "sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
+	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
 	
 	// listener
 	AddCommandListener( Listener_Ready, "tournament_player_readystate" );
@@ -200,7 +200,7 @@ public void OnPluginStart()
 	ay_avclass = new ArrayList(10);
 	array_spawns = new ArrayList();
 	
-	AutoExecConfig(true, "plugin.botsvsmachine");
+	AutoExecConfig(true, "plugin.bwrredux");
 }
 
 public void OnMapStart()
@@ -226,7 +226,7 @@ public void OnMapStart()
 	ay_avclass.Clear();
 	
 	// add custom tag
-	AddPluginTag("BVM");
+	AddPluginTag("BWRR");
 	
 	// prechace
 	PrecacheSound(")mvm/mvm_tele_deliver.wav");
@@ -355,7 +355,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 public void OnTagsChanged(ConVar convar, char[] oldValue, char[] newValue)
 {
-	AddPluginTag("BVM");
+	AddPluginTag("BWRR");
 }
 
 /****************************************************
@@ -509,7 +509,7 @@ public Action Command_ForceBot( int client, int nArgs )
 	
 	if( nArgs < 4 )
 	{
-		ReplyToCommand(client, "Usage: sm_bvm_forcebot <target> <class> <type: 0 normal | 1 giant> <variant id>");
+		ReplyToCommand(client, "Usage: sm_bwrr_forcebot <target> <class> <type: 0 normal | 1 giant> <variant id>");
 		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy");
 		return Plugin_Handled;
 	}
@@ -642,7 +642,7 @@ public Action Command_MoveTeam( int client, int nArgs )
 	
 	if( nArgs < 1 )
 	{
-		ReplyToCommand(client, "Usage: sm_bvm_move <target> <team: 1 - Spectator, 2 - Red, 3 - Blue>");
+		ReplyToCommand(client, "Usage: sm_bwrr_move <target> <team: 1 - Spectator, 2 - Red, 3 - Blue>");
 		return Plugin_Handled;
 	}
 	
@@ -1940,7 +1940,7 @@ int FindRandomSpawnPoint( SpawnType iType )
 				{
 					array_spawns.Push( iEnt );
 				}
-				else if( StrEqual( strSpawnName, "spawnbot_bvm" ) ) // custom spawn point
+				else if( StrEqual( strSpawnName, "spawnbot_bwr" ) ) // custom spawn point
 				{
 					array_spawns.Push( iEnt );
 				}
