@@ -1189,11 +1189,19 @@ public Action Timer_BuildObject(Handle timer, any index)
 		}
 		else if( strcmp(classname, "obj_teleporter", false) == 0 )
 		{
-			DispatchKeyValue(index, "defaultupgrade", "2");
-			SetEntProp(index, Prop_Data, "m_iMaxHealth", 300);
-			SetVariantInt(300);
-			AcceptEntityInput(index, "SetHealth");
-			CreateTimer(0.2, Timer_OnTeleporterFinished, index, TIMER_REPEAT);
+			if( TF2_GetObjectMode(index) == TFObjectMode_Entrance )
+			{
+				SetVariantInt(9999);
+				AcceptEntityInput(index, "RemoveHealth");				
+			}
+			else
+			{
+				DispatchKeyValue(index, "defaultupgrade", "2");
+				SetEntProp(index, Prop_Data, "m_iMaxHealth", 300);
+				SetVariantInt(300);
+				AcceptEntityInput(index, "SetHealth");
+				CreateTimer(0.2, Timer_OnTeleporterFinished, index, TIMER_REPEAT);
+			}
 		}
 	}
 	
