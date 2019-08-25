@@ -324,7 +324,7 @@ public void OnEntityCreated(int iEntity,const char[] name)
 		if(IsValidEntity(iEntity))
 		{
 			int iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
-			if( IsValidClient(iOwner) && TF2_GetClientTeam(iOwner) == TFTeam_Blue )
+			if( IsValidClient(iOwner) && TF2_GetClientTeam(iOwner) == TFTeam_Blue && !IsFakeClient(iOwner) )
 			{
 				SetVariantInt(1);
 				AcceptEntityInput(iEntity, "Skin" );
@@ -399,7 +399,7 @@ public Action OnTouchUpgradeStation(int entity, int other)
 public Action Command_JoinBLU( int client, int nArgs )
 {
 	if( !IsClientInGame(client) || IsFakeClient(client) )
-		return Plugin_Continue;
+		return Plugin_Handled;
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 		return Plugin_Handled;
@@ -763,7 +763,7 @@ public Action Command_BotClass( int client, int nArgs )
 
 public Action Listener_JoinTeam(int client, const char[] command, int argc)
 {
-	if( !IsValidClient(client) )
+	if( !IsValidClient(client) || IsFakeClient(client) )
 		return Plugin_Handled;
 		
 	char strTeam[16];
@@ -849,7 +849,7 @@ public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	TFClassType TFClass = view_as<TFClassType>(event.GetInt("class"));
 	
-	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
 		if( IsClassAvailable(TFClass) )
 		{
@@ -870,7 +870,7 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
-	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
 		if( iBotEffect[client] & BotEffect_AlwaysCrits )
 		{
@@ -929,7 +929,7 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
-	if(IsValidClient(client))
+	if(IsValidClient(client) && !IsFakeClient(client))
 	{
 		TFTeam Team = TF2_GetClientTeam(client);
 		
@@ -1025,7 +1025,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	char strBotName[128];
 		
-	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
 		//TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
 		g_bIsCarrier[client] = false;
