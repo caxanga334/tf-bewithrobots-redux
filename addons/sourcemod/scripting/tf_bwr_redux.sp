@@ -253,6 +253,8 @@ public void OnMapStart()
 	PrecacheSound("vo/mvm_spy_spawn02.mp3");
 	PrecacheSound("vo/mvm_spy_spawn03.mp3");
 	PrecacheSound("vo/mvm_spy_spawn04.mp3");
+	PrecacheSound("mvm/mvm_deploy_giant.wav");
+	PrecacheSound("mvm/mvm_deploy_small.wav");
 }
 
 /* public void OnClientConnected(client)
@@ -414,7 +416,13 @@ public Action OnTouchCaptureZone(int entity, int other)
 		{
 			TF2_AddCondition(other, TFCond_FreezeInput, 2.3);
 			if( HT_BombDeployTimer == INVALID_HANDLE )
+			{
 				HT_BombDeployTimer = CreateTimer(2.1, Timer_DeployBomb, other);
+				if( p_iBotType[other] == Bot_Giant || p_iBotType[other] == Bot_Boss )
+					EmitSoundToAll("mvm/mvm_deploy_giant.wav", other);
+				else
+					EmitSoundToAll("mvm/mvm_deploy_small.wav", other);
+			}
 		}
 	}
 	
@@ -985,6 +993,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			AnnounceEngineerDeath(client);
 		}
 		
+		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 		PickRandomRobot(client);
 	}
 }
@@ -1134,6 +1143,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		if( p_iBotType[client] == Bot_Giant )
 		{
 			strBotName = GetGiantVariantName(TFClass, p_iBotVariant[client]);
+			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) ); // has nothing to do with variant name but same condition
 		}
 		else
 		{
