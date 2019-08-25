@@ -61,7 +61,6 @@ ArrayList array_spawns; // spawn points for human players
 
 // others
 bool g_bUpgradeStation[MAXPLAYERS + 1];
-char MapName[64];
 
 // convars
 ConVar c_iMinRed;
@@ -231,7 +230,6 @@ public void OnMapStart()
 		SteamWorks_SetGameDescription("Be With Robots Redux");
 	
 	CheckMapForEntities();
-	GetCurrentMap(MapName, sizeof(MapName));
 	
 	int i;
 	
