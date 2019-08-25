@@ -483,3 +483,279 @@ void OnDestroyedTeleporter(const char[] output, int caller, int activator, float
 {
 	AcceptEntityInput(caller,"KillHierarchy");
 }
+
+bool CheckTeleportClamping(int telepoter)
+{
+	float VecTeleporter[3], RayAngles[3], RayEndPos[3];
+	float fldistance;
+	GetEntPropVector(telepoter, Prop_Send, "m_vecOrigin", VecTeleporter);
+	VecTeleporter[2] += 5;
+	
+	bool bSmallMap = IsSmallMap();
+	Handle Tracer = null;
+	
+	RayAngles[0] = 270.0; // up
+	RayAngles[1] = 0.0;
+	RayAngles[2] = 0.0;
+	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
+	if( Tracer != null && TR_DidHit(Tracer) )
+	{
+		TR_GetEndPosition(RayEndPos, Tracer);
+		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
+		if( bSmallMap )
+		{
+			if(fldistance < 130)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}
+		}
+		else
+		{
+			if(fldistance < 175)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}			
+		}
+	}
+	
+	CloseHandle(Tracer);
+	Tracer = null;
+	RayAngles[0] = 0.0;
+	RayAngles[1] = 0.0; // front
+	RayAngles[2] = 0.0;
+	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
+	if( Tracer != null && TR_DidHit(Tracer) )
+	{
+		TR_GetEndPosition(RayEndPos, Tracer);
+		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
+		if( bSmallMap )
+		{
+			if(fldistance < 36)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}
+		}
+		else
+		{
+			if(fldistance < 68)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}			
+		}
+	}
+	
+	CloseHandle(Tracer);
+	Tracer = null;
+	RayAngles[0] = 0.0;
+	RayAngles[1] = 90.0; // front
+	RayAngles[2] = 0.0;
+	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
+	if( Tracer != null && TR_DidHit(Tracer) )
+	{
+		TR_GetEndPosition(RayEndPos, Tracer);
+		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
+		if( bSmallMap )
+		{
+			if(fldistance < 36)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}
+		}
+		else
+		{
+			if(fldistance < 68)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}			
+		}
+	}
+	
+	CloseHandle(Tracer);
+	Tracer = null;
+	RayAngles[0] = 0.0;
+	RayAngles[1] = 180.0; // front
+	RayAngles[2] = 0.0;
+	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
+	if( Tracer != null && TR_DidHit(Tracer) )
+	{
+		TR_GetEndPosition(RayEndPos, Tracer);
+		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
+		if( bSmallMap )
+		{
+			if(fldistance < 36)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}
+		}
+		else
+		{
+			if(fldistance < 68)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}			
+		}
+	}
+	
+	CloseHandle(Tracer);
+	Tracer = null;
+	RayAngles[0] = 0.0;
+	RayAngles[1] = 270.0; // front
+	RayAngles[2] = 0.0;
+	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
+	if( Tracer != null && TR_DidHit(Tracer) )
+	{
+		TR_GetEndPosition(RayEndPos, Tracer);
+		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
+		if( bSmallMap )
+		{
+			if(fldistance < 36)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}
+		}
+		else
+		{
+			if(fldistance < 68)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}			
+		}
+	}
+	
+	CloseHandle(Tracer);
+	Tracer = null;
+	RayAngles[0] = 0.0;
+	RayAngles[1] = 45.0; // front
+	RayAngles[2] = 0.0;
+	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
+	if( Tracer != null && TR_DidHit(Tracer) )
+	{
+		TR_GetEndPosition(RayEndPos, Tracer);
+		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
+		if( bSmallMap )
+		{
+			if(fldistance < 48)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}
+		}
+		else
+		{
+			if(fldistance < 96)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}			
+		}
+	}
+	
+	CloseHandle(Tracer);
+	Tracer = null;
+	RayAngles[0] = 0.0;
+	RayAngles[1] = 135.0; // front
+	RayAngles[2] = 0.0;
+	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
+	if( Tracer != null && TR_DidHit(Tracer) )
+	{
+		TR_GetEndPosition(RayEndPos, Tracer);
+		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
+		if( bSmallMap )
+		{
+			if(fldistance < 48)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}
+		}
+		else
+		{
+			if(fldistance < 96)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}			
+		}
+	}
+	
+	CloseHandle(Tracer);
+	Tracer = null;
+	RayAngles[0] = 0.0;
+	RayAngles[1] = 225.0; // front
+	RayAngles[2] = 0.0;
+	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
+	if( Tracer != null && TR_DidHit(Tracer) )
+	{
+		TR_GetEndPosition(RayEndPos, Tracer);
+		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
+		if( bSmallMap )
+		{
+			if(fldistance < 48)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}
+		}
+		else
+		{
+			if(fldistance < 96)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}			
+		}
+	}
+	
+	CloseHandle(Tracer);
+	Tracer = null;
+	RayAngles[0] = 0.0;
+	RayAngles[1] = 315.0; // front
+	RayAngles[2] = 0.0;
+	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
+	if( Tracer != null && TR_DidHit(Tracer) )
+	{
+		TR_GetEndPosition(RayEndPos, Tracer);
+		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
+		if( bSmallMap )
+		{
+			if(fldistance < 48)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}
+		}
+		else
+		{
+			if(fldistance < 96)
+			{
+				CloseHandle(Tracer);
+				return true;
+			}			
+		}
+	}
+	
+	CloseHandle(Tracer);
+	return false
+}
+
+bool TraceFilterIgnorePlayers(int entity, int contentsMask)
+{
+    if(entity >= 1 && entity <= MaxClients)
+    {
+        return false;
+    }
+    if(entity != 0)
+        return false;
+  
+    return true;
+}

@@ -1265,11 +1265,21 @@ public Action Timer_BuildObject(Handle timer, any index)
 			}
 			else
 			{
-				DispatchKeyValue(index, "defaultupgrade", "2");
-				SetEntProp(index, Prop_Data, "m_iMaxHealth", 300);
-				SetVariantInt(300);
-				AcceptEntityInput(index, "SetHealth");
-				CreateTimer(0.2, Timer_OnTeleporterFinished, index, TIMER_REPEAT);
+				if( CheckTeleportClamping(index) )
+				{
+					int iBuilder = GetEntPropEnt( index, Prop_Send, "m_hBuilder" );
+					PrintCenterText(iBuilder, "NOT ENOUGH SPACE TO BUILD A TELEPORTER");
+					SetVariantInt(9999);
+					AcceptEntityInput(index, "RemoveHealth");
+				}
+				else
+				{
+					DispatchKeyValue(index, "defaultupgrade", "2");
+					SetEntProp(index, Prop_Data, "m_iMaxHealth", 300);
+					SetVariantInt(300);
+					AcceptEntityInput(index, "SetHealth");
+					CreateTimer(0.2, Timer_OnTeleporterFinished, index, TIMER_REPEAT);
+				}
 			}
 		}
 	}
@@ -1354,6 +1364,11 @@ void MovePlayerToBLU(int client)
 	PickRandomRobot(client);
 }
 
+bool IsSmallMap()
+{
+	return c_bSmallMap.BoolValue;
+}
+
 // updates ay_avclass
 // uses the data from tf_objective_resource to determine which classes should be available.
 // use the function OR_Update to read the tf_objective_resource's data.
@@ -1418,7 +1433,7 @@ bool IsClassAvailable(TFClassType TFClass)
 // ***ROBOT VARIANT***
 void PickRandomRobot(int client)
 {
-	if(!IsClientInGame(client))
+	if(!IsClientInGame(client) || IsFakeClient(client))
 		return;
 	
 	int iAvailable = OR_GetAvailableClasses();
@@ -1483,6 +1498,9 @@ void PickRandomRobot(int client)
 // selects a random variant based on the player's class
 void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	//TF2_SetPlayerClass(client, TFClass);
 	CreateTimer(0.1, Timer_SetRobotClass, client);
 	if( GetRandomInt(0, 100) <= c_iGiantChance.IntValue && bGiants && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue )
@@ -1844,7 +1862,7 @@ void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 // sets the player scale based on robot type
 void SetRobotScale(client)
 {
-	bool bSmallMap = c_bSmallMap.BoolValue;
+	bool bSmallMap = IsSmallMap();
 	
 	if( bSmallMap )
 	{
