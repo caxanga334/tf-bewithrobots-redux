@@ -55,6 +55,7 @@ bool p_bSpawned[MAXPLAYERS + 1]; // store if a player has recently spawned.
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
+Handle HT_BombDeployTimer;
 
 ArrayList array_avclass; // array containing available classes
 ArrayList array_spawns; // spawn points for human players
@@ -231,13 +232,22 @@ public void OnMapStart()
 	
 	CheckMapForEntities();
 	
-	int i;
+	int i = -1;
 	
 	while ((i = FindEntityByClassname(i, "func_upgradestation")) != -1)
 	{
 		if(IsValidEntity(i))
 		{
 			SDKHook(i, SDKHook_StartTouch, OnTouchUpgradeStation);
+		} 
+	}
+	i = -1;
+	while ((i = FindEntityByClassname(i, "func_capturezone")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			SDKHook(i, SDKHook_Touch, OnTouchCaptureZone);
+			SDKHook(i, SDKHook_EndTouch, OnEndTouchCaptureZone);
 		} 
 	}
 	
@@ -389,6 +399,54 @@ public Action OnTouchUpgradeStation(int entity, int other)
 			g_bUpgradeStation[other] = true;
 		}
 	}
+}
+
+public Action OnTouchCaptureZone(int entity, int other)
+{
+	if( GameRules_GetRoundState() == RoundState_TeamWin )
+		return Plugin_Stop;
+		
+	if( IsValidClient(other) && IsFakeClient(other) )
+		return Plugin_Stop;
+		
+	if( IsValidClient(other) && TF2_GetClientTeam(other) != TFTeam_Blue )
+		return Plugin_Stop;
+
+	if(IsValidClient(other))
+	{
+		if( g_bIsCarrier[other] )
+		{
+			TF2_AddCondition(other, TFCond_FreezeInput, 2.3);
+			HT_BombDeployTimer = CreateTimer(2.1, Timer_DeployBomb, other);
+		}
+	}
+	
+	return Plugin_Continue;
+}
+
+public Action OnEndTouchCaptureZone(int entity, int other)
+{
+	if( GameRules_GetRoundState() == RoundState_TeamWin )
+		return Plugin_Stop;
+		
+	if( IsValidClient(other) && IsFakeClient(other) )
+		return Plugin_Stop;
+		
+	if( IsValidClient(other) && TF2_GetClientTeam(other) != TFTeam_Blue )
+		return Plugin_Stop;
+		
+	if(IsValidClient(other))
+	{
+		if( g_bIsCarrier[other] )
+		{
+			if( HT_BombDeployTimer != null )
+			{
+				CloseHandle(HT_BombDeployTimer);
+			}
+		}
+	}
+	
+	return Plugin_Continue;
 }
 
 /****************************************************
@@ -1311,6 +1369,37 @@ public Action Timer_RemoveSpawnedBool(Handle timer, any client)
 	if( p_bSpawned[client] )
 		p_bSpawned[client] = false;
 	
+	return Plugin_Stop;
+}
+
+public Action Timer_DeployBomb(Handle timer, any client)
+{
+	if( !IsValidClient(client) || !IsClientInGame(client) || !IsPlayerAlive(client) )
+	{
+		CloseHandle(HT_BombDeployTimer);
+		return Plugin_Stop;
+	}
+		
+	if( IsFakeClient(client) )
+	{
+		LogError("Timer_DeployBomb called for Fake Client.");
+		CloseHandle(HT_BombDeployTimer);
+		return Plugin_Stop;
+	}
+	
+	if( !( GetEntityFlags(client) & FL_ONGROUND ) )
+	{
+		CloseHandle(HT_BombDeployTimer);
+		return Plugin_Stop;
+	}
+	
+	char strPlrName[MAX_NAME_LENGTH];
+	GetClientName(client, strPlrName, sizeof(strPlrName));
+	CPrintToChatAll("%t", "Bomb Deploy", strPlrName);
+	LogAction(client, -1, "Player \"%L\" deployed the bomb.", client);
+	TriggerHatchExplosion();
+	
+	CloseHandle(HT_BombDeployTimer);
 	return Plugin_Stop;
 }
 

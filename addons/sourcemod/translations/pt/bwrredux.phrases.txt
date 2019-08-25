@@ -34,4 +34,9 @@
 	{
 		"pt"	"{white}[BWRR] {cyan}Você foi movido para a equipe {red}RED{cyan} para balancear as equipes."
 	}
+	"Bomb Deploy"
+	{
+		"#format"	"{1:s}"
+		"pt"	"{white}[BWRR] {green}{1} {cyan}implantou a bomba."
+	}
 }

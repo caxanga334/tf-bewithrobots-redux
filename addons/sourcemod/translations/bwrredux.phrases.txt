@@ -34,4 +34,9 @@
 	{
 		"en"	"{white}[BWRR] {cyan}You were moved to {red}RED{cyan} to balance teams."
 	}
+	"Bomb Deploy"
+	{
+		"#format"	"{1:s}"
+		"en"	"{white}[BWRR] {green}{1} {cyan}deployed the bomb."
+	}
 }

@@ -759,3 +759,30 @@ bool TraceFilterIgnorePlayers(int entity, int contentsMask)
   
     return true;
 }
+
+// explodes the bomb hatch using the tank's logic_relay
+void TriggerHatchExplosion()
+{
+	int i = -1;
+	int ref;
+	while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			char strName[50];
+			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
+			if(strcmp(strName, "boss_deploy_relay") == 0)
+			{
+				ref = EntIndexToEntRef(i);
+				AcceptEntityInput(ref, "Trigger");
+				break;
+			}
+			else if(strcmp(strName, "bwr_round_win_relay") == 0)
+			{
+				ref = EntIndexToEntRef(i);
+				AcceptEntityInput(ref, "Trigger");
+				break;
+			}
+		} 
+	}
+}
