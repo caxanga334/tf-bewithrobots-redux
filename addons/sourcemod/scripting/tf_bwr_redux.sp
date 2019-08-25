@@ -241,15 +241,6 @@ public void OnMapStart()
 			SDKHook(i, SDKHook_StartTouch, OnTouchUpgradeStation);
 		} 
 	}
-	i = -1;
-	while ((i = FindEntityByClassname(i, "func_capturezone")) != -1)
-	{
-		if(IsValidEntity(i))
-		{
-			SDKHook(i, SDKHook_Touch, OnTouchCaptureZone);
-			SDKHook(i, SDKHook_EndTouch, OnEndTouchCaptureZone);
-		} 
-	}
 	
 	array_avclass.Clear();
 	
@@ -324,11 +315,16 @@ public void TF2Spawn_LeaveSpawn(client, entity)
 
 public void OnEntityCreated(int iEntity,const char[] name)
 {
-	if ( StrEqual( name, "entity_revive_marker", false) )
+	if ( StrEqual( name, "func_capturezone", false) )
+	{
+		SDKHook(iEntity, SDKHook_Touch, OnTouchCaptureZone);
+		SDKHook(iEntity, SDKHook_EndTouch, OnEndTouchCaptureZone);
+	}
+	else if ( StrEqual( name, "entity_revive_marker", false) )
 	{
 		CreateTimer(0.1, Timer_KillReviveMarker, iEntity);
 	}
-	if( StrEqual( name, "entity_medigun_shield", false ) )
+	else if( StrEqual( name, "entity_medigun_shield", false ) )
 	{
 		if(IsValidEntity(iEntity))
 		{
@@ -417,7 +413,8 @@ public Action OnTouchCaptureZone(int entity, int other)
 		if( g_bIsCarrier[other] )
 		{
 			TF2_AddCondition(other, TFCond_FreezeInput, 2.3);
-			HT_BombDeployTimer = CreateTimer(2.1, Timer_DeployBomb, other);
+			if( HT_BombDeployTimer == INVALID_HANDLE )
+				HT_BombDeployTimer = CreateTimer(2.1, Timer_DeployBomb, other);
 		}
 	}
 	
@@ -439,7 +436,7 @@ public Action OnEndTouchCaptureZone(int entity, int other)
 	{
 		if( g_bIsCarrier[other] )
 		{
-			if( HT_BombDeployTimer != null )
+			if( HT_BombDeployTimer != INVALID_HANDLE )
 			{
 				CloseHandle(HT_BombDeployTimer);
 			}
@@ -1376,20 +1373,20 @@ public Action Timer_DeployBomb(Handle timer, any client)
 {
 	if( !IsValidClient(client) || !IsClientInGame(client) || !IsPlayerAlive(client) )
 	{
-		CloseHandle(HT_BombDeployTimer);
+		//CloseHandle(HT_BombDeployTimer);
 		return Plugin_Stop;
 	}
 		
 	if( IsFakeClient(client) )
 	{
 		LogError("Timer_DeployBomb called for Fake Client.");
-		CloseHandle(HT_BombDeployTimer);
+		//CloseHandle(HT_BombDeployTimer);
 		return Plugin_Stop;
 	}
 	
 	if( !( GetEntityFlags(client) & FL_ONGROUND ) )
 	{
-		CloseHandle(HT_BombDeployTimer);
+		//CloseHandle(HT_BombDeployTimer);
 		return Plugin_Stop;
 	}
 	
@@ -1399,7 +1396,7 @@ public Action Timer_DeployBomb(Handle timer, any client)
 	LogAction(client, -1, "Player \"%L\" deployed the bomb.", client);
 	TriggerHatchExplosion();
 	
-	CloseHandle(HT_BombDeployTimer);
+	//CloseHandle(HT_BombDeployTimer);
 	return Plugin_Stop;
 }
 

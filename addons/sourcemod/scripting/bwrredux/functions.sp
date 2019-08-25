@@ -764,7 +764,6 @@ bool TraceFilterIgnorePlayers(int entity, int contentsMask)
 void TriggerHatchExplosion()
 {
 	int i = -1;
-	int ref;
 	while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
 	{
 		if(IsValidEntity(i))
@@ -773,14 +772,12 @@ void TriggerHatchExplosion()
 			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
 			if(strcmp(strName, "boss_deploy_relay") == 0)
 			{
-				ref = EntIndexToEntRef(i);
-				AcceptEntityInput(ref, "Trigger");
+				AcceptEntityInput(i, "Trigger");
 				break;
 			}
 			else if(strcmp(strName, "bwr_round_win_relay") == 0)
 			{
-				ref = EntIndexToEntRef(i);
-				AcceptEntityInput(ref, "Trigger");
+				AcceptEntityInput(i, "Trigger");
 				break;
 			}
 		} 
