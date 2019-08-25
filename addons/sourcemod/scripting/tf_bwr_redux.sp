@@ -182,6 +182,7 @@ public void OnPluginStart()
 	AddCommandListener( Listener_Suicide, "dropitem" ); // not a suicide command but same blocking rule
 	AddCommandListener( Listener_Suicide, "td_buyback" ); // not a suicide command but same blocking rule
 	AddCommandListener( Listener_Build, "build" );
+	AddCommandListener( Listener_CallVote, "callvote" );
 	
 	
 	// EVENTS
@@ -810,6 +811,16 @@ public Action Listener_Suicide(int client, const char[] command, int argc)
 public Action Listener_Build(int client, const char[] command, int argc)
 {
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && TF2Spawn_IsClientInSpawn2(client) )
+	{
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
+}
+
+public Action Listener_CallVote(int client, const char[] command, int argc)
+{
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
 		return Plugin_Handled;
 	}
