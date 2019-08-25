@@ -1965,7 +1965,11 @@ void SetRobotScale(client)
 	
 	if( bSmallMap )
 	{
-		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss || p_iBotType[client] == Bot_Buster || p_iBotType[client] == Bot_Big )
+		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss || p_iBotType[client] == Bot_Buster )
+		{
+			ScalePlayerModel(client, 1.20);
+		}
+		else if( p_iBotType[client] == Bot_Big )
 		{
 			ScalePlayerModel(client, 1.10);
 		}
