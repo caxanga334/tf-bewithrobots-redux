@@ -447,6 +447,7 @@ public Action OnEndTouchCaptureZone(int entity, int other)
 			if( HT_BombDeployTimer != INVALID_HANDLE )
 			{
 				CloseHandle(HT_BombDeployTimer);
+				HT_BombDeployTimer = INVALID_HANDLE;
 			}
 		}
 	}
@@ -1384,6 +1385,7 @@ public Action Timer_DeployBomb(Handle timer, any client)
 	if( !IsValidClient(client) || !IsClientInGame(client) || !IsPlayerAlive(client) )
 	{
 		//CloseHandle(HT_BombDeployTimer);
+		HT_BombDeployTimer = INVALID_HANDLE;
 		return Plugin_Stop;
 	}
 		
@@ -1391,12 +1393,14 @@ public Action Timer_DeployBomb(Handle timer, any client)
 	{
 		LogError("Timer_DeployBomb called for Fake Client.");
 		//CloseHandle(HT_BombDeployTimer);
+		HT_BombDeployTimer = INVALID_HANDLE;
 		return Plugin_Stop;
 	}
 	
 	if( !( GetEntityFlags(client) & FL_ONGROUND ) )
 	{
 		//CloseHandle(HT_BombDeployTimer);
+		HT_BombDeployTimer = INVALID_HANDLE;
 		return Plugin_Stop;
 	}
 	
@@ -1407,6 +1411,7 @@ public Action Timer_DeployBomb(Handle timer, any client)
 	TriggerHatchExplosion();
 	
 	//CloseHandle(HT_BombDeployTimer);
+	HT_BombDeployTimer = INVALID_HANDLE;
 	return Plugin_Stop;
 }
 
