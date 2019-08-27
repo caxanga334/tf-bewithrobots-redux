@@ -1062,7 +1062,7 @@ public Action E_BuildObject(Event event, const char[] name, bool dontBroadcast)
 	int index = event.GetInt("index");
 	if( !IsFakeClient(client) && GetEntProp( index, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
 	{
-		CreateTimer(0.1, Timer_BuildObject, index, client);
+		CreateTimer(0.1, Timer_BuildObject, index);
 	}
 }
 
@@ -1296,7 +1296,7 @@ public Action Timer_UpdateWaveData(Handle timer)
 	return Plugin_Stop;
 }
 
-public Action Timer_BuildObject(Handle timer, any index, any client)
+public Action Timer_BuildObject(Handle timer, any index)
 {
 	char classname[32];
 	
@@ -1324,7 +1324,8 @@ public Action Timer_BuildObject(Handle timer, any index, any client)
 		}
 		else if( strcmp(classname, "obj_teleporter", false) == 0 )
 		{
-			if( p_iBotEffect[client] & BotEffect_CannotBuildTele )
+			int iBuilder = GetEntPropEnt( index, Prop_Send, "m_hBuilder" );
+			if( p_iBotEffect[iBuilder] & BotEffect_CannotBuildTele )
 			{
 				SetVariantInt(9999);
 				AcceptEntityInput(index, "RemoveHealth");
@@ -1339,7 +1340,6 @@ public Action Timer_BuildObject(Handle timer, any index, any client)
 			{
 				if( CheckTeleportClamping(index) )
 				{
-					int iBuilder = GetEntPropEnt( index, Prop_Send, "m_hBuilder" );
 					PrintCenterText(iBuilder, "NOT ENOUGH SPACE TO BUILD A TELEPORTER");
 					SetVariantInt(9999);
 					AcceptEntityInput(index, "RemoveHealth");
