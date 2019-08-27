@@ -162,6 +162,9 @@ public void OnPluginStart()
 	LoadTranslations("bwrredux.phrases");
 	LoadTranslations("common.phrases");
 	
+	// timers
+	CreateTimer(180.0, Timer_Announce, _, TIMER_REPEAT);
+	
 	// commands
 	RegConsoleCmd( "sm_joinred", Command_JoinRED, "Joins RED team." );
 	RegConsoleCmd( "sm_joinblu", Command_JoinBLU, "Joins BLU/Robot team." );
@@ -1414,6 +1417,12 @@ public Action Timer_DeployBomb(Handle timer, any client)
 	//CloseHandle(HT_BombDeployTimer);
 	HT_BombDeployTimer = INVALID_HANDLE;
 	return Plugin_Stop;
+}
+
+public Action Timer_Announce(Handle timer)
+{
+	CPrintToChatAll("{cyan}Be With Robots Redux By {green}Anonymous Player{cyan}.");
+	CPrintToChatAll("{cyan}https://github.com/caxanga334/tf-bewithrobots-redux");
 }
 
 /****************************************************
