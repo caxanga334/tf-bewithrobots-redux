@@ -16,7 +16,8 @@ assignees: ''
 The robot type. Choose one: Normal, small, big, giant or boss.
 
 **Effects**
-The robot effects. Choose one or more: Always Crits, Spawn with Full Charge, Infinite Cloak (spy only), Auto Disguise (spy only), Always Mini Crits, Teleport to Hint (engineer only), Cannot Carry Bomb
+The robot effects. Choose one or more: Always Crits, Spawn with Full Charge, Infinite Cloak (spy only), Auto Disguise (spy only), Always Mini Crits, Teleport to Hint (engineer only), 
+Cannot Carry Bomb, Cannot Build Teleporter (engineer only)
 
 **Primary Weapon**
 -Weapon name
