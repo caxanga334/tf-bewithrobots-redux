@@ -49,7 +49,7 @@
 // player robot variants prefix: p_
 int p_iBotType[MAXPLAYERS + 1];
 int p_iBotVariant[MAXPLAYERS + 1];
-int p_iBotEffect[MAXPLAYERS + 1];
+int p_iBotAttrib[MAXPLAYERS + 1];
 TFClassType p_BotClass[MAXPLAYERS + 1];
 bool p_bSpawned[MAXPLAYERS + 1]; // store if a player has recently spawned.
 
@@ -105,15 +105,15 @@ enum
 
 enum
 {
-	BotEffect_None = 0,
-	BotEffect_AlwaysCrits = 1,
-	BotEffect_FullCharge = 2,
-	BotEffect_InfiniteCloak = 4,
-	BotEffect_AutoDisguise = 8,
-	BotEffect_AlwaysMiniCrits = 16,
-	BotEffect_TeleportToHint = 32, // teleport engineers to a nest near the bomb.
-	BotEffect_CannotCarryBomb = 64,
-	BotEffect_CannotBuildTele = 128, // disallow engineers to build teleporters
+	BotAttrib_None = 0,
+	BotAttrib_AlwaysCrits = 1,
+	BotAttrib_FullCharge = 2,
+	BotAttrib_InfiniteCloak = 4,
+	BotAttrib_AutoDisguise = 8,
+	BotAttrib_AlwaysMiniCrits = 16,
+	BotAttrib_TeleportToHint = 32, // teleport engineers to a nest near the bomb.
+	BotAttrib_CannotCarryBomb = 64,
+	BotAttrib_CannotBuildTele = 128, // disallow engineers to build teleporters
 };
  
 public Plugin myinfo =
@@ -282,7 +282,7 @@ public void OnGameFrame()
 					TF2_AddCondition(i, TFCond_UberchargedHidden, 0.255);
 				}
 				
-				if( p_iBotEffect[i] & BotEffect_InfiniteCloak )
+				if( p_iBotAttrib[i] & BotAttrib_InfiniteCloak )
 				{
 					SetEntPropFloat( i, Prop_Send, "m_flCloakMeter", 100.0 );
 				}
@@ -942,11 +942,11 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
-		if( p_iBotEffect[client] & BotEffect_AlwaysCrits )
+		if( p_iBotAttrib[client] & BotAttrib_AlwaysCrits )
 		{
 			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 		}
-		if( p_iBotEffect[client] & BotEffect_AlwaysMiniCrits )
+		if( p_iBotAttrib[client] & BotAttrib_AlwaysMiniCrits )
 		{
 			TF2_AddCondition(client, TFCond_Buffed, TFCondDuration_Infinite);
 		}		
@@ -1109,7 +1109,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		CreateTimer(0.2, Timer_RemoveSpawnedBool, client);
 		
 		
-		if( TFClass == TFClass_Spy && p_iBotEffect[client] & BotEffect_AutoDisguise )
+		if( TFClass == TFClass_Spy && p_iBotAttrib[client] & BotAttrib_AutoDisguise )
 		{
 			int iTarget = GetRandomPlayer(TFTeam_Red, false);
 			if( iTarget >= 1 && iTarget <= MaxClients )
@@ -1119,7 +1119,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 		
 		// TO DO: pyro's gas passer and phlog
-		if( p_iBotEffect[client] & BotEffect_FullCharge )
+		if( p_iBotAttrib[client] & BotAttrib_FullCharge )
 		{
 			if( TFClass == TFClass_Medic )
 			{
@@ -1132,7 +1132,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
 			}			
 		}
-		else if( p_iBotEffect[client] & BotEffect_CannotCarryBomb )
+		else if( p_iBotAttrib[client] & BotAttrib_CannotCarryBomb )
 		{
 			BlockBombPickup(client);
 		}
@@ -1325,7 +1325,7 @@ public Action Timer_BuildObject(Handle timer, any index)
 		else if( strcmp(classname, "obj_teleporter", false) == 0 )
 		{
 			int iBuilder = GetEntPropEnt( index, Prop_Send, "m_hBuilder" );
-			if( p_iBotEffect[iBuilder] & BotEffect_CannotBuildTele )
+			if( p_iBotAttrib[iBuilder] & BotAttrib_CannotBuildTele )
 			{
 				SetVariantInt(9999);
 				AcceptEntityInput(index, "RemoveHealth");
@@ -1863,7 +1863,7 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 // set effects and bot mode for variants
 void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
-	p_iBotEffect[client] = 0; //reset
+	p_iBotAttrib[client] = 0; //reset
 	
 	switch( TFClass )
 	{
@@ -1878,7 +1878,7 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 		{
 			switch( iVariant )
 			{
-				case -1: p_iBotEffect[client] += BotEffect_FullCharge;
+				case -1: p_iBotAttrib[client] += BotAttrib_FullCharge;
 			}
 		}
 /* 		case TFClass_Pyro:
@@ -1895,33 +1895,33 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 		} */
 		case TFClass_Engineer:
 		{
-			p_iBotEffect[client] += BotEffect_CannotCarryBomb; // global
+			p_iBotAttrib[client] += BotAttrib_CannotCarryBomb; // global
 			switch( iVariant )
 			{
-				case -1: p_iBotEffect[client] += BotEffect_TeleportToHint;
-				case 1: p_iBotEffect[client] += BotEffect_TeleportToHint;
-				case 2: p_iBotEffect[client] += (BotEffect_TeleportToHint + BotEffect_CannotBuildTele);
-				case 3: p_iBotEffect[client] += BotEffect_CannotBuildTele;
+				case -1: p_iBotAttrib[client] += BotAttrib_TeleportToHint;
+				case 1: p_iBotAttrib[client] += BotAttrib_TeleportToHint;
+				case 2: p_iBotAttrib[client] += (BotAttrib_TeleportToHint + BotAttrib_CannotBuildTele);
+				case 3: p_iBotAttrib[client] += BotAttrib_CannotBuildTele;
 			}			
 		}
 		case TFClass_Medic:
 		{
-			p_iBotEffect[client] += (BotEffect_FullCharge + BotEffect_CannotCarryBomb);
+			p_iBotAttrib[client] += (BotAttrib_FullCharge + BotAttrib_CannotCarryBomb);
 		}
 		case TFClass_Sniper:
 		{
 			switch( iVariant )
 			{
-				case -1: p_iBotEffect[client] += BotEffect_CannotCarryBomb;
-				case 0: p_iBotEffect[client] += BotEffect_CannotCarryBomb;
+				case -1: p_iBotAttrib[client] += BotAttrib_CannotCarryBomb;
+				case 0: p_iBotAttrib[client] += BotAttrib_CannotCarryBomb;
 			}
 		}
 		case TFClass_Spy:
 		{
-			p_iBotEffect[client] += (BotEffect_AutoDisguise + BotEffect_CannotCarryBomb); // global to all spies
+			p_iBotAttrib[client] += (BotAttrib_AutoDisguise + BotAttrib_CannotCarryBomb); // global to all spies
 			switch( iVariant )
 			{
-				case 0: p_iBotEffect[client] += BotEffect_InfiniteCloak;
+				case 0: p_iBotAttrib[client] += BotAttrib_InfiniteCloak;
 			}
 		}
 	}
@@ -1929,7 +1929,7 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 
 void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
-	p_iBotEffect[client] = 0; //reset
+	p_iBotAttrib[client] = 0; //reset
 	
 	switch( TFClass )
 	{
@@ -1941,8 +1941,8 @@ void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 		{
 			switch( iVariant )
 			{
-				case -1: p_iBotEffect[client] += BotEffect_FullCharge;
-				case 1: p_iBotEffect[client] += BotEffect_AlwaysCrits;
+				case -1: p_iBotAttrib[client] += BotAttrib_FullCharge;
+				case 1: p_iBotAttrib[client] += BotAttrib_AlwaysCrits;
 			}			
 		}
 /* 		case TFClass_Pyro:
@@ -1959,19 +1959,19 @@ void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 		} */
 		case TFClass_Engineer:
 		{
-			p_iBotEffect[client] += BotEffect_CannotCarryBomb;
+			p_iBotAttrib[client] += BotAttrib_CannotCarryBomb;
 		}
 		case TFClass_Medic:
 		{
-			p_iBotEffect[client] += (BotEffect_FullCharge + BotEffect_CannotCarryBomb);
+			p_iBotAttrib[client] += (BotAttrib_FullCharge + BotAttrib_CannotCarryBomb);
 		}
 		case TFClass_Sniper:
 		{
-			p_iBotEffect[client] += BotEffect_CannotCarryBomb;
+			p_iBotAttrib[client] += BotAttrib_CannotCarryBomb;
 		}
 		case TFClass_Spy:
 		{
-			p_iBotEffect[client] += (BotEffect_AutoDisguise + BotEffect_CannotCarryBomb); // global to all spies
+			p_iBotAttrib[client] += (BotAttrib_AutoDisguise + BotAttrib_CannotCarryBomb); // global to all spies
 		}
 	}
 }
@@ -2063,7 +2063,7 @@ void ResetRobotData(int client, bool bStrip = false)
 {
 	p_iBotType[client] = Bot_Normal;
 	p_iBotVariant[client] = 0;
-	p_iBotEffect[client] = 0;
+	p_iBotAttrib[client] = 0;
 	p_BotClass[client] = TFClass_Unknown;
 	g_bIsCarrier[client] = false;
 	g_bUpgradeStation[client] = false;
