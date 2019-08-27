@@ -37,7 +37,7 @@
 #define MAX_DEMO_GIANT 1
 #define MAX_HEAVY 1
 #define MAX_HEAVY_GIANT 1
-#define MAX_ENGINEER 2
+#define MAX_ENGINEER 3
 #define MAX_ENGINEER_GIANT 1
 #define MAX_MEDIC 1
 #define MAX_MEDIC_GIANT 1
@@ -226,7 +226,7 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnMapStart()
 {
-	if(!IsMvM())
+	if(!IsMvM(true))
 	{
 		SetFailState("This plugin is for Mann vs Machine Only.") // probably easier than add IsMvM everywhere
 	}
@@ -1900,6 +1900,8 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 			{
 				case -1: p_iBotEffect[client] += BotEffect_TeleportToHint;
 				case 1: p_iBotEffect[client] += BotEffect_TeleportToHint;
+				case 2: p_iBotEffect[client] += (BotEffect_TeleportToHint + BotEffect_CannotBuildTele);
+				case 3: p_iBotEffect[client] += BotEffect_CannotBuildTele;
 			}			
 		}
 		case TFClass_Medic:

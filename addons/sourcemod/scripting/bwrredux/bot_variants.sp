@@ -308,6 +308,15 @@ void GiveNormalInventory(int client ,int botvariant)
 					SpawnWeapon( client, "tf_weapon_pda_engineer_destroy", 26, 1, 6, false );
 					return;
 				}
+				case 3: // battle engineer (275 HP)
+				{
+					SpawnWeapon( client, "tf_weapon_shotgun_primary", 9, 1, 6, false );
+					SpawnWeapon( client, "tf_weapon_wrench", 7, 1, 6, false );
+					iWeapon = SpawnWeapon( client, "tf_weapon_pda_engineer_build", 25, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 150.0);
+					SpawnWeapon( client, "tf_weapon_pda_engineer_destroy", 26, 1, 6, false );
+					return;
+				}
 			}		
 		}
 		case TFClass_Medic:
@@ -658,6 +667,7 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 				case 0: strcopy( strBotName, 128, "Standard Engineer" );
 				case 1: strcopy( strBotName, 128, "Standard Engineer" );
 				case 2: strcopy( strBotName, 128, "Battle Engineer" );
+				case 3: strcopy( strBotName, 128, "Battle Engineer" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}			
 		}
