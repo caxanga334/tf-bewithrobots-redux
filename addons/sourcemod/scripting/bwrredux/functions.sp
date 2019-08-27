@@ -330,7 +330,7 @@ void EmitGSToRed(const char[] gamesound)
 }
 
 // emits sound to all players in RED
-void EmitSoundToRed(const char[] soundpath)
+/* void EmitSoundToRed(const char[] soundpath)
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -342,16 +342,7 @@ void EmitSoundToRed(const char[] soundpath)
 			}
 		}
 	}
-}
-
-// announces a spy has spawned.
-void AnnounceSpySpawn()
-{
-	char soundpath[PLATFORM_MAX_PATH];
-	
-	Format(soundpath, sizeof(soundpath), "vo/mvm_spy_spawn0%i.mp3", GetRandomInt(1,4));
-	EmitSoundToRed(soundpath);
-}
+} */
 
 // announces when a robot engineer is killed.
 void AnnounceEngineerDeath(int client)
@@ -390,7 +381,7 @@ void AnnounceEngineerDeath(int client)
 }
 
 // returns the number of classes in a team.
-int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false)
+int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false, bool bIncludeDead = true)
 {
 	int iClassNum = 0;
 	for(int i = 1; i <= MaxClients; i++)
@@ -403,7 +394,10 @@ int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false)
 				{
 					if( TF2_GetPlayerClass(i) == TFClass )
 					{
-						iClassNum++;
+						if( bIncludeDead )
+							iClassNum++;
+						else if( IsPlayerAlive(i) )
+							iClassNum++;
 					}
 				}
 			}
@@ -415,7 +409,10 @@ int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false)
 					{
 						if( TF2_GetPlayerClass(i) == TFClass )
 						{
-							iClassNum++;
+							if( bIncludeDead )
+								iClassNum++;
+							else if( IsPlayerAlive(i) )
+								iClassNum++;
 						}
 					}
 				}
@@ -840,7 +837,7 @@ bool CheckTeleportClamping(int telepoter)
 		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
 		if( bSmallMap )
 		{
-			if(fldistance < 60))
+			if(fldistance < 60)
 			{
 				CloseHandle(Tracer);
 				return true;

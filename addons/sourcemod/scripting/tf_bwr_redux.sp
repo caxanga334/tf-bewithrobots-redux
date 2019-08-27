@@ -249,10 +249,6 @@ public void OnMapStart()
 	
 	// prechace
 	PrecacheSound(")mvm/mvm_tele_deliver.wav");
-	PrecacheSound("vo/mvm_spy_spawn01.mp3");
-	PrecacheSound("vo/mvm_spy_spawn02.mp3");
-	PrecacheSound("vo/mvm_spy_spawn03.mp3");
-	PrecacheSound("vo/mvm_spy_spawn04.mp3");
 	PrecacheSound("mvm/mvm_deploy_giant.wav");
 	PrecacheSound("mvm/mvm_deploy_small.wav");
 }
@@ -993,6 +989,11 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		{
 			AnnounceEngineerDeath(client);
 		}
+		else if( TF2_GetPlayerClass(client) == TFClass_Spy )
+		{
+			if( GetClassCount(TFClass_Spy, TFTeam_Blue, true, false) < 1 )
+				EmitGSToRed("Announcer.mvm_spybot_death_all");
+		}
 		
 		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 		PickRandomRobot(client);
@@ -1181,7 +1182,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 							TeleportToSpawnPoint(client, TFClass);
 						}
 					}
-					AnnounceSpySpawn();
+					EmitGSToRed("Announcer.MVM_Spy_Alert");
 				}
 				case TFClass_Engineer:
 				{
@@ -1196,7 +1197,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 						if( iTeleTarget != -1 ) // found nest
 						{
 							TeleportPlayerToEntity(iTeleTarget, client);
-							if( GetClassCount(TFClass_Engineer, TFTeam_Blue, true) > 1 )
+							if( GetClassCount(TFClass_Engineer, TFTeam_Blue, true, false) > 1 )
 							{
 								EmitGSToRed("Announcer.MVM_Another_Engineer_Teleport_Spawned");
 							}

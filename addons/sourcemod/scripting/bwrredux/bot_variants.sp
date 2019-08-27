@@ -74,6 +74,7 @@ void StripWeapons( int client )
 		return;
 		
 	int iEntity;
+	int iOwner;
 	
 	iEntity = -1;
 	while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable_demoshield" ) ) > MaxClients )
