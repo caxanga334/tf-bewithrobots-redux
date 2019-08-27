@@ -217,6 +217,22 @@ void GiveNormalInventory(int client ,int botvariant)
 					SpawnWeapon( client, "tf_weapon_flaregun", 39, 1, 6, false );
 					return;					
 				}
+				case 2: // Pyro Pusher
+				{
+					iWeapon = SpawnWeapon( client, "tf_weapon_flaregun", 740, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 0.75);
+					TF2Attrib_SetByName(iWeapon, "faster reload rate", 1.25);
+					TF2Attrib_SetByName(iWeapon, "Projectile speed increased", 0.35);
+					return;					
+				}
+				case 3: // Fast Scorch Shot
+				{
+					iWeapon = SpawnWeapon( client, "tf_weapon_flaregun", 740, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 0.75);
+					TF2Attrib_SetByName(iWeapon, "faster reload rate", 1.0);
+					TF2Attrib_SetByName(iWeapon, "Projectile speed increased", 1.30);
+					return;					
+				}
 			}			
 		}
 		case TFClass_DemoMan:
@@ -600,6 +616,8 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 				case -1: strcopy( strBotName, 128, "Your own Pyro" );
 				case 0: strcopy( strBotName, 128, "Standard Pyro" );
 				case 1: strcopy( strBotName, 128, "Flare Pyro" );
+				case 2: strcopy( strBotName, 128, "Pyro Pusher" );
+				case 3: strcopy( strBotName, 128, "Fast Scorch Shot" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}		
 		}
