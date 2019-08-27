@@ -310,7 +310,7 @@ void SpawnOnTeleporter(int teleporter,int client)
 		
 		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.1); // 0.1 sec to compensate for a small delay
 		TeleportEntity(client, OriginVec, NULL_VECTOR, NULL_VECTOR);
-		EmitSoundToAll(")mvm/mvm_tele_deliver.wav", teleporter, SNDCHAN_STATIC, SNDLEVEL_SCREAMING);
+		EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", teleporter);
 	}
 }
 

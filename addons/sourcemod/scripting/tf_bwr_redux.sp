@@ -37,7 +37,7 @@
 #define MAX_DEMO_GIANT 1
 #define MAX_HEAVY 1
 #define MAX_HEAVY_GIANT 1
-#define MAX_ENGINEER 1
+#define MAX_ENGINEER 2
 #define MAX_ENGINEER_GIANT 1
 #define MAX_MEDIC 1
 #define MAX_MEDIC_GIANT 1
@@ -113,6 +113,7 @@ enum
 	BotEffect_AlwaysMiniCrits = 16,
 	BotEffect_TeleportToHint = 32, // teleport engineers to a nest near the bomb.
 	BotEffect_CannotCarryBomb = 64,
+	BotEffect_CannotBuildTele = 128, // disallow engineers to build teleporters
 };
  
 public Plugin myinfo =
@@ -251,9 +252,6 @@ public void OnMapStart()
 	AddPluginTag("BWRR");
 	
 	// prechace
-	PrecacheSound(")mvm/mvm_tele_deliver.wav");
-	PrecacheSound("mvm/mvm_deploy_giant.wav");
-	PrecacheSound("mvm/mvm_deploy_small.wav");
 }
 
 /* public void OnClientConnected(client)
@@ -293,7 +291,7 @@ public void OnGameFrame()
 	}
 }
 
-public void TF2Spawn_EnterSpawn(client, entity)
+public void TF2Spawn_EnterSpawn(int client,int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
@@ -301,7 +299,7 @@ public void TF2Spawn_EnterSpawn(client, entity)
 	}	
 }
 
-public void TF2Spawn_LeaveSpawn(client, entity)
+public void TF2Spawn_LeaveSpawn(int client,int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
@@ -418,9 +416,9 @@ public Action OnTouchCaptureZone(int entity, int other)
 			{
 				HT_BombDeployTimer = CreateTimer(2.1, Timer_DeployBomb, other);
 				if( p_iBotType[other] == Bot_Giant || p_iBotType[other] == Bot_Boss )
-					EmitSoundToAll("mvm/mvm_deploy_giant.wav", other);
+					EmitGameSoundToAll("MVM.DeployBombGiant", other);
 				else
-					EmitSoundToAll("mvm/mvm_deploy_small.wav", other);
+					EmitGameSoundToAll("MVM.DeployBombSmall", other);
 			}
 		}
 	}
@@ -1064,7 +1062,7 @@ public Action E_BuildObject(Event event, const char[] name, bool dontBroadcast)
 	int index = event.GetInt("index");
 	if( !IsFakeClient(client) && GetEntProp( index, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
 	{
-		CreateTimer(0.1, Timer_BuildObject, index);
+		CreateTimer(0.1, Timer_BuildObject, index, client);
 	}
 }
 
@@ -1298,7 +1296,7 @@ public Action Timer_UpdateWaveData(Handle timer)
 	return Plugin_Stop;
 }
 
-public Action Timer_BuildObject(Handle timer, any index)
+public Action Timer_BuildObject(Handle timer, any index, any client)
 {
 	char classname[32];
 	
@@ -1326,10 +1324,16 @@ public Action Timer_BuildObject(Handle timer, any index)
 		}
 		else if( strcmp(classname, "obj_teleporter", false) == 0 )
 		{
-			if( TF2_GetObjectMode(index) == TFObjectMode_Entrance )
+			if( p_iBotEffect[client] & BotEffect_CannotBuildTele )
 			{
 				SetVariantInt(9999);
-				AcceptEntityInput(index, "RemoveHealth");				
+				AcceptEntityInput(index, "RemoveHealth");
+				PrintCenterText(iBuilder, "YOU CANNOT BUILD TELEPORTERS");
+			}
+			else if( TF2_GetObjectMode(index) == TFObjectMode_Entrance )
+			{
+				SetVariantInt(9999);
+				AcceptEntityInput(index, "RemoveHealth");
 			}
 			else
 			{
