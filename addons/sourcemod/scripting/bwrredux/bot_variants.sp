@@ -149,6 +149,39 @@ void GiveNormalInventory(int client ,int botvariant)
 					SpawnWeapon( client, "tf_weapon_bat", 0, 1, 6, false );
 					return;					
 				}
+				case 2: // bonk scout
+				{
+					SpawnWeapon( client, "tf_weapon_lunchbox_drink", 46, 1, 6, false);
+					SpawnWeapon( client, "tf_weapon_bat", 0, 1, 6, false );
+					return;					
+				}
+				case 3: // Minor League Scout
+				{
+					SpawnWeapon( client, "tf_weapon_bat_wood", 44, 1, 6, false );
+					return;					
+				}
+				case 4: // Hyper League Scout
+				{
+					iWeapon = SpawnWeapon( client, "tf_weapon_bat_wood", 44, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "effect bar recharge rate increased", 0.25);
+					return;					
+				}
+				case 5: // Force-A-Nature Scout
+				{
+					iWeapon = SpawnWeapon( client, "tf_weapon_scattergun", 45, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "faster reload rate", 1.6);
+					TF2Attrib_SetByName(iWeapon, "scattergun knockback mult", 1.5);
+					TF2Attrib_SetByName(iWeapon, "damage bonus", 0.65);
+					return;					
+				}
+				case 6: // Shortstop Scout
+				{
+					iWeapon = SpawnWeapon( client, "tf_weapon_handgun_scout_primary", 220, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "head scale", 0.7);
+					TF2Attrib_SetByName(iWeapon, "move speed bonus", 1.25);
+					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 525.0);
+					return;					
+				}
 			}
 		}
 		case TFClass_Soldier:
@@ -541,6 +574,11 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 				case -1: strcopy( strBotName, 128, "Your own Scout" );
 				case 0: strcopy( strBotName, 128, "Standard Scout" );
 				case 1: strcopy( strBotName, 128, "Bat Scout" );
+				case 2: strcopy( strBotName, 128, "Bonk Scout" );
+				case 3: strcopy( strBotName, 128, "Minor League Scout" );
+				case 4: strcopy( strBotName, 128, "Hyper League Scout" );
+				case 5: strcopy( strBotName, 128, "Force-A-Nature Scout" );
+				case 6: strcopy( strBotName, 128, "Shortstop Scout" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}
 		}

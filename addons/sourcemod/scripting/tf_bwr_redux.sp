@@ -27,7 +27,7 @@
 **/
 
 // maximum class variants that exists
-#define MAX_SCOUT 1
+#define MAX_SCOUT 6
 #define MAX_SCOUT_GIANT 1
 #define MAX_SOLDIER 1
 #define MAX_SOLDIER_GIANT 1
@@ -1151,7 +1151,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			strBotName = GetNormalVariantName(TFClass, p_iBotVariant[client]);
 		}
 		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
-		SetRobotScale(client);
+		SetRobotScale(client,TFClass);
 		SetRobotModel(client,TFClass);
 		
 		// teleport player
@@ -1540,7 +1540,6 @@ void PickRandomRobot(int client)
 	int iRandom = GetRandomInt(0, iSize);
 	int iClass = array_avclass.Get(iRandom);
 	bool bGiants = false;
-	//TFClassType Class;
 	
 	// sentry buster
 /* 	if(iAvailable & 512)
@@ -1552,7 +1551,7 @@ void PickRandomRobot(int client)
 		bGiants = true;
 	}	
 	
-	// convert int to tfclass
+	// select a random robot variant
 	switch( iClass )
 	{
 		case 1: // scout
@@ -1854,10 +1853,13 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 	
 	switch( TFClass )
 	{
-/* 		case TFClass_Scout:
+		case TFClass_Scout:
 		{
-			
-		} */
+			switch( iVariant )
+			{
+				case 6: p_iBotType[client] = Bot_Big;
+			}			
+		}
 		case TFClass_Soldier:
 		{
 			switch( iVariant )
@@ -1959,7 +1961,7 @@ void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 }
 
 // sets the player scale based on robot type
-void SetRobotScale(client)
+void SetRobotScale(int client, TFClassType TFClass)
 {
 	bool bSmallMap = IsSmallMap();
 	
@@ -1994,7 +1996,13 @@ void SetRobotScale(client)
 		}
 		else if( p_iBotType[client] == Bot_Big )
 		{
-			ScalePlayerModel(client, 1.5); // placeholder, not all classes uses 1.65 for big mode
+			switch( TFClass )
+			{
+				case TFClass_Scout: ScalePlayerModel(client, 1.4);
+				case TFClass_Heavy: ScalePlayerModel(client, 1.5);
+				case TFClass_DemoMan: ScalePlayerModel(client, 1.3);
+				default: ScalePlayerModel(client, 1.4);
+			}
 		}
 		else if( p_iBotType[client] == Bot_Small )
 		{
