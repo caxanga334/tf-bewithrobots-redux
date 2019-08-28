@@ -169,13 +169,15 @@ int FindEngineerNestNearBomb()
 }
 
 // teleports a client to the entity origin.
-void TeleportPlayerToEntity(int iEntity, int client)
+void TeleportPlayerToEntity(int iEntity, int client, float OffsetVec[3] = {0.0,0.0,0.0})
 {
-	float OriginVec[3];
+	float EntVec[3];
+	float FinalVec[3];
 	if( IsValidEntity(iEntity) )
 	{
-		GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", OriginVec);
-		TeleportEntity(client, OriginVec, NULL_VECTOR, NULL_VECTOR);
+		GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", EntVec);
+		AddVectors(EntVec, OffsetVec, FinalVec);
+		TeleportEntity(client, FinalVec, NULL_VECTOR, NULL_VECTOR);
 	}
 }
 
