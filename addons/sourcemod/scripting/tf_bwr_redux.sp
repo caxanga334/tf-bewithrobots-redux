@@ -174,6 +174,7 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_bewithrobots", Command_JoinBLU, "Joins BLU/Robot team." );
 	RegConsoleCmd( "sm_robotclass", Command_BotClass, "Changes your robot variant." );
 	RegConsoleCmd( "sm_rc", Command_BotClass, "Changes your robot variant." );
+	RegConsoleCmd( "sm_bwrr_players", Command_ShowPlayers, "Shows the players in each team" );
 	RegAdminCmd( "sm_bwrr_debug", Command_Debug, ADMFLAG_ROOT, "Prints some debug messages." );
 	RegAdminCmd( "sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
 	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
@@ -800,7 +801,7 @@ public Action Command_MoveTeam( int client, int nArgs )
 public Action Command_BotClass( int client, int nArgs )
 {
 	if( !IsClientInGame(client) || IsFakeClient(client) )
-		return Plugin_Continue;
+		return Plugin_Handled;
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Red )
 		return Plugin_Handled;
@@ -813,6 +814,48 @@ public Action Command_BotClass( int client, int nArgs )
 
 	PickRandomRobot(client);
 	CreateTimer(0.5, Timer_Respawn, client);
+
+	return Plugin_Handled;
+}
+
+public Action Command_ShowPlayers( int client, int nArgs )
+{
+	if( !IsClientInGame(client) || IsFakeClient(client) )
+		return Plugin_Handled;
+		
+	int iRedCount, iBluCount, iSpecCount;
+	char RedNames[256], BluNames[256], SpecNames[256];
+	char plrname[256];
+	
+	iRedCount = GetTeamClientCount(2);
+	iBluCount = GetHumanRobotCount();
+	iSpecCount = GetTeamClientCount(1);
+	
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if( IsClientInGame(i) && !IsFakeClient(i) )
+		{
+			if( TF2_GetClientTeam(i) == TFTeam_Red )
+			{
+				GetClientName(i, plrname, sizeof(plrname));
+				Format(RedNames, sizeof(RedNames), "%s %s", plrname, RedNames);
+			}
+			else if( TF2_GetClientTeam(i) == TFTeam_Blue )
+			{
+				GetClientName(i, plrname, sizeof(plrname));
+				Format(BluNames, sizeof(BluNames), "%s %s", plrname, BluNames);	
+			}
+			else if( TF2_GetClientTeam(i) == TFTeam_Spectator )
+			{
+				GetClientName(i, plrname, sizeof(plrname));
+				Format(SpecNames, sizeof(SpecNames), "%s %s", plrname, SpecNames);				
+			}
+		}
+	}
+	
+	CReplyToCommand(client, "{green}%i {cyan}players in RED: {green}%s", iRedCount, RedNames);
+	CReplyToCommand(client, "{green}%i {cyan}players in BLU: {green}%s", iBluCount, BluNames);
+	CReplyToCommand(client, "{green}%i {cyan}players in SPEC: {green}%s", iSpecCount, SpecNames);
 
 	return Plugin_Handled;
 }
@@ -1005,6 +1048,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	}
 	
 	return Plugin_Continue;
+}
 
 public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 {
