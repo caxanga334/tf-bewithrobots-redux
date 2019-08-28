@@ -279,6 +279,7 @@ void GiveNormalInventory(int client ,int botvariant)
 				{
 					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Building);
 					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 375.0);
+					TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
 					return;
 				}
 				case 0: // standard engineer (275 HP)
@@ -287,6 +288,7 @@ void GiveNormalInventory(int client ,int botvariant)
 					SpawnWeapon( client, "tf_weapon_wrench", 7, 1, 6, false );
 					iWeapon = SpawnWeapon( client, "tf_weapon_pda_engineer_build", 25, 1, 6, false );
 					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 150.0);
+					TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
 					SpawnWeapon( client, "tf_weapon_pda_engineer_destroy", 26, 1, 6, false );
 					return;
 				}
@@ -296,6 +298,7 @@ void GiveNormalInventory(int client ,int botvariant)
 					SpawnWeapon( client, "tf_weapon_wrench", 7, 1, 6, false );
 					iWeapon = SpawnWeapon( client, "tf_weapon_pda_engineer_build", 25, 1, 6, false );
 					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 375.0);
+					TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
 					SpawnWeapon( client, "tf_weapon_pda_engineer_destroy", 26, 1, 6, false );
 					return;				
 				}
@@ -305,6 +308,7 @@ void GiveNormalInventory(int client ,int botvariant)
 					SpawnWeapon( client, "tf_weapon_wrench", 7, 1, 6, false );
 					iWeapon = SpawnWeapon( client, "tf_weapon_pda_engineer_build", 25, 1, 6, false );
 					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 150.0);
+					TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
 					SpawnWeapon( client, "tf_weapon_pda_engineer_destroy", 26, 1, 6, false );
 					return;
 				}
@@ -314,6 +318,7 @@ void GiveNormalInventory(int client ,int botvariant)
 					SpawnWeapon( client, "tf_weapon_wrench", 7, 1, 6, false );
 					iWeapon = SpawnWeapon( client, "tf_weapon_pda_engineer_build", 25, 1, 6, false );
 					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 150.0);
+					TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
 					SpawnWeapon( client, "tf_weapon_pda_engineer_destroy", 26, 1, 6, false );
 					return;
 				}
@@ -873,6 +878,7 @@ void SetOwnAttributes(int client , bool bGiant)
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
 				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
 				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
+				TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
 				return;
 			}
 			case TFClass_Medic:
@@ -932,7 +938,8 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Engineer:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 375.0);	
+				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 375.0);
+				TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
 				return;
 			}
 /* 			case TFClass_Medic:
