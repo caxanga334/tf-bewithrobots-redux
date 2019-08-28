@@ -300,6 +300,22 @@ void GiveNormalInventory(int client ,int botvariant)
 					TF2Attrib_SetByName(iWeapon, "projectile spread angle penalty", 3.0);
 					return;					
 				}
+				case 2: // Demoknight
+				{
+					SpawnWeapon( client, "tf_wearable_demoshield", 131, 1, 6, true ); // set true for wearable weapons.
+					iWeapon = SpawnWeapon( client, "tf_weapon_sword", 132, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "critboost on kill", 3.0);
+					return;			
+				}
+				case 3: // Demo Samurai
+				{
+					SpawnWeapon( client, "tf_wearable_demoshield", 406, 1, 6, true ); // set true for wearable weapons.
+					iWeapon = SpawnWeapon( client, "tf_weapon_katana", 357, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "increased jump height", 2.3);
+					TF2Attrib_SetByName(iWeapon, "damage bonus", 1.5);
+					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 475.0);
+					return;			
+				}
 			}
 		}
 		case TFClass_Heavy:
@@ -724,6 +740,8 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 				case -1: strcopy( strBotName, 128, "Your own Demoman" );
 				case 0: strcopy( strBotName, 128, "Standard Demoman" );
 				case 1: strcopy( strBotName, 128, "Burst Fire Demoman" );
+				case 2: strcopy( strBotName, 128, "Demoknight" );
+				case 3: strcopy( strBotName, 128, "Demo Samurai" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}		
 		}

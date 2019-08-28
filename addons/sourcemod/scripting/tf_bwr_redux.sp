@@ -33,7 +33,7 @@
 #define MAX_SOLDIER_GIANT 1
 #define MAX_PYRO 3
 #define MAX_PYRO_GIANT 1
-#define MAX_DEMO 1
+#define MAX_DEMO 3
 #define MAX_DEMO_GIANT 1
 #define MAX_HEAVY 1
 #define MAX_HEAVY_GIANT 1
@@ -1884,17 +1884,23 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 			switch( iVariant )
 			{
 				case -1: p_iBotAttrib[client] += BotAttrib_FullCharge;
+				case 2: p_iBotAttrib[client] += BotAttrib_FullCharge;
+				case 3: p_iBotAttrib[client] += BotAttrib_FullCharge;
+				case 4: p_iBotAttrib[client] += BotAttrib_FullCharge;
 			}
 		}
 /* 		case TFClass_Pyro:
 		{
 			
-		}
+		} */
 		case TFClass_DemoMan:
 		{
-			
+			switch( iVariant )
+			{
+				case 3: p_iBotType[client] = Bot_Big;
+			}			
 		}
-		case TFClass_Heavy:
+/* 		case TFClass_Heavy:
 		{
 			
 		} */
@@ -1953,12 +1959,12 @@ void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 /* 		case TFClass_Pyro:
 		{
 			
-		}
-		case TFClass_DemoMan:
+		} */
+/* 		case TFClass_DemoMan:
 		{
 			
-		}
-		case TFClass_Heavy:
+		} */
+/* 		case TFClass_Heavy:
 		{
 			
 		} */
