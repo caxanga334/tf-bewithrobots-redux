@@ -29,7 +29,7 @@
 // maximum class variants that exists
 #define MAX_SCOUT 6
 #define MAX_SCOUT_GIANT 1
-#define MAX_SOLDIER 1
+#define MAX_SOLDIER 6
 #define MAX_SOLDIER_GIANT 1
 #define MAX_PYRO 3
 #define MAX_PYRO_GIANT 1
@@ -2377,7 +2377,7 @@ void CheckTeams()
 		// if the number of players in RED is less than the minimum to join BLU
 		if( iInRed < c_iMinRed.IntValue && iInBlu > 0 )
 		{
-			int iCount = c_iMinRed.IntValue - iInRed;
+			int iCount = c_iMinRed.IntValue - (iInRed - 1);
 			for( int i = 1; i <= iCount; i++ )
 			{
 				iTarget = GetRandomPlayer(TFTeam_Blue, false);

@@ -201,7 +201,54 @@ void GiveNormalInventory(int client ,int botvariant)
 					SpawnWeapon( client, "tf_weapon_shovel", 6, 1, 6, false );
 					return;						
 				}
-			}			
+				case 2: // extended buff soldier
+				{
+					SpawnWeapon( client, "tf_weapon_rocketlauncher", 18, 1, 6, false );
+					iWeapon = SpawnWeapon( client, "tf_weapon_buff_item", 129, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "increase buff duration", 9.0);
+					return;						
+				}
+				case 3: // extended battalions soldier
+				{
+					SpawnWeapon( client, "tf_weapon_rocketlauncher", 18, 1, 6, false );
+					iWeapon = SpawnWeapon( client, "tf_weapon_buff_item", 226, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "increase buff duration", 9.0);
+					return;						
+				}
+				case 4: // extended concheror soldier
+				{
+					SpawnWeapon( client, "tf_weapon_rocketlauncher", 18, 1, 6, false );
+					iWeapon = SpawnWeapon( client, "tf_weapon_buff_item", 354, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "increase buff duration", 9.0);
+					return;						
+				}
+				case 5: // blast soldier
+				{
+					iWeapon = SpawnWeapon( client, "tf_weapon_rocketlauncher", 414, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "damage causes airblast", 1.0);
+					TF2Attrib_SetByName(iWeapon, "damage bonus", 0.45);
+					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 0.001);
+					TF2Attrib_SetByName(iWeapon, "clip size upgrade atomic", -2.0);
+					TF2Attrib_SetByName(iWeapon, "faster reload rate", 1.5);
+					TF2Attrib_SetByName(iWeapon, "Blast radius decreased", 1.2);
+					TF2Attrib_SetByName(iWeapon, "projectile spread angle penalty", 2.0);
+					SpawnWeapon( client, "tf_weapon_shovel", 6, 1, 6, false );
+					return;						
+				}
+				case 6: // black box soldier
+				{
+					iWeapon = SpawnWeapon( client, "tf_weapon_rocketlauncher", 18, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "heal on hit for rapidfire", 60.0);
+					TF2Attrib_SetByName(iWeapon, "damage bonus", 0.33);
+					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 0.001);
+					TF2Attrib_SetByName(iWeapon, "clip size upgrade atomic", 0.0);
+					TF2Attrib_SetByName(iWeapon, "faster reload rate", 0.9);
+					TF2Attrib_SetByName(iWeapon, "blast radius increased", 1.25);
+					TF2Attrib_SetByName(iWeapon, "projectile spread angle penalty", 2.0);
+					SpawnWeapon( client, "tf_weapon_shovel", 6, 1, 6, false );
+					return;						
+				}
+			}
 		}
 		case TFClass_Pyro:
 		{
@@ -650,6 +697,11 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 				case -1: strcopy( strBotName, 128, "Your own Soldier" );
 				case 0: strcopy( strBotName, 128, "Standard Soldier" );
 				case 1: strcopy( strBotName, 128, "Direct Hit Soldier" );
+				case 2: strcopy( strBotName, 128, "Extended Buff Soldier" );
+				case 3: strcopy( strBotName, 128, "Extended Battalions Soldier" );
+				case 4: strcopy( strBotName, 128, "Extended Concheror Soldier" );
+				case 5: strcopy( strBotName, 128, "Blast Soldier" );
+				case 6: strcopy( strBotName, 128, "Black Box Soldier" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}			
 		}
