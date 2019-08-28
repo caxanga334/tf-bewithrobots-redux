@@ -43,7 +43,7 @@
 #define MAX_MEDIC_GIANT 1
 #define MAX_SNIPER 1
 #define MAX_SNIPER_GIANT 1
-#define MAX_SPY 1
+#define MAX_SPY 3
 #define MAX_SPY_GIANT 1
 
 // player robot variants prefix: p_
@@ -984,6 +984,10 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
+	int deathflags = event.GetInt("death_flags");
+	if(deathflags & TF_DEATHFLAG_DEADRINGER)
+		return Plugin_Handled;
+	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
 		if( TF2_GetPlayerClass(client) == TFClass_Engineer )
@@ -999,7 +1003,8 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 		PickRandomRobot(client);
 	}
-}
+	
+	return Plugin_Continue;
 
 public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 {

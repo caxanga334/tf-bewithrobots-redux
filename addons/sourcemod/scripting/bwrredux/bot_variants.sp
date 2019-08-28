@@ -275,13 +275,6 @@ void GiveNormalInventory(int client ,int botvariant)
 		{
 			switch( botvariant )
 			{
-				case -1: // own engineer
-				{
-					iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Building);
-					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 375.0);
-					TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
-					return;
-				}
 				case 0: // standard engineer (275 HP)
 				{
 					SpawnWeapon( client, "tf_weapon_shotgun_primary", 9, 1, 6, false );
@@ -382,6 +375,34 @@ void GiveNormalInventory(int client ,int botvariant)
 					SpawnWeapon( client, "tf_weapon_knife", 4, 1, 6, false );
 					SpawnWeapon( client, "tf_weapon_pda_spy", 27, 1, 6, false );
 					SpawnWeapon( client, "tf_weapon_invis", 59, 1, 6, false );
+					return;			
+				}
+				case 2: // gentle spy
+				{
+					SpawnWeapon( client, "tf_weapon_revolver", 61, 1, 6, false );
+					iWeapon = SpawnWeapon( client, "tf_weapon_builder", 735, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "kill eater score type", 24.0);
+					TF2Attrib_SetByName(iWeapon, "sapper damage penalty", 0.0);
+					TF2Attrib_SetByName(iWeapon, "sapper degenerates buildings", 0.9);
+					iWeapon = SpawnWeapon( client, "tf_weapon_knife", 727, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 375.0);
+					SpawnWeapon( client, "tf_weapon_pda_spy", 27, 1, 6, false );
+					SpawnWeapon( client, "tf_weapon_invis", 59, 1, 6, false );
+					return;			
+				}
+				case 3: // ninja spy
+				{
+					SpawnWeapon( client, "tf_weapon_revolver", 24, 1, 6, false );
+					SpawnWeapon( client, "tf_weapon_builder", 735, 1, 6, false );
+					iWeapon = SpawnWeapon( client, "tf_weapon_knife", 356, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "move speed bonus", 1.30);
+					TF2Attrib_SetByName(iWeapon, "health regen", 4.0);
+					SpawnWeapon( client, "tf_weapon_pda_spy", 27, 1, 6, false );
+					iWeapon = SpawnWeapon( client, "tf_weapon_invis", 59, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "SET BONUS: quiet unstealth", 1.0);
+					TF2Attrib_SetByName(iWeapon, "mult cloak meter regen rate", 24.0);
+					TF2Attrib_SetByName(iWeapon, "cloak consume rate decreased", 0.01);
+					TF2Attrib_RemoveByName(iWeapon, "cloak_consume_on_feign_death_activate"); // test
 					return;			
 				}
 			}
@@ -703,6 +724,8 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 				case -1: strcopy( strBotName, 128, "Your own Spy" );
 				case 0: strcopy( strBotName, 128, "Standard Spy" );
 				case 1: strcopy( strBotName, 128, "Dead Ringer Spy" );
+				case 2: strcopy( strBotName, 128, "Gentle Spy" );
+				case 3: strcopy( strBotName, 128, "Ninja Spy" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}
 		}
