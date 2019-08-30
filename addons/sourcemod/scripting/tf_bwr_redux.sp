@@ -1245,7 +1245,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 						iTeleTarget = FindEngineerNestNearBomb();
 						if( iTeleTarget != -1 ) // found nest
 						{
-							TeleportPlayerToEntity(iTeleTarget, client);
+							TeleportEngineerToEntity(iTeleTarget, client);
 							if( GetClassCount(TFClass_Engineer, TFTeam_Blue, true, false) > 1 )
 							{
 								EmitGSToRed("Announcer.MVM_Another_Engineer_Teleport_Spawned");

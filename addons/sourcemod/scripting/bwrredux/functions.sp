@@ -181,6 +181,22 @@ void TeleportPlayerToEntity(int iEntity, int client, float OffsetVec[3] = {0.0,0
 	}
 }
 
+// teleports a client to the entity origin.
+// also adds engineer spawn particle
+void TeleportEngineerToEntity(int iEntity, int client, float OffsetVec[3] = {0.0,0.0,0.0})
+{
+	float EntVec[3];
+	float FinalVec[3];
+	if( IsValidEntity(iEntity) )
+	{
+		GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", EntVec);
+		AddVectors(EntVec, OffsetVec, FinalVec);
+		TeleportEntity(client, FinalVec, NULL_VECTOR, NULL_VECTOR);
+		CreateTEParticle("teleported_blue",FinalVec, _, _,3.0,iEntity,1,0);
+		CreateTEParticle("teleported_mvm_bot",FinalVec, _, _,3.0,iEntity,1,0);
+	}
+}
+
 // checks for spy & engineers teleport entities.
 void CheckMapForEntities()
 {
@@ -893,4 +909,64 @@ void TriggerHatchExplosion()
 			}
 		} 
 	}
+}
+
+void CreateTEParticle(	char strParticle[128],
+						float OriginVec[3]=NULL_VECTOR,
+						float StartVec[3]=NULL_VECTOR,
+						float AnglesVec[3]=NULL_VECTOR,
+						float flDelay=0.0,
+						int iEntity=-1,
+						int iAttachType=-1,
+						int iAttachPoint=-1 )
+{
+	int ParticleTable = FindStringTable("ParticleEffectNames");
+	if( ParticleTable == INVALID_STRING_TABLE )
+	{
+		LogError("Could not find String Table \"ParticleEffectNames\"");
+		return;
+	}
+	int iCounter = GetStringTableNumStrings(ParticleTable);
+	int iParticleIndex = INVALID_STRING_INDEX;
+	char Temp[128];
+	
+	for(int i = 0;i < iCounter; i++)
+	{
+		ReadStringTable(ParticleTable, i, Temp, sizeof(Temp));
+		if(StrEqual(Temp, strParticle, false))
+		{
+			iParticleIndex = i;
+			break;
+		}
+	}
+	if( iParticleIndex == INVALID_STRING_INDEX )
+	{
+		LogError("Could not find particle named \"%s\"", strParticle);
+		return;
+	}
+	
+	TE_Start("TFParticleEffect");
+	TE_WriteFloat("m_vecOrigin[0]", OriginVec[0]);
+	TE_WriteFloat("m_vecOrigin[1]", OriginVec[1]);
+	TE_WriteFloat("m_vecOrigin[2]", OriginVec[2]);
+	TE_WriteFloat("m_vecStart[0]", StartVec[0]);
+	TE_WriteFloat("m_vecStart[1]", StartVec[1]);
+	TE_WriteFloat("m_vecStart[2]", StartVec[2]);
+	TE_WriteVector("m_vecAngles", AnglesVec);
+	TE_WriteNum("m_iParticleSystemIndex", iParticleIndex);
+	
+	if( iEntity != -1 )
+	{
+		TE_WriteNum("entindex", iEntity);
+	}
+	if( iAttachType != -1 )
+	{
+		TE_WriteNum("m_iAttachType", iAttachType);
+	}
+	if( iAttachPoint != -1 )
+	{
+		TE_WriteNum("m_iAttachmentPointIndex", iAttachPoint);
+	}
+	
+	TE_SendToAll(flDelay);
 }
