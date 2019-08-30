@@ -823,13 +823,9 @@ public Action Command_ShowPlayers( int client, int nArgs )
 	if( !IsClientInGame(client) || IsFakeClient(client) )
 		return Plugin_Handled;
 		
-	int iRedCount, iBluCount, iSpecCount;
+	int iRedCount = 0, iBluCount = 0, iSpecCount = 0;
 	char RedNames[256], BluNames[256], SpecNames[256];
 	char plrname[256];
-	
-	iRedCount = GetTeamClientCount(2);
-	iBluCount = GetHumanRobotCount();
-	iSpecCount = GetTeamClientCount(1);
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -839,23 +835,26 @@ public Action Command_ShowPlayers( int client, int nArgs )
 			{
 				GetClientName(i, plrname, sizeof(plrname));
 				Format(RedNames, sizeof(RedNames), "%s %s", plrname, RedNames);
+				iRedCount++;
 			}
 			else if( TF2_GetClientTeam(i) == TFTeam_Blue )
 			{
 				GetClientName(i, plrname, sizeof(plrname));
-				Format(BluNames, sizeof(BluNames), "%s %s", plrname, BluNames);	
+				Format(BluNames, sizeof(BluNames), "%s %s", plrname, BluNames);
+				iBluCount++;
 			}
-			else if( TF2_GetClientTeam(i) == TFTeam_Spectator )
+			else if( TF2_GetClientTeam(i) == TFTeam_Spectator || TF2_GetClientTeam(i) == TFTeam_Unassigned )
 			{
 				GetClientName(i, plrname, sizeof(plrname));
 				Format(SpecNames, sizeof(SpecNames), "%s %s", plrname, SpecNames);				
+				iSpecCount++;
 			}
 		}
 	}
 	
-	CReplyToCommand(client, "{green}%i {cyan}players in RED: {green}%s", iRedCount, RedNames);
-	CReplyToCommand(client, "{green}%i {cyan}players in BLU: {green}%s", iBluCount, BluNames);
-	CReplyToCommand(client, "{green}%i {cyan}players in SPEC: {green}%s", iSpecCount, SpecNames);
+	CReplyToCommand(client, "{green}%i {cyan}player(s) in RED: {green}%s", iRedCount, RedNames);
+	CReplyToCommand(client, "{green}%i {cyan}player(s) in BLU: {green}%s", iBluCount, BluNames);
+	CReplyToCommand(client, "{green}%i {cyan}player(s) in SPEC: {green}%s", iSpecCount, SpecNames);
 
 	return Plugin_Handled;
 }
