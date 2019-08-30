@@ -15,7 +15,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.1"
+#define PLUGIN_VERSION "0.0.2"
 
 // TODO
 /**
@@ -1686,6 +1686,7 @@ void MovePlayerToRED(int client)
 	AcceptEntityInput( client, "SetCustomModel" );
 	LogMessage("Player \"%L\" joined RED team.", client);
 	TF2_ChangeClientTeam(client, TFTeam_Red);
+	ShowVGUIPanel(client, "class_red");
 }
 
 // moves players to spectator
