@@ -1089,3 +1089,25 @@ int CreateParticle( float flOrigin[3], const char[] strParticle, float flDuratio
 	}
 	return iParticle;
 }
+
+void Robot_GibGiant(int client, float OriginVec[3])
+{
+	int Ent;
+
+	//Initialize:
+	Ent = CreateEntityByName("tf_ragdoll");
+
+	//Write:
+	SetEntPropVector(Ent, Prop_Send, "m_vecRagdollOrigin", OriginVec); 
+	SetEntProp(Ent, Prop_Send, "m_iPlayerIndex", client); 
+	SetEntPropVector(Ent, Prop_Send, "m_vecForce", NULL_VECTOR);
+	SetEntPropVector(Ent, Prop_Send, "m_vecRagdollVelocity", NULL_VECTOR);
+	SetEntProp(Ent, Prop_Send, "m_bGib", 1);
+
+	//Send:
+	DispatchSpawn(Ent);
+
+	//Remove Body:
+	CreateTimer(0.1, Timer_RemoveBody, client, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(8.0, Timer_RemoveGibs, Ent, TIMER_FLAG_NO_MAPCHANGE);
+}

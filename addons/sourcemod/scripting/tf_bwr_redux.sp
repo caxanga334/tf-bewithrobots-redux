@@ -1126,6 +1126,9 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss )
 		{
 			EmitGameSoundToAll("MVM.GiantHeavyExplodes");
+			float clientPosVec[3];
+			GetClientAbsOrigin(client, clientPosVec);
+			Robot_GibGiant(client, clientPosVec);
 		}
 		
 		StopRobotLoopSound(client);
@@ -1628,6 +1631,43 @@ public Action Timer_DeleteParticle(Handle timer, any iEntRef)
 		GetEdictClassname( iParticle, strClassname, sizeof(strClassname) );
 		if( StrEqual( strClassname, "info_particle_system", false ) )
 			AcceptEntityInput( iParticle, "Kill" );
+	}
+}
+
+public Action Timer_RemoveBody(Handle timer, any client)
+{
+
+	//Declare:
+	int BodyRagdoll;
+
+	//Initialize:
+	BodyRagdoll = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
+
+	//Remove:
+	if(IsValidEdict(BodyRagdoll)) 
+		RemoveEdict(BodyRagdoll);
+}
+
+public Action Timer_RemoveGibs(Handle timer, any entity)
+{
+
+	//Validate:
+	if(IsValidEntity(entity))
+	{
+
+		//Declare:
+		char Classname[64];
+
+		//Initialize:
+		GetEdictClassname(entity, Classname, sizeof(Classname));
+
+		//Is a Particle:
+		if(StrEqual(Classname, "tf_ragdoll", false))
+		{
+
+			//Delete:
+			RemoveEdict(entity);
+		}
 	}
 }
 
