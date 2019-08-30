@@ -407,6 +407,15 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 				return Plugin_Changed;
 			}
 		}
+		
+		if( p_iBotType[client] == Bot_Buster )
+		{
+			if( buttons & IN_ATTACK )
+			{
+				FakeClientCommand(client, "taunt");
+				return Plugin_Continue;
+			}
+		}
 	}
 	return Plugin_Continue;
 }
