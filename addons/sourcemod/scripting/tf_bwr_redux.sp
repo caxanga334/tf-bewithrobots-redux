@@ -62,6 +62,7 @@ ArrayList array_spawns; // spawn points for human players
 
 // others
 bool g_bUpgradeStation[MAXPLAYERS + 1];
+float g_flNextBusterTime;
 
 // convars
 ConVar c_iMinRed;
@@ -71,6 +72,8 @@ ConVar c_iGiantMinRed; // minimum red players to allow giants.
 ConVar c_iMaxBlu; // maximum blu players allowed
 ConVar c_bAutoTeamBalance;
 ConVar c_bSmallMap; // change robot scale to avoid getting stuck in maps such as mvm_2fort
+ConVar c_flBusterDelay; // delay between human sentry buster spawns.
+ConVar c_iBusterMinKills; // minimum amount of kills a sentry needs to have before becoming a threat;
 ConVar c_svTag; // server tags
 
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -151,6 +154,9 @@ public void OnPluginStart()
 	c_iMaxBlu = CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 5.0);
 	c_bAutoTeamBalance = CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_bSmallMap = CreateConVar("sm_bwrr_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_flBusterDelay = CreateConVar("sm_bwrr_sentry_buster_delay", "180.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
+	c_iBusterMinKills = CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
+	
 	c_svTag = FindConVar("sv_tags");
 	
 	// convar hooks
@@ -188,6 +194,8 @@ public void OnPluginStart()
 	AddCommandListener( Listener_Suicide, "td_buyback" ); // not a suicide command but same blocking rule
 	AddCommandListener( Listener_Build, "build" );
 	AddCommandListener( Listener_CallVote, "callvote" );
+	AddCommandListener( Listener_Taunt, "taunt" );
+	AddCommandListener( Listener_Taunt, "+taunt" );
 	
 	
 	// EVENTS
@@ -276,6 +284,13 @@ public void OnMapStart()
 	PrecacheSound("vo/announcer_mvm_engbot_dead_notele03.mp3");
 	PrecacheSound("vo/announcer_mvm_engbot_dead_tele01.mp3");
 	PrecacheSound("vo/announcer_mvm_engbot_dead_tele02.mp3");
+	PrecacheSound(")mvm/sentrybuster/mvm_sentrybuster_explode.wav");
+	PrecacheSound(")mvm/sentrybuster/mvm_sentrybuster_spin.wav");
+	PrecacheSound("vo/mvm_sentry_buster_alerts01.mp3");
+	PrecacheSound("vo/mvm_sentry_buster_alerts04.mp3");
+	PrecacheSound("vo/mvm_sentry_buster_alerts05.mp3");
+	PrecacheSound("vo/mvm_sentry_buster_alerts06.mp3");
+	PrecacheSound("vo/mvm_sentry_buster_alerts07.mp3");
 }
 
 /* public void OnClientConnected(client)
@@ -477,6 +492,19 @@ public Action OnEndTouchCaptureZone(int entity, int other)
 }
 
 /****************************************************
+					USER MESSAGES
+*****************************************************/
+
+// fired when a players refund
+void OnRefund(int client)
+{
+	if(g_bUpgradeStation[client])
+	{
+		g_bUpgradeStation[client] = false;
+	}
+}
+
+/****************************************************
 					COMMANDS
 *****************************************************/
 
@@ -596,8 +624,6 @@ public Action Command_Debug( int client, int nArgs )
 	{
 		ReplyToCommand(client, "Not Ready");
 	}
-	
-	ReplyToCommand(client,"MvM World Money: %i", OR_GetPlayerRefundCredits(client));
 	
 	return Plugin_Handled;
 }
@@ -952,6 +978,20 @@ public Action Listener_CallVote(int client, const char[] command, int argc)
 	return Plugin_Continue;
 }
 
+public Action Listener_Taunt(int client, const char[] command, int argc)
+{
+	if( IsFakeClient(client) )
+		return Plugin_Continue;
+	
+	if( TF2_GetClientTeam(client) == TFTeam_Blue && p_iBotType[client] == Bot_Buster )
+	{
+		SentryBuster_Explode(client);
+		return Plugin_Continue;
+	}
+	
+	return Plugin_Continue;
+}
+
 /****************************************************
 					EVENTS
 *****************************************************/
@@ -961,6 +1001,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	OR_Update();
 	UpdateClassArray();
 	CheckTeams();
+	g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
@@ -1090,6 +1131,10 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 				{
 					GiveGiantInventory(client,p_iBotVariant[client]);
 				}
+				else if( p_iBotType[client] == Bot_Buster )
+				{
+					GiveBusterInventory(client);
+				}
 				else
 				{
 					GiveNormalInventory(client,p_iBotVariant[client]);
@@ -1218,6 +1263,17 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			strBotName = GetGiantVariantName(TFClass, p_iBotVariant[client]);
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) ); // has nothing to do with variant name but same condition
+		}
+		else if( p_iBotType[client] == Bot_Boss )
+		{
+			strBotName = "Boss";
+			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) );
+		}
+		else if( p_iBotType[client] == Bot_Buster )
+		{
+			strBotName = "Sentry Buster";
+			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) );
+			EmitGSToRed("Announcer.MVM_Sentry_Buster_Alert");
 		}
 		else
 		{
@@ -1500,6 +1556,55 @@ public Action Timer_Announce(Handle timer)
 	CPrintToChatAll("{cyan}https://github.com/caxanga334/tf-bewithrobots-redux");
 }
 
+public Action Timer_SentryBuster_Explode(Handle timer, any client)
+{
+	if( !IsPlayerAlive(client) || p_iBotType[client] != Bot_Buster )
+		return Plugin_Stop;
+	
+	float flExplosionPos[3];
+	GetClientAbsOrigin( client, flExplosionPos );
+	int iWeapon = GetFirstAvailableWeapon(client);
+	
+	if( GameRules_GetRoundState() == RoundState_RoundRunning )
+	{
+		int i;
+		for( i = 1; i <= MaxClients; i++ )
+			if( i != client && IsValidClient(i) && IsPlayerAlive(i) )
+				if( CanSeeTarget( client, i, 320.0 ) )
+					DealDamage(i, client, client, 10000.0, DMG_BLAST, iWeapon);
+		
+		char strObjects[5][] = { "obj_sentrygun","obj_dispenser","obj_teleporter","obj_teleporter_entrance","obj_teleporter_exit" };
+		for( int o = 0; o < sizeof(strObjects); o++ )
+		{
+			i = -1;
+			while( ( i = FindEntityByClassname( i, strObjects[o] ) ) != -1 )
+				if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) != view_as<int>(TFTeam_Blue) && !GetEntProp( i, Prop_Send, "m_bCarried" ) && !GetEntProp( i, Prop_Send, "m_bPlacing" ) )
+					if( CanSeeTarget( client, i, 320.0 ) )
+						DealDamage(i, client, client, 10000.0, DMG_BLAST, iWeapon);
+		}
+	}
+	
+	CreateParticle( flExplosionPos, "fluidSmokeExpl_ring_mvm", 6.5 );
+	CreateParticle( flExplosionPos, "explosionTrail_seeds_mvm", 5.5 );	//fluidSmokeExpl_ring_mvm  explosionTrail_seeds_mvm
+	
+	ForcePlayerSuicide( client );
+	EmitGameSoundToAll("MVM.SentryBusterExplode");
+	
+	return Plugin_Stop;
+}
+
+public Action Timer_DeleteParticle(Handle timer, any iEntRef)
+{
+	int iParticle = EntRefToEntIndex( iEntRef );
+	if( IsValidEntity(iParticle) )
+	{
+		char strClassname[64];
+		GetEdictClassname( iParticle, strClassname, sizeof(strClassname) );
+		if( StrEqual( strClassname, "info_particle_system", false ) )
+			AcceptEntityInput( iParticle, "Kill" );
+	}
+}
+
 /****************************************************
 					FUNCTIONS
 *****************************************************/
@@ -1627,10 +1732,18 @@ void PickRandomRobot(int client)
 	bool bGiants = false;
 	
 	// sentry buster
-/* 	if(iAvailable & 512)
+	if(iAvailable & 512)
 	{
-		
-	} */
+		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() )
+		{
+			p_BotClass[client] = TFClass_DemoMan;
+			p_iBotVariant[client] = 0;
+			p_iBotType[client] = Bot_Buster;
+			p_iBotAttrib[client] = BotAttrib_CannotCarryBomb;
+			g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
+			return;
+		}
+	}
 	if(iAvailable & 1024)
 	{
 		bGiants = true;
@@ -2127,15 +2240,6 @@ void ScalePlayerModel(const int client, const float fScale)
 	SetEntPropFloat( client, Prop_Send, "m_flModelScale", fScale );
 }
 
-// fired when a players refund
-void OnRefund(int client)
-{
-	if(g_bUpgradeStation[client])
-	{
-		g_bUpgradeStation[client] = false;
-	}
-}
-
 void ResetRobotData(int client, bool bStrip = false)
 {
 	p_iBotType[client] = Bot_Normal;
@@ -2405,6 +2509,28 @@ int FindRandomSpawnPoint( SpawnType iType )
 	}
 		
 	return -1;
+}
+
+// searches for red sentry guns
+// also checks for kill num
+bool ShouldDispatchSentryBuster()
+{
+	int i = -1;
+	int iKills;
+	while ((i = FindEntityByClassname(i, "obj_sentrygun")) != -1)
+	{
+		if( IsValidEntity(i) )
+		{
+			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Red) )
+			{
+				iKills = GetEntProp(i, Prop_Send, "SentrygunLocalData", _, 0);
+				if( iKills >= c_iBusterMinKills.IntValue ) // found threat
+					return true;
+			}
+		}
+	}
+	
+	return false;
 }
 
 // add plugin tag to sv_tags

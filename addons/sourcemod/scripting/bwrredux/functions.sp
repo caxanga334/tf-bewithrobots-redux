@@ -969,3 +969,123 @@ void CreateTEParticle(	char strParticle[128],
 	
 	TE_SendToAll(flDelay);
 }
+
+void SentryBuster_Explode( client )
+{
+	if( !IsPlayerAlive(client) )
+		return;
+	
+	CreateTimer( 1.98, Timer_SentryBuster_Explode, client, TIMER_FLAG_NO_MAPCHANGE );
+	EmitGameSoundToAll("MVM.SentryBusterSpin");
+	
+	SetEntProp( client, Prop_Data, "m_takedamage", 0, 1 );
+}
+
+bool CanSeeTarget(int iEntity,int iOther, float flMaxDistance = 0.0 )
+{
+	if( iEntity <= 0 || iOther <= 0 || !IsValidEntity(iEntity) || !IsValidEntity(iOther) )
+		return false;
+	
+	float vecStart[3];
+	float vecStartMaxs[3];
+	float vecTarget[3];
+	float vecTargetMaxs[3];
+	float vecEnd[3];
+	
+	GetEntPropVector( iEntity, Prop_Data, "m_vecOrigin", vecStart );
+	GetEntPropVector( iEntity, Prop_Send, "m_vecMaxs", vecStartMaxs );
+	GetEntPropVector( iOther, Prop_Data, "m_vecOrigin", vecTarget );
+	GetEntPropVector( iOther, Prop_Send, "m_vecMaxs", vecTargetMaxs );
+	
+	vecStart[2] += vecStartMaxs[2] / 2.0;
+	vecTarget[2] += vecTargetMaxs[2] / 2.0;
+	
+	if( flMaxDistance > 0.0 )
+	{
+		float flDistance = GetVectorDistance( vecStart, vecTarget );
+		if( flDistance > flMaxDistance )
+		{
+			return false;
+		}
+	}
+	
+	Handle hTrace = TR_TraceRayFilterEx( vecStart, vecTarget, MASK_VISIBLE, RayType_EndPoint, TraceFilterSentryBuster, iEntity );
+	if( !TR_DidHit( hTrace ) )
+	{
+		CloseHandle( hTrace );
+		return false;
+	}
+	
+	int iHitEnt = TR_GetEntityIndex( hTrace );
+	TR_GetEndPosition( vecEnd, hTrace );
+	CloseHandle( hTrace );
+	
+	if( iHitEnt == iOther || GetVectorDistanceMeter( vecEnd, vecTarget ) <= 1.0 )
+	{
+		return true;
+	}
+	
+	return false;
+}
+
+float GetVectorDistanceMeter( const float vec1[3], const float vec2[3], bool squared = false )
+{
+	return ( GetVectorDistance( vec1, vec2, squared ) / 50.00 );
+}
+
+bool TraceFilterSentryBuster(int iEntity,int iContentsMask, any buster )
+{
+	if( iEntity < 0 || !IsValidEntity(iEntity) )
+		return false;
+		
+	if( iEntity == buster )
+		return false;
+		
+	if( iEntity > 0 || iEntity < MaxClients )
+	{
+		if( IsClientInGame(iEntity) && IsPlayerAlive(iEntity) )
+		{
+			return true;
+		}
+	}
+	
+	char strClassName[64];
+	GetEntityClassname(iEntity, strClassName, sizeof(strClassName));
+	
+	if( StrContains(strClassName, "obj_", false ) )
+	{
+		if( GetEntProp( iEntity, Prop_Send, "m_iTeamNum" ) != view_as<int>(TFTeam_Blue) )
+		{
+			return true;
+		}
+		else
+			return false;
+	}
+	
+	return false;
+}
+
+void DealDamage(int entity, int inflictor, int attacker, float damage, int damageType, int weapon=-1, const float damageForce[3]=NULL_VECTOR, const float damagePosition[3]=NULL_VECTOR)
+{
+	if( entity > 0 && IsValidEntity(entity) && ( entity > MaxClients || IsClientInGame(entity) && IsPlayerAlive(entity) ) && damage > 0 )
+	{
+		SDKHooks_TakeDamage(entity, inflictor, attacker, damage, damageType, weapon, damageForce, damagePosition);
+	}
+}
+
+int CreateParticle( float flOrigin[3], const char[] strParticle, float flDuration = -1.0 )
+{
+	int iParticle = CreateEntityByName( "info_particle_system" );
+	if( IsValidEdict( iParticle ) )
+	{
+		DispatchKeyValue( iParticle, "effect_name", strParticle );
+		DispatchKeyValue( iParticle, "targetname", "bwrr_particle_effect" );
+		DispatchSpawn( iParticle );
+		TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
+		ActivateEntity( iParticle );
+		AcceptEntityInput( iParticle, "Start" );
+		if( flDuration >= 0.0 )
+			CreateTimer( flDuration, Timer_DeleteParticle, EntIndexToEntRef(iParticle) );
+	}
+	return iParticle;
+}
