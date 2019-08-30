@@ -45,6 +45,13 @@
 #define MAX_SNIPER_GIANT 1
 #define MAX_SPY 3
 #define MAX_SPY_GIANT 1
+// giant sounds
+#define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
+#define ROBOT_SND_GIANT_SOLDIER "mvm/giant_soldier/giant_soldier_loop.wav"
+#define ROBOT_SND_GIANT_PYRO "mvm/giant_pyro/giant_pyro_loop.wav"
+#define ROBOT_SND_GIANT_DEMOMAN "mvm/giant_demoman/giant_demoman_loop.wav"
+#define ROBOT_SND_GIANT_HEAVY ")mvm/giant_heavy/giant_heavy_loop.wav"
+#define ROBOT_SND_SENTRY_BUSTER "mvm/sentrybuster/mvm_sentrybuster_loop.wav"
 
 // player robot variants prefix: p_
 int p_iBotType[MAXPLAYERS + 1];
@@ -1117,6 +1124,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		
 		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 		PickRandomRobot(client);
+		StopRobotLoopSound(client);
 	}
 	
 	return Plugin_Continue;
@@ -1272,21 +1280,25 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			strBotName = GetGiantVariantName(TFClass, p_iBotVariant[client]);
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) ); // has nothing to do with variant name but same condition
+			ApplyRobotLoopSound(client,TFClass);
 		}
 		else if( p_iBotType[client] == Bot_Boss )
 		{
 			strBotName = "Boss";
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) );
+			ApplyRobotLoopSound(client,TFClass);
 		}
 		else if( p_iBotType[client] == Bot_Buster )
 		{
 			strBotName = "Sentry Buster";
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) );
 			EmitGSToRed("Announcer.MVM_Sentry_Buster_Alert");
+			ApplyRobotLoopSound(client,TFClass);
 		}
 		else
 		{
 			strBotName = GetNormalVariantName(TFClass, p_iBotVariant[client]);
+			StopRobotLoopSound(client);
 		}
 		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
 		SetRobotScale(client,TFClass);
@@ -2595,5 +2607,35 @@ void CheckTeams()
 				}
 			}
 		}
+	}
+}
+
+// applies giant robot loop sounds to clients
+void StopRobotLoopSound(int client)
+{
+	StopSound(client, SNDCHAN_STATIC, ROBOT_SND_GIANT_SCOUT);
+	StopSound(client, SNDCHAN_STATIC, ROBOT_SND_GIANT_SOLDIER);
+	StopSound(client, SNDCHAN_STATIC, ROBOT_SND_GIANT_PYRO);
+	StopSound(client, SNDCHAN_STATIC, ROBOT_SND_GIANT_DEMOMAN);
+	StopSound(client, SNDCHAN_STATIC, ROBOT_SND_SENTRY_BUSTER);
+	StopSound(client, SNDCHAN_STATIC, ROBOT_SND_GIANT_HEAVY);
+}
+
+void ApplyRobotLoopSound(int client, TFClassType TFClass)
+{
+	StopRobotLoopSound(client);
+	switch( TFClass )
+	{
+		case TFClass_Scout: EmitSoundToAll(ROBOT_SND_GIANT_SCOUT, client, SNDCHAN_STATIC, 85);
+		case TFClass_Soldier: EmitSoundToAll(ROBOT_SND_GIANT_SOLDIER, client, SNDCHAN_STATIC, 82);
+		case TFClass_Pyro: EmitSoundToAll(ROBOT_SND_GIANT_PYRO, client, SNDCHAN_STATIC, 83);
+		case TFClass_DemoMan:
+		{
+			if( p_iBotType[client] == Bot_Buster )
+				EmitSoundToAll(ROBOT_SND_SENTRY_BUSTER, client, SNDCHAN_STATIC, SNDLEVEL_TRAIN);
+			else
+				EmitSoundToAll(ROBOT_SND_GIANT_DEMOMAN, client, SNDCHAN_STATIC, 82);
+		}
+		case TFClass_Heavy: EmitSoundToAll(ROBOT_SND_GIANT_HEAVY, client, SNDCHAN_STATIC, 83);
 	}
 }
