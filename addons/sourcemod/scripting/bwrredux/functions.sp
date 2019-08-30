@@ -378,7 +378,6 @@ void AnnounceEngineerDeath(int client)
 				if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
 				{				
 					iOwner = GetEntPropEnt( i, Prop_Send, "m_hBuilder" );
-					PrintToChatAll("iOwner: %i", iOwner);
 					if( iOwner == client )
 					{
 						bFoundTele = true;
