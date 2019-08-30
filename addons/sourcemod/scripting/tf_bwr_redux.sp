@@ -1122,10 +1122,14 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			if( GetClassCount(TFClass_Spy, TFTeam_Blue, true, false) <= 1 )
 				EmitGSToRed("Announcer.mvm_spybot_death_all");
 		}
-		
 		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
-		PickRandomRobot(client);
+		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss )
+		{
+			EmitGameSoundToAll("MVM.GiantHeavyExplodes");
+		}
+		
 		StopRobotLoopSound(client);
+		PickRandomRobot(client);
 	}
 	
 	return Plugin_Continue;
