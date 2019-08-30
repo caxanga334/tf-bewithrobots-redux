@@ -308,6 +308,7 @@ public void OnMapStart()
 public void OnClientDisconnect(client)
 {
 	ResetRobotData(client);
+	StopRobotLoopSound(client);
 }
 
 public void OnGameFrame()
