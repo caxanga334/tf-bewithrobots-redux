@@ -1243,7 +1243,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 					else // no teleporter found
 					{
 						iTeleTarget = FindEngineerNestNearBomb();
-						if( iTeleTarget != -1 ) // found nest
+						if( iTeleTarget != -1 && (p_iBotAttrib[client] & BotAttrib_TeleportToHint) ) // found nest
 						{
 							TeleportEngineerToEntity(iTeleTarget, client);
 							if( GetClassCount(TFClass_Engineer, TFTeam_Blue, true, false) > 1 )
@@ -1259,7 +1259,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 						{
 							TeleportToSpawnPoint(client, TFClass);
 						}
-					}					
+					}
 				}
 				default: // other classes
 				{
