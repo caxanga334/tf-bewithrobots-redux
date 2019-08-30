@@ -253,6 +253,29 @@ public void OnMapStart()
 	AddPluginTag("BWRR");
 	
 	// prechace
+	PrecacheSound("vo/mvm_spy_spawn01.mp3");
+	PrecacheSound("vo/mvm_spy_spawn02.mp3");
+	PrecacheSound("vo/mvm_spy_spawn03.mp3");
+	PrecacheSound("vo/mvm_spy_spawn04.mp3");
+	PrecacheSound("vo/mvm_spybot_death04.mp3");
+	PrecacheSound("vo/mvm_spybot_death05.mp3");
+	PrecacheSound("vo/mvm_spybot_death06.mp3");
+	PrecacheSound("vo/mvm_spybot_death07.mp3");
+	PrecacheSound("vo/announcer_mvm_eng_tele_activated01.mp3");
+	PrecacheSound("vo/announcer_mvm_eng_tele_activated02.mp3");
+	PrecacheSound("vo/announcer_mvm_eng_tele_activated03.mp3");
+	PrecacheSound("vo/announcer_mvm_eng_tele_activated04.mp3");
+	PrecacheSound("vo/announcer_mvm_eng_tele_activated05.mp3");
+	PrecacheSound("vo/announcer_mvm_engbot_another01.mp3");
+	PrecacheSound("vo/announcer_mvm_engbot_another02.mp3");
+	PrecacheSound("vo/announcer_mvm_engbot_arrive01.mp3");
+	PrecacheSound("vo/announcer_mvm_engbot_arrive02.mp3");
+	PrecacheSound("vo/announcer_mvm_engbot_arrive03.mp3");
+	PrecacheSound("vo/announcer_mvm_engbot_dead_notele01.mp3");
+	PrecacheSound("vo/announcer_mvm_engbot_dead_notele02.mp3");
+	PrecacheSound("vo/announcer_mvm_engbot_dead_notele03.mp3");
+	PrecacheSound("vo/announcer_mvm_engbot_dead_tele01.mp3");
+	PrecacheSound("vo/announcer_mvm_engbot_dead_tele02.mp3");
 }
 
 /* public void OnClientConnected(client)
@@ -777,11 +800,11 @@ public Action Command_MoveTeam( int client, int nArgs )
 		}
 		else if( NewTargetTeam == TFTeam_Red )
 		{
-			MovePlayerToRED(client);
+			MovePlayerToRED(target_list[i]);
 		}
 		else
 		{
-			MovePlayerToSpec(client);
+			MovePlayerToSpec(target_list[i]);
 		}
 		LogAction(client, target_list[i], "\"%L\" changed \"%L\"'s team to %s", client, target_list[i], strLogTeam);
 	}
@@ -1038,7 +1061,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		}
 		else if( TF2_GetPlayerClass(client) == TFClass_Spy )
 		{
-			if( GetClassCount(TFClass_Spy, TFTeam_Blue, true, false) < 1 )
+			if( GetClassCount(TFClass_Spy, TFTeam_Blue, true, false) <= 1 )
 				EmitGSToRed("Announcer.mvm_spybot_death_all");
 		}
 		
