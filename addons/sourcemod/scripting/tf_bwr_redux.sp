@@ -1798,7 +1798,7 @@ void PickRandomRobot(int client)
 	bool bGiants = false;
 	
 	// sentry buster
-	if(iAvailable & 512)
+	if(iAvailable & 512 && GameRules_GetRoundState() == RoundState_RoundRunning)
 	{
 		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() )
 		{
