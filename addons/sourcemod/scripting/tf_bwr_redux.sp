@@ -15,7 +15,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.2"
+#define PLUGIN_VERSION "0.0.3"
 
 // TODO
 /**
@@ -1686,7 +1686,8 @@ void MovePlayerToRED(int client)
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
 	LogMessage("Player \"%L\" joined RED team.", client);
-	TF2_ChangeClientTeam(client, TFTeam_Red);
+	//TF2_ChangeClientTeam(client, TFTeam_Red);
+	ChangeClientTeam(client, view_as<int>(TFTeam_Red));
 	ShowVGUIPanel(client, "class_red");
 }
 
@@ -2636,7 +2637,7 @@ void CheckTeams()
 			iTarget = GetRandomPlayer(TFTeam_Blue, false);
 			if( iTarget > 0 )
 			{
-				TF2_ChangeClientTeam(iTarget, TFTeam_Red);
+				MovePlayerToRED(iTarget);
 				CPrintToChat(iTarget, "%t", "Moved Blu Full");
 			}
 		}
@@ -2647,12 +2648,15 @@ void CheckTeams()
 		if( iInRed < c_iMinRed.IntValue && iInBlu > 0 )
 		{
 			int iCount = c_iMinRed.IntValue - (iInRed - 1);
+			if( iCount < c_iMinRed.IntValue )
+				LogMessage("Auto Balancing teams. Count: %i, In RED: %i", iCount, iInRed);
+			
 			for( int i = 1; i <= iCount; i++ )
 			{
 				iTarget = GetRandomPlayer(TFTeam_Blue, false);
 				if( iTarget > 0 )
 				{
-					TF2_ChangeClientTeam(iTarget, TFTeam_Red);
+					MovePlayerToRED(iTarget);
 					CPrintToChat(iTarget, "%t", "Moved Blu Balance");
 				}
 			}
