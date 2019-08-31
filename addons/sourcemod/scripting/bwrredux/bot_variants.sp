@@ -237,7 +237,7 @@ void GiveNormalInventory(int client ,int botvariant)
 				}
 				case 6: // black box soldier
 				{
-					iWeapon = SpawnWeapon( client, "tf_weapon_rocketlauncher", 18, 1, 6, false );
+					iWeapon = SpawnWeapon( client, "tf_weapon_rocketlauncher", 228, 1, 6, false );
 					TF2Attrib_SetByName(iWeapon, "heal on hit for rapidfire", 60.0);
 					TF2Attrib_SetByName(iWeapon, "damage bonus", 0.33);
 					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 0.001);
