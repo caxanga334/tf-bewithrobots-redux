@@ -15,7 +15,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.3"
+#define PLUGIN_VERSION "0.0.4"
 
 // TODO
 /**
@@ -161,7 +161,7 @@ public void OnPluginStart()
 	c_iMaxBlu = CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 5.0);
 	c_bAutoTeamBalance = CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_bSmallMap = CreateConVar("sm_bwrr_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_flBusterDelay = CreateConVar("sm_bwrr_sentry_buster_delay", "180.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
+	c_flBusterDelay = CreateConVar("sm_bwrr_sentry_buster_delay", "95.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
 	c_iBusterMinKills = CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
 	
 	c_svTag = FindConVar("sv_tags");
@@ -557,7 +557,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
-	if( GetHumanRobotCount() > c_iMaxBlu.IntValue )
+	if( GetHumanRobotCount() >= c_iMaxBlu.IntValue )
 	{
 		CPrintToChat(client, "%t", "Blu Full");
 		return Plugin_Handled;
@@ -1686,8 +1686,15 @@ void MovePlayerToRED(int client)
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
 	LogMessage("Player \"%L\" joined RED team.", client);
-	//TF2_ChangeClientTeam(client, TFTeam_Red);
-	ChangeClientTeam(client, view_as<int>(TFTeam_Red));
+	
+	if( GetTeamClientCount(view_as<int>(TFTeam_Red)) >= 6 )
+	{
+		ChangeClientTeam(client, view_as<int>(TFTeam_Red));
+		SetEntProp(client, Prop_Send, "m_iTeamNum", view_as<int>(TFTeam_Red));
+	}
+	else
+		TF2_ChangeClientTeam(client, TFTeam_Red);
+	
 	ShowVGUIPanel(client, "class_red");
 }
 
