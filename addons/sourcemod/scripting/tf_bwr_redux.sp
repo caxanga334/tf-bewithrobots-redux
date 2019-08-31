@@ -153,7 +153,7 @@ stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 public void OnPluginStart()
 {	
 	// convars
-	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY);
+	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_SPONLY);
 	c_iMinRed = CreateConVar("sm_bwrr_minred", "4", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
 	c_iMinRedinProg = CreateConVar("sm_bwrr_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
 	c_iGiantChance = CreateConVar("sm_bwrr_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
@@ -2647,7 +2647,7 @@ void CheckTeams()
 		// if the number of players in RED is less than the minimum to join BLU
 		if( iInRed < c_iMinRed.IntValue && iInBlu > 0 )
 		{
-			int iCount = c_iMinRed.IntValue - (iInRed - 1);
+			int iCount = c_iMinRed.IntValue - (iInRed + 1);
 			if( iCount < c_iMinRed.IntValue )
 				LogMessage("Auto Balancing teams. Count: %i, In RED: %i", iCount, iInRed);
 			
