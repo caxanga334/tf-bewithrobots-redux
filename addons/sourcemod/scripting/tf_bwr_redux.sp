@@ -1680,6 +1680,7 @@ public Action Timer_RemoveGibs(Handle timer, any entity)
 // moves player to RED
 void MovePlayerToRED(int client)
 {
+	StopRobotLoopSound(client);
 	ScalePlayerModel(client, 1.0);
 	ResetRobotData(client, true);
 	SetVariantString( "" );
@@ -1692,6 +1693,7 @@ void MovePlayerToRED(int client)
 // moves players to spectator
 void MovePlayerToSpec(int client)
 {
+	StopRobotLoopSound(client);
 	ScalePlayerModel(client, 1.0);
 	ResetRobotData(client, true);
 	SetVariantString( "" );
@@ -1703,6 +1705,7 @@ void MovePlayerToSpec(int client)
 // moves player to BLU team.
 void MovePlayerToBLU(int client)
 {
+	StopRobotLoopSound(client);
 	ForcePlayerSuicide(client);
 	if( !IsFakeClient(client) )
 	{
