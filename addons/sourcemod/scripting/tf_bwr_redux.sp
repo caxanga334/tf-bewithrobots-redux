@@ -1808,6 +1808,7 @@ void PickRandomRobot(int client)
 			p_iBotType[client] = Bot_Buster;
 			p_iBotAttrib[client] = BotAttrib_CannotCarryBomb;
 			g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
+			CreateTimer(0.1, Timer_SetRobotClass, client);
 			return;
 		}
 	}
