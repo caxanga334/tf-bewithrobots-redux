@@ -12,6 +12,10 @@
 	{
 		"en"	"{white}[BWRR] {cyan}You can't join {blue}BLU{cyan} while the wave is in progress. There aren't enough players in {red}RED{cyan} team."
 	}
+	"Blu Full"
+	{
+		"en"	"{white}[BWRR] {cyan}You can't join {blue}BLU{cyan}. {blue}BLU{cyan} team is full."
+	}
 	"Num Red"
 	{
 		"#format"	"{1:d}"

@@ -12,6 +12,10 @@
 	{
 		"pt"	"{white}[BWRR] {cyan}Você não pode entrar na equipe {blue}BLU{cyan} enquanto a onda estiver em progresso. Não há jogadores suficientes na equipe {red}RED{cyan}."
 	}
+	"Blu Full"
+	{
+		"pt"	"{white}[BWRR] {cyan}Você não pode entrar na equipe {blue}BLU{cyan}. A equipe {blue}BLU{cyan} está cheia."
+	}
 	"Num Red"
 	{
 		"#format"	"{1:d}"
