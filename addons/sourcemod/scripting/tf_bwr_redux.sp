@@ -164,7 +164,7 @@ public void OnPluginStart()
 	c_bSmallMap = CreateConVar("sm_bwrr_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_flBusterDelay = CreateConVar("sm_bwrr_sentry_buster_delay", "95.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
 	c_iBusterMinKills = CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
-	c_flBluRespawnTime = CreateConVar("sm_bwrr_blu_respawn_time", "0.0", "Respawn time for BLU players. 0 = Disabled", FCVAR_NONE, true, -1.0, true, 20.0);
+	c_flBluRespawnTime = CreateConVar("sm_bwrr_blu_respawn_time", "0.0", "Respawn time for BLU players. 0 = Disabled", FCVAR_NONE, true, 0.0, true, 20.0);
 	
 	c_svTag = FindConVar("sv_tags");
 	
@@ -1140,7 +1140,8 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		
 		StopRobotLoopSound(client);
 		PickRandomRobot(client);
-		CreateTimer( c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client );
+		if( c_flBluRespawnTime.FloatValue >= 0.1000 )
+			CreateTimer( c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client );
 	}
 	
 	return Plugin_Continue;
