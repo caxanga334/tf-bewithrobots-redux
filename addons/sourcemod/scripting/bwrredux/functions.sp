@@ -1041,7 +1041,7 @@ bool TraceFilterSentryBuster(int iEntity,int iContentsMask, any buster )
 	if( iEntity == buster )
 		return false;
 		
-	if( iEntity > 0 || iEntity < MaxClients )
+	if( IsValidClient(iEntity) )
 	{
 		if( IsClientInGame(iEntity) && IsPlayerAlive(iEntity) )
 		{
