@@ -14,3 +14,7 @@ Plugin made to replace Be With Robots 2
 * [TF2Wearables](https://github.com/nosoop/sourcemod-tf2wearables)
 * [Stripper](http://www.bailopan.net/stripper/snapshots/1.2/) (Optional,Recommended)
 * [MvM Visible Max Players](https://forums.alliedmods.net/showpost.php?p=1819270) (Optional,Recommended)
+
+# Contact
+* [Steam](http://steamcommunity.com/profiles/76561198053992136)
+* Discord: Anonymous Player#4908
