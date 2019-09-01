@@ -445,6 +445,11 @@ public Action OnTouchUpgradeStation(int entity, int other)
 {
 	if(IsValidClient(other))
 	{
+		if( TF2_GetClientTeam(other) == TFTeam_Blue )
+		{
+			ForcePlayerSuicide(other);
+			return;
+		}
 		if(!g_bUpgradeStation[other])
 		{
 			g_bUpgradeStation[other] = true;
@@ -1125,7 +1130,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss )
 		{
-			EmitGameSoundToAll("MVM.GiantHeavyExplodes");
+			EmitGameSoundToAll("MVM.GiantHeavyExplodes", client);
 			float clientPosVec[3];
 			GetClientAbsOrigin(client, clientPosVec);
 			Robot_GibGiant(client, clientPosVec);
@@ -1617,7 +1622,7 @@ public Action Timer_SentryBuster_Explode(Handle timer, any client)
 	CreateParticle( flExplosionPos, "explosionTrail_seeds_mvm", 5.5 );	//fluidSmokeExpl_ring_mvm  explosionTrail_seeds_mvm
 	
 	ForcePlayerSuicide( client );
-	EmitGameSoundToAll("MVM.SentryBusterExplode");
+	EmitGameSoundToAll("MVM.SentryBusterExplode", client);
 	
 	return Plugin_Stop;
 }
