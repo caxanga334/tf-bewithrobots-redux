@@ -1288,20 +1288,20 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			strBotName = GetGiantVariantName(TFClass, p_iBotVariant[client]);
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) ); // has nothing to do with variant name but same condition
-			ApplyRobotLoopSound(client,TFClass);
+			ApplyRobotLoopSound(client);
 		}
 		else if( p_iBotType[client] == Bot_Boss )
 		{
 			strBotName = "Boss";
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) );
-			ApplyRobotLoopSound(client,TFClass);
+			ApplyRobotLoopSound(client);
 		}
 		else if( p_iBotType[client] == Bot_Buster )
 		{
 			strBotName = "Sentry Buster";
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) );
 			EmitGSToRed("Announcer.MVM_Sentry_Buster_Alert");
-			ApplyRobotLoopSound(client,TFClass);
+			ApplyRobotLoopSound(client);
 		}
 		else
 		{
@@ -1669,6 +1669,30 @@ public Action Timer_RemoveGibs(Handle timer, any entity)
 			RemoveEdict(entity);
 		}
 	}
+}
+
+public Action Timer_ApplyRobotSound(Handle timer, any client)
+{
+	if( !IsValidClient(client) || IsFakeClient(client) )
+		return Plugin_Stop;
+
+	TFClassType TFClass = TF2_GetPlayerClass(client);
+	switch( TFClass )
+	{
+		case TFClass_Scout: EmitSoundToAll(ROBOT_SND_GIANT_SCOUT, client, SNDCHAN_STATIC, 85);
+		case TFClass_Soldier: EmitSoundToAll(ROBOT_SND_GIANT_SOLDIER, client, SNDCHAN_STATIC, 82);
+		case TFClass_Pyro: EmitSoundToAll(ROBOT_SND_GIANT_PYRO, client, SNDCHAN_STATIC, 83);
+		case TFClass_DemoMan:
+		{
+			if( p_iBotType[client] == Bot_Buster )
+				EmitSoundToAll(ROBOT_SND_SENTRY_BUSTER, client, SNDCHAN_STATIC, SNDLEVEL_TRAIN);
+			else
+				EmitSoundToAll(ROBOT_SND_GIANT_DEMOMAN, client, SNDCHAN_STATIC, 82);
+		}
+		case TFClass_Heavy: EmitSoundToAll(ROBOT_SND_GIANT_HEAVY, client, SNDCHAN_STATIC, 83);
+	}
+	
+	return Plugin_Stop;
 }
 
 /****************************************************
@@ -2682,21 +2706,8 @@ void StopRobotLoopSound(int client)
 	StopSound(client, SNDCHAN_STATIC, ROBOT_SND_GIANT_HEAVY);
 }
 
-void ApplyRobotLoopSound(int client, TFClassType TFClass)
+void ApplyRobotLoopSound(int client)
 {
 	StopRobotLoopSound(client);
-	switch( TFClass )
-	{
-		case TFClass_Scout: EmitSoundToAll(ROBOT_SND_GIANT_SCOUT, client, SNDCHAN_STATIC, 85);
-		case TFClass_Soldier: EmitSoundToAll(ROBOT_SND_GIANT_SOLDIER, client, SNDCHAN_STATIC, 82);
-		case TFClass_Pyro: EmitSoundToAll(ROBOT_SND_GIANT_PYRO, client, SNDCHAN_STATIC, 83);
-		case TFClass_DemoMan:
-		{
-			if( p_iBotType[client] == Bot_Buster )
-				EmitSoundToAll(ROBOT_SND_SENTRY_BUSTER, client, SNDCHAN_STATIC, SNDLEVEL_TRAIN);
-			else
-				EmitSoundToAll(ROBOT_SND_GIANT_DEMOMAN, client, SNDCHAN_STATIC, 82);
-		}
-		case TFClass_Heavy: EmitSoundToAll(ROBOT_SND_GIANT_HEAVY, client, SNDCHAN_STATIC, 83);
-	}
+	CreateTimer(0.2, Timer_ApplyRobotSound, client, TIMER_FLAG_NO_MAPCHANGE);
 }
