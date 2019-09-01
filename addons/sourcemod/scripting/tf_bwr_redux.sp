@@ -1247,6 +1247,9 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 		return Plugin_Stop;
 	}
+	
+	if( !IsValidClient(client) )
+		return Plugin_Stop;
 		
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	char strBotName[128];
