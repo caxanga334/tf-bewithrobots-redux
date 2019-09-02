@@ -422,8 +422,11 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		{
 			if( buttons & IN_ATTACK )
 			{
-				FakeClientCommand(client, "taunt");
-				return Plugin_Continue;
+				if( !(TF2_IsPlayerInCondition(client, TFCond_Taunting)) )
+				{
+					FakeClientCommand(client, "taunt");
+					return Plugin_Continue;
+				}
 			}
 		}
 	}
@@ -893,8 +896,6 @@ public Action Command_BotClass( int client, int nArgs )
 
 public Action Command_ShowPlayers( int client, int nArgs )
 {
-	if( !IsClientInGame(client) || IsFakeClient(client) )
-		return Plugin_Handled;
 		
 	int iRedCount = 0, iBluCount = 0, iSpecCount = 0;
 	char RedNames[256], BluNames[256], SpecNames[256];
@@ -1609,7 +1610,7 @@ public Action Timer_Announce(Handle timer)
 
 public Action Timer_SentryBuster_Explode(Handle timer, any client)
 {
-	if( !IsPlayerAlive(client) || p_iBotType[client] != Bot_Buster )
+	if( !IsValidClient(client) || !IsPlayerAlive(client) || p_iBotType[client] != Bot_Buster )
 		return Plugin_Stop;
 	
 	float flExplosionPos[3];

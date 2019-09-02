@@ -945,7 +945,7 @@ void SetOwnAttributes(int client , bool bGiant)
 			}
 			case TFClass_DemoMan:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
+				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
 				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 3125.0);
 				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.5);
