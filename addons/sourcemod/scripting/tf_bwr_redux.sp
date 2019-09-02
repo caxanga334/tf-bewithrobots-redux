@@ -15,7 +15,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.4"
+#define PLUGIN_VERSION "0.0.5"
 
 // TODO
 /**
@@ -1732,16 +1732,11 @@ void MovePlayerToRED(int client)
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
 	LogMessage("Player \"%L\" joined RED team.", client);
+	ChangeClientTeam(client, view_as<int>(TFTeam_Red));
+	SetEntProp(client, Prop_Send, "m_iTeamNum", view_as<int>(TFTeam_Red));
 	
-	if( GetTeamClientCount(view_as<int>(TFTeam_Red)) >= 6 )
-	{
-		ChangeClientTeam(client, view_as<int>(TFTeam_Red));
-		SetEntProp(client, Prop_Send, "m_iTeamNum", view_as<int>(TFTeam_Red));
-	}
-	else
-		TF2_ChangeClientTeam(client, TFTeam_Red);
-	
-	ShowVGUIPanel(client, "class_red");
+	if( TF2_GetPlayerClass(client) == TFClass_Unknown )
+		ShowVGUIPanel(client, "class_red");
 }
 
 // moves players to spectator
