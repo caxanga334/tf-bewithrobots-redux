@@ -15,7 +15,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.5"
+#define PLUGIN_VERSION "0.0.6"
 
 // TODO
 /**
@@ -1078,6 +1078,7 @@ public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 {
 	OR_Update();
 	UpdateClassArray();
+	CreateTimer(2.0, Timer_RemoveFromSpec);
 }
 
 public Action E_MissionComplete(Event event, const char[] name, bool dontBroadcast)
@@ -1528,6 +1529,19 @@ public Action Timer_UpdateRobotClasses(Handle timer, any client)
 {
 	PickRandomRobot(client);
 	CreateTimer(0.5, Timer_Respawn, client);
+	
+	return Plugin_Stop;
+}
+
+public Action Timer_RemoveFromSpec(Handle timer, any client)
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if( IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Spectator )
+		{
+			MovePlayerToRED(i);
+		}
+	}
 	
 	return Plugin_Stop;
 }
