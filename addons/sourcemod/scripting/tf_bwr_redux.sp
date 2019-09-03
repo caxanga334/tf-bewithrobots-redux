@@ -84,7 +84,12 @@ ConVar c_flBusterDelay; // delay between human sentry buster spawns.
 ConVar c_iBusterMinKills; // minimum amount of kills a sentry needs to have before becoming a threat;
 ConVar c_svTag; // server tags
 
+// user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
+
+// offsets
+int g_iOffsetMissionBot;
+int g_iOffsetSupportLimited;
 
 enum SpawnType
 {
@@ -153,6 +158,12 @@ stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 
 public void OnPluginStart()
 {	
+	// game data
+	Handle hConf = LoadGameConfigFile("bwr-redux");
+	
+	if(LookupOffset(g_iOffsetMissionBot,         "CTFPlayer", "m_nCurrency"))		    g_iOffsetMissionBot         -= GameConfGetOffset(hConf, "m_bMissionBot");
+	if(LookupOffset(g_iOffsetSupportLimited,     "CTFPlayer", "m_nCurrency"))		    g_iOffsetSupportLimited     -= GameConfGetOffset(hConf, "m_bSupportLimited");
+
 	// convars
 	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
 	c_iMinRed = CreateConVar("sm_bwrr_minred", "5", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
@@ -1257,6 +1268,9 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
+		SetEntData(client, g_iOffsetMissionBot, 	1, _, true);	//Makes player death not decrement wave bot count
+		SetEntData(client, g_iOffsetSupportLimited, 0, _, true);	//Makes player death not decrement wave bot count
+	
 		//TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
 		g_bIsCarrier[client] = false;
 		p_bSpawned[client] = true;
@@ -1755,6 +1769,8 @@ void MovePlayerToSpec(int client)
 // moves player to BLU team.
 void MovePlayerToBLU(int client)
 {
+	SetEntData(client, g_iOffsetMissionBot, 	1, _, true);	//Makes player death not decrement wave bot count
+	SetEntData(client, g_iOffsetSupportLimited, 0, _, true);	//Makes player death not decrement wave bot count
 	StopRobotLoopSound(client);
 	ForcePlayerSuicide(client);
 	if( !IsFakeClient(client) )

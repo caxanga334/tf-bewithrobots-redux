@@ -1,0 +1,20 @@
+"Games"
+{
+	/* Team Fortress 2 */
+	"tf"
+	{
+		"Offsets"
+		{
+			"m_bMissionBot"
+			{
+				"windows"	"3"
+				"linux"		"3"
+			}
+			"m_bSupportLimited"
+			{
+				"windows"	"2"
+				"linux"		"2"
+			}
+		}
+	}
+}

@@ -1111,3 +1111,16 @@ void Robot_GibGiant(int client, float OriginVec[3])
 	CreateTimer(0.1, Timer_RemoveBody, client, TIMER_FLAG_NO_MAPCHANGE);
 	CreateTimer(8.0, Timer_RemoveGibs, Ent, TIMER_FLAG_NO_MAPCHANGE);
 }
+
+// code from bot control
+bool LookupOffset(int &iOffset, const char[] strClass, const char[] strProp)
+{
+	iOffset = FindSendPropInfo(strClass, strProp);
+	if(iOffset <= 0)
+	{
+		LogMessage("Could not locate offset for %s::%s!", strClass, strProp);
+		return false;
+	}
+
+	return true;
+}
