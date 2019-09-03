@@ -554,6 +554,9 @@ public Action Command_JoinBLU( int client, int nArgs )
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 		return Plugin_Handled;
 		
+	if( GameRules_GetRoundState() == RoundState_TeamWin )
+		return Plugin_Handled;
+		
 	if( array_avclass.Length < 1 )
 	{
 		CPrintToChat(client, "Wave Data isn't ready, rebuilding... Please try again."); // to-do: translate
@@ -893,7 +896,7 @@ public Action Command_BotClass( int client, int nArgs )
 	if( TF2_GetClientTeam(client) == TFTeam_Red )
 		return Plugin_Handled;
 		
-	if( !TF2Spawn_IsClientInSpawn2(client) )
+	if( !TF2Spawn_IsClientInSpawn2(client) && GameRules_GetRoundState() == RoundState_RoundRunning )
 	{
 		ReplyToCommand(client, "This command can only be used inside the spawn");
 		return Plugin_Handled;
@@ -996,10 +999,29 @@ public Action Listener_Suicide(int client, const char[] command, int argc)
 
 public Action Listener_Build(int client, const char[] command, int argc)
 {
-	if( TF2_GetClientTeam(client) == TFTeam_Blue && TF2Spawn_IsClientInSpawn2(client) )
+	if( TF2_GetClientTeam(client) != TFTeam_Blue )
+		return Plugin_Continue;
+		
+	if( IsFakeClient(client) )
+		return Plugin_Continue;
+
+	if( TF2Spawn_IsClientInSpawn2(client) )
 	{
 		return Plugin_Handled;
 	}
+	
+	char strArg1[8], strArg2[8];
+	GetCmdArg(1, strArg1, sizeof(strArg1));
+	GetCmdArg(2, strArg2, sizeof(strArg2));
+	
+	TFObjectType objType = view_as<TFObjectType>(StringToInt(strArg1));
+	TFObjectMode objMode = view_as<TFObjectMode>(StringToInt(strArg2));
+	
+	if( objType == TFObject_Teleporter && objMode == TFObjectMode_Entrance )
+		return Plugin_Handled;
+		
+	if( objType == TFObject_Teleporter && (p_iBotAttrib[client] & BotAttrib_CannotBuildTele ))
+		return Plugin_Handled;
 	
 	return Plugin_Continue;
 }
@@ -1043,6 +1065,13 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 {
 	CreateTimer(2.0, Timer_UpdateWaveData);
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if( IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue )
+		{
+			CreateTimer(3.0, Timer_UpdateRobotClasses, i);
+		}
+	}
 }
 
 public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
@@ -1053,7 +1082,13 @@ public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 
 public Action E_MissionComplete(Event event, const char[] name, bool dontBroadcast)
 {
-	OR_Update(); // placeholder
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if( IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue )
+		{
+			MovePlayerToSpec(i);
+		}
+	}
 }
 
 public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
@@ -1489,6 +1524,14 @@ public Action Timer_UpdateWaveData(Handle timer)
 	return Plugin_Stop;
 }
 
+public Action Timer_UpdateRobotClasses(Handle timer, any client)
+{
+	PickRandomRobot(client);
+	CreateTimer(0.5, Timer_Respawn, client);
+	
+	return Plugin_Stop;
+}
+
 public Action Timer_BuildObject(Handle timer, any index)
 {
 	char classname[32];
@@ -1749,6 +1792,8 @@ void MovePlayerToRED(int client)
 	LogMessage("Player \"%L\" joined RED team.", client);
 	ChangeClientTeam(client, view_as<int>(TFTeam_Red));
 	SetEntProp(client, Prop_Send, "m_iTeamNum", view_as<int>(TFTeam_Red));
+	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
+	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 	
 	if( TF2_GetPlayerClass(client) == TFClass_Unknown )
 		ShowVGUIPanel(client, "class_red");
@@ -1777,6 +1822,7 @@ void MovePlayerToBLU(int client)
 	{
 		SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
 		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
+		SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(true) );
 	}
 	
 	int iEntFlags = GetEntityFlags( client );
@@ -1784,6 +1830,8 @@ void MovePlayerToBLU(int client)
 	TF2_ChangeClientTeam(client, TFTeam_Blue);
 	SetEntityFlags( client, iEntFlags );
 	LogMessage("Player \"%L\" joined BLU team.", client);
+	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
+	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 	
 	ScalePlayerModel(client, 1.0);
 	PickRandomRobot(client);
