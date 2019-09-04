@@ -2581,6 +2581,14 @@ int FindRandomSpawnPoint( SpawnType iType )
 				{
 					array_spawns.Push( iEnt );
 				}
+				else if( StrEqual( strSpawnName, "spawnbot_flank" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
+				else if( StrEqual( strSpawnName, "spawnbot_side" ) )
+				{
+					array_spawns.Push( iEnt );
+				}
 				else if( StrEqual( strSpawnName, "spawnbot_single_flag" ) )
 				{
 					array_spawns.Push( iEnt );
