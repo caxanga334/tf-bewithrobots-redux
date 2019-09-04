@@ -1,5 +1,6 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+![GitHub Pre-Releases](https://img.shields.io/github/downloads-pre/caxanga334/tf-bewithrobots-redux/latest/total?label=Pre%20Release%20Downloads&style=flat-square)
 
 # Be With Robots: Redux
 Allows players to play as a robot in MvM
