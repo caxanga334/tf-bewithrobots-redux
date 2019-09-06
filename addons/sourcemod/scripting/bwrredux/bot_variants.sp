@@ -1057,7 +1057,7 @@ void GiveBusterInventory(int client)
 	int iWeapon = -1;
 	iWeapon = SpawnWeapon( client, "tf_weapon_stickbomb", 307, 1, 6, false );
 	TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 2325.0);
-	TF2Attrib_SetByName(iWeapon, "move speed bonus", 2.0);
+	TF2Attrib_SetByName(iWeapon, "move speed bonus", 1.34);
 	TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.5);
 	TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.5);
 	TF2Attrib_SetByName(iWeapon, "override footstep sound set", 7.0);

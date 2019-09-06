@@ -15,7 +15,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.6"
+#define PLUGIN_VERSION "0.0.7"
 
 // TODO
 /**
@@ -59,6 +59,7 @@ int p_iBotVariant[MAXPLAYERS + 1];
 int p_iBotAttrib[MAXPLAYERS + 1];
 TFClassType p_BotClass[MAXPLAYERS + 1];
 bool p_bSpawned[MAXPLAYERS + 1]; // store if a player has recently spawned.
+TFTeam p_iBotTeam[MAXPLAYERS + 1]; // player's team.
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
@@ -70,6 +71,7 @@ ArrayList array_spawns; // spawn points for human players
 // others
 bool g_bUpgradeStation[MAXPLAYERS + 1];
 float g_flNextBusterTime;
+Handle HT_HumanRobotWaveSpawn;
 
 // convars
 ConVar c_iMinRed;
@@ -175,7 +177,7 @@ public void OnPluginStart()
 	c_bSmallMap = CreateConVar("sm_bwrr_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_flBusterDelay = CreateConVar("sm_bwrr_sentry_buster_delay", "95.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
 	c_iBusterMinKills = CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
-	c_flBluRespawnTime = CreateConVar("sm_bwrr_blu_respawn_time", "0.0", "Respawn time for BLU players. 0 = Disabled", FCVAR_NONE, true, 0.0, true, 20.0);
+	c_flBluRespawnTime = CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Wave respawn time for BLU players.", FCVAR_NONE, true, 5.0, true, 30.0);
 	
 	c_svTag = FindConVar("sv_tags");
 	
@@ -320,6 +322,7 @@ public void OnMapStart()
 
 public void OnClientDisconnect(client)
 {
+	p_iBotTeam[client] = TFTeam_Unassigned;
 	ResetRobotData(client);
 	StopRobotLoopSound(client);
 }
@@ -551,7 +554,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 	if( !IsClientInGame(client) || IsFakeClient(client) )
 		return Plugin_Handled;
 		
-	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	if( TF2_GetClientTeam(client) == TFTeam_Blue || p_iBotTeam[client] == TFTeam_Blue )
 		return Plugin_Handled;
 		
 	if( GameRules_GetRoundState() == RoundState_TeamWin )
@@ -600,7 +603,10 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
-	MovePlayerToBLU(client);
+	//MovePlayerToBLU(client);
+	p_iBotTeam[client] = TFTeam_Blue;
+	MovePlayerToSpec(client);
+	CReplyToCommand(client, "{cyan}You have joined BLU queue. You will spawn when the {green}wave starts");
 	return Plugin_Handled;
 }
 
@@ -612,6 +618,7 @@ public Action Command_JoinRED( int client, int nArgs )
 	if( TF2_GetClientTeam(client) == TFTeam_Red )
 		return Plugin_Handled;
 	
+	p_iBotTeam[client] = TFTeam_Red;
 	MovePlayerToRED(client);
 
 	return Plugin_Handled;
@@ -664,6 +671,19 @@ public Action Command_Debug( int client, int nArgs )
 	else
 	{
 		ReplyToCommand(client, "Not Ready");
+	}
+	
+	for(int i = 0;i <= MaxClients;i++)
+	{
+		if( IsValidClient(i) && !IsFakeClient(i) )
+		{
+			switch( p_iBotTeam[i] )
+			{
+				case TFTeam_Red: ReplyToCommand(client, "%N Team: RED", i);
+				case TFTeam_Blue: ReplyToCommand(client, "%N Team: BLU", i);
+				case TFTeam_Spectator: ReplyToCommand(client, "%N Team: SPEC", i);
+			}
+		}
 	}
 	
 	return Plugin_Handled;
@@ -862,15 +882,19 @@ public Action Command_MoveTeam( int client, int nArgs )
 			}
 			else
 			{
-				MovePlayerToBLU(target_list[i]);
+				p_iBotTeam[target_list[i]] = TFTeam_Blue;
+				//MovePlayerToBLU(target_list[i]);
+				RemovePlayerFromBLU(target_list[i]);
 			}
 		}
 		else if( NewTargetTeam == TFTeam_Red )
 		{
+			p_iBotTeam[target_list[i]] = TFTeam_Red;
 			MovePlayerToRED(target_list[i]);
 		}
 		else
 		{
+			p_iBotTeam[target_list[i]] = TFTeam_Spectator;
 			MovePlayerToSpec(target_list[i]);
 		}
 		LogAction(client, target_list[i], "\"%L\" changed \"%L\"'s team to %s", client, target_list[i], strLogTeam);
@@ -953,8 +977,11 @@ public Action Command_ShowPlayers( int client, int nArgs )
 
 public Action Listener_JoinTeam(int client, const char[] command, int argc)
 {
-	if( !IsValidClient(client) || IsFakeClient(client) )
+	if( !IsValidClient(client) )
 		return Plugin_Handled;
+		
+	if( IsFakeClient(client) )
+		return Plugin_Continue;
 		
 	char strTeam[16];
 	GetCmdArg(1, strTeam, sizeof(strTeam));
@@ -970,6 +997,7 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 	}
 	else if( StrEqual( strTeam, "spectate", false ) || StrEqual( strTeam, "spectator", false ) )
 	{
+		p_iBotTeam[client] = TFTeam_Spectator;
 		MovePlayerToSpec(client);
 		return Plugin_Handled;
 	}
@@ -1060,6 +1088,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	UpdateClassArray();
 	CheckTeams();
 	g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
+	CreateWaveTimer();
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
@@ -1072,6 +1101,7 @@ public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 			CreateTimer(3.0, Timer_UpdateRobotClasses, i);
 		}
 	}
+	DeleteWaveTimer();
 }
 
 public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
@@ -1079,6 +1109,7 @@ public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 	OR_Update();
 	UpdateClassArray();
 	CreateTimer(2.0, Timer_RemoveFromSpec);
+	DeleteWaveTimer();
 }
 
 public Action E_MissionComplete(Event event, const char[] name, bool dontBroadcast)
@@ -1090,6 +1121,7 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 			MovePlayerToSpec(i);
 		}
 	}
+	DeleteWaveTimer();
 }
 
 public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
@@ -1186,10 +1218,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			Robot_GibGiant(client, clientPosVec);
 		}
 		
-		StopRobotLoopSound(client);
-		PickRandomRobot(client);
-		if( c_flBluRespawnTime.FloatValue >= 0.1000 )
-			CreateTimer( c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client );
+		CreateTimer(0.2, Timer_RemoveFromBLU, client);
 	}
 	
 	return Plugin_Continue;
@@ -1468,7 +1497,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 
 public Action Timer_SetRobotClass(Handle timer, any client)
 {
-	if( !IsClientInGame(client) )
+	if( !IsValidClient(client) )
 		return Plugin_Stop;
 		
 	TF2_SetPlayerClass(client, p_BotClass[client], _, true);
@@ -1478,7 +1507,7 @@ public Action Timer_SetRobotClass(Handle timer, any client)
 
 public Action Timer_Respawn(Handle timer, any client)
 {
-	if( !IsClientInGame(client) )
+	if( !IsValidClient(client) )
 		return Plugin_Stop;
 		
 	TF2_RespawnPlayer(client);
@@ -1492,6 +1521,31 @@ public Action Timer_RespawnBLUPlayer(Handle timer, any client)
 		return Plugin_Stop;
 		
 	TF2_RespawnPlayer(client);
+	
+	return Plugin_Stop;
+}
+
+public Action Timer_WaveSpawnBluHuman(Handle timer)
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if( IsValidClient(i) && !IsFakeClient(i) && !IsPlayerAlive(i) && GameRules_GetRoundState() == RoundState_RoundRunning )
+		{
+			if( p_iBotTeam[i] == TFTeam_Blue && TF2_GetClientTeam(i) == TFTeam_Spectator )
+			{
+				MovePlayerToBLU(i);
+				CreateTimer(0.2, Timer_RespawnBLUPlayer, i);
+			}
+		}
+	}
+}
+
+public Action Timer_RemoveFromBLU(Handle timer, any client)
+{
+	if( !IsValidClient(client) )
+		return Plugin_Stop;
+		
+	RemovePlayerFromBLU(client);
 	
 	return Plugin_Stop;
 }
@@ -1539,6 +1593,7 @@ public Action Timer_RemoveFromSpec(Handle timer, any client)
 	{
 		if( IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Spectator )
 		{
+			p_iBotTeam[i] = TFTeam_Red;
 			MovePlayerToRED(i);
 		}
 	}
@@ -1821,7 +1876,13 @@ void MovePlayerToSpec(int client)
 	ResetRobotData(client, true);
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
-	LogMessage("Player \"%L\" joined RED team.", client);
+	if( !IsFakeClient(client) )
+	{
+		SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
+		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
+		SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
+	}
+	LogMessage("Player \"%L\" joined SPECTATOR team.", client);
 	TF2_ChangeClientTeam(client, TFTeam_Spectator);
 }
 
@@ -1844,11 +1905,42 @@ void MovePlayerToBLU(int client)
 	TF2_ChangeClientTeam(client, TFTeam_Blue);
 	SetEntityFlags( client, iEntFlags );
 	LogMessage("Player \"%L\" joined BLU team.", client);
-	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
-	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 	
 	ScalePlayerModel(client, 1.0);
 	PickRandomRobot(client);
+}
+
+// special funcstions that moves players to spectator without data reset
+void RemovePlayerFromBLU(int client)
+{
+	StopRobotLoopSound(client);
+	ScalePlayerModel(client, 1.0);
+	SetVariantString( "" );
+	AcceptEntityInput( client, "SetCustomModel" );
+	if( !IsFakeClient(client) )
+	{
+		SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
+		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
+		SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
+	}
+	TF2_ChangeClientTeam(client, TFTeam_Spectator);
+}
+
+// returns the number of human players on BLU/ROBOT team
+int GetHumanRobotCount()
+{
+	int count = 0;
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientInGame(i) && !IsFakeClient(i))
+		{			
+			if(p_iBotTeam[i] == TFTeam_Blue)
+			{
+				count++;
+			}
+		}
+	}
+	return count;
 }
 
 bool IsSmallMap()
@@ -2769,9 +2861,10 @@ void CheckTeams()
 		int iOverLimit = iInBlu - iMaxBlu;
 		for( int i = 1; i <= iOverLimit; i++ )
 		{
-			iTarget = GetRandomPlayer(TFTeam_Blue, false);
+			iTarget = GetRandomBLUPlayer();
 			if( iTarget > 0 )
 			{
+				p_iBotTeam[iTarget] = TFTeam_Red;
 				MovePlayerToRED(iTarget);
 				CPrintToChat(iTarget, "%t", "Moved Blu Full");
 			}
@@ -2788,9 +2881,10 @@ void CheckTeams()
 			
 			for( int i = 1; i <= iCount; i++ )
 			{
-				iTarget = GetRandomPlayer(TFTeam_Blue, false);
+				iTarget = GetRandomBLUPlayer();
 				if( iTarget > 0 )
 				{
+					p_iBotTeam[iTarget] = TFTeam_Red;
 					MovePlayerToRED(iTarget);
 					CPrintToChat(iTarget, "%t", "Moved Blu Balance");
 				}
@@ -2814,4 +2908,51 @@ void ApplyRobotLoopSound(int client)
 {
 	StopRobotLoopSound(client);
 	CreateTimer(0.2, Timer_ApplyRobotSound, client, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+// wave spawn manager
+
+void CreateWaveTimer()
+{
+	if( HT_HumanRobotWaveSpawn != INVALID_HANDLE )	
+	{
+		KillTimer(HT_HumanRobotWaveSpawn);
+		HT_HumanRobotWaveSpawn = INVALID_HANDLE;
+	}
+	HT_HumanRobotWaveSpawn = CreateTimer(c_flBluRespawnTime.FloatValue, Timer_WaveSpawnBluHuman, _, TIMER_REPEAT);
+}
+
+void DeleteWaveTimer()
+{	
+	if( HT_HumanRobotWaveSpawn != INVALID_HANDLE )	
+	{
+		KillTimer(HT_HumanRobotWaveSpawn);
+		HT_HumanRobotWaveSpawn = INVALID_HANDLE;
+	}	
+}
+
+// end wave spawn manager
+
+// selects a random player from the BLU queue
+int GetRandomBLUPlayer()
+{
+	int players_available[MAXPLAYERS+1];
+	int counter = 0; // counts how many valid players we have
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if( IsValidClient(i) )
+		{
+			if( p_iBotTeam[i] == TFTeam_Blue )
+			{
+				players_available[counter] = i; // stores the client userid
+				counter++;				
+			}
+		}
+	}
+	
+	// now we should have an array filled with user ids and exactly how many players we have in game.
+	int iRandomMax = counter - 1;
+	int iRandom = GetRandomInt(0,iRandomMax); // get a random number between 0 and counted players
+	// now we get the user id from the array cell selected via iRandom
+	return players_available[iRandom];
 }

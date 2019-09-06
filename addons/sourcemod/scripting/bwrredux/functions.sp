@@ -1,22 +1,5 @@
 // functions that can be removed from the main file
 
-// returns the number of human players on BLU/ROBOT team
-int GetHumanRobotCount()
-{
-	int count = 0;
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if(IsClientInGame(i) && !IsFakeClient(i))
-		{			
-			if(TF2_GetClientTeam(i) == TFTeam_Blue)
-			{
-				count++;
-			}
-		}
-	}
-	return count;
-}
-
 // selects a random player from a team
 int GetRandomPlayer(TFTeam Team, bool bIncludeBots = false)
 {
