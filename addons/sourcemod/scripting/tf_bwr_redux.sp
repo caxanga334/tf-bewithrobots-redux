@@ -462,7 +462,7 @@ public void OnTagsChanged(ConVar convar, char[] oldValue, char[] newValue)
 
 public Action OnTouchUpgradeStation(int entity, int other)
 {
-	if(IsValidClient(other))
+	if(IsValidClient(other) && !IsFakeClient(other))
 	{
 		if( TF2_GetClientTeam(other) == TFTeam_Blue )
 		{
@@ -477,14 +477,14 @@ public Action OnTouchUpgradeStation(int entity, int other)
 }
 
 public Action OnTouchCaptureZone(int entity, int other)
-{
-	if( GameRules_GetRoundState() == RoundState_TeamWin )
-		return Plugin_Stop;
-		
+{		
 	if( IsValidClient(other) && IsFakeClient(other) )
-		return Plugin_Stop;
+		return Plugin_Continue;
 		
 	if( IsValidClient(other) && TF2_GetClientTeam(other) != TFTeam_Blue )
+		return Plugin_Continue;
+		
+	if( GameRules_GetRoundState() == RoundState_TeamWin )
 		return Plugin_Stop;
 
 	if(IsValidClient(other))
@@ -508,13 +508,13 @@ public Action OnTouchCaptureZone(int entity, int other)
 
 public Action OnEndTouchCaptureZone(int entity, int other)
 {
-	if( GameRules_GetRoundState() == RoundState_TeamWin )
-		return Plugin_Stop;
-		
 	if( IsValidClient(other) && IsFakeClient(other) )
-		return Plugin_Stop;
+		return Plugin_Continue;
 		
 	if( IsValidClient(other) && TF2_GetClientTeam(other) != TFTeam_Blue )
+		return Plugin_Continue;
+		
+	if( GameRules_GetRoundState() == RoundState_TeamWin )
 		return Plugin_Stop;
 		
 	if(IsValidClient(other))
@@ -1182,7 +1182,7 @@ public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadca
 		return Plugin_Handled;
 		
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if( GameRules_GetRoundState() == RoundState_BetweenRounds && TF2_GetClientTeam(client) == TFTeam_Blue )
+	if( GameRules_GetRoundState() == RoundState_BetweenRounds && TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
 		event.SetBool("silent_kill", true);
 	}
@@ -1317,10 +1317,6 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		if( iTeleTarget != -1 )
 		{
 			SpawnOnTeleporter(iTeleTarget,client);
-		}
-		else
-		{
-			return Plugin_Stop;
 		}
 		return Plugin_Stop;
 	}
@@ -1497,7 +1493,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 
 public Action Timer_SetRobotClass(Handle timer, any client)
 {
-	if( !IsValidClient(client) )
+	if( !IsValidClient(client) || IsFakeClient(client) )
 		return Plugin_Stop;
 		
 	TF2_SetPlayerClass(client, p_BotClass[client], _, true);
@@ -1507,7 +1503,7 @@ public Action Timer_SetRobotClass(Handle timer, any client)
 
 public Action Timer_Respawn(Handle timer, any client)
 {
-	if( !IsValidClient(client) )
+	if( !IsValidClient(client) || IsFakeClient(client) )
 		return Plugin_Stop;
 		
 	TF2_RespawnPlayer(client);
@@ -1517,7 +1513,7 @@ public Action Timer_Respawn(Handle timer, any client)
 
 public Action Timer_RespawnBLUPlayer(Handle timer, any client)
 {
-	if( !IsValidClient(client) || IsPlayerAlive(client) )
+	if( !IsValidClient(client) || IsPlayerAlive(client) || IsFakeClient(client) )
 		return Plugin_Stop;
 		
 	TF2_RespawnPlayer(client);
@@ -1542,7 +1538,7 @@ public Action Timer_WaveSpawnBluHuman(Handle timer)
 
 public Action Timer_RemoveFromBLU(Handle timer, any client)
 {
-	if( !IsValidClient(client) )
+	if( !IsValidClient(client) || IsFakeClient(client) )
 		return Plugin_Stop;
 		
 	RemovePlayerFromBLU(client);
@@ -1695,7 +1691,7 @@ public Action Timer_RemoveSpawnedBool(Handle timer, any client)
 
 public Action Timer_DeployBomb(Handle timer, any client)
 {
-	if( !IsValidClient(client) || !IsClientInGame(client) || !IsPlayerAlive(client) )
+	if( !IsValidClient(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || IsFakeClient(client) )
 	{
 		//CloseHandle(HT_BombDeployTimer);
 		HT_BombDeployTimer = INVALID_HANDLE;
@@ -1736,7 +1732,7 @@ public Action Timer_Announce(Handle timer)
 
 public Action Timer_SentryBuster_Explode(Handle timer, any client)
 {
-	if( !IsValidClient(client) || !IsPlayerAlive(client) || p_iBotType[client] != Bot_Buster )
+	if( !IsValidClient(client) || !IsPlayerAlive(client) || p_iBotType[client] != Bot_Buster || IsFakeClient(client) )
 		return Plugin_Stop;
 	
 	float flExplosionPos[3];
@@ -1785,6 +1781,8 @@ public Action Timer_DeleteParticle(Handle timer, any iEntRef)
 
 public Action Timer_RemoveBody(Handle timer, any client)
 {
+	if( IsFakeClient(client) )
+		return Plugin_Stop;
 
 	//Declare:
 	int BodyRagdoll;
@@ -1795,6 +1793,8 @@ public Action Timer_RemoveBody(Handle timer, any client)
 	//Remove:
 	if(IsValidEdict(BodyRagdoll)) 
 		RemoveEdict(BodyRagdoll);
+		
+	return Plugin_Stop;
 }
 
 public Action Timer_RemoveGibs(Handle timer, any entity)
@@ -2460,6 +2460,9 @@ void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 // sets the player scale based on robot type
 void SetRobotScale(int client, TFClassType TFClass)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	bool bSmallMap = IsSmallMap();
 	
 	if( bSmallMap )
@@ -2515,6 +2518,9 @@ void SetRobotScale(int client, TFClassType TFClass)
 // change player size and update hitbox
 void ScalePlayerModel(const int client, const float fScale)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	static const float vecTF2PlayerMin[3] = { -24.5, -24.5, 0.0 }, vecTF2PlayerMax[3] = { 24.5,  24.5, 83.0 };
 
 	float vecScaledPlayerMin[3];
@@ -2533,6 +2539,9 @@ void ScalePlayerModel(const int client, const float fScale)
 
 void ResetRobotData(int client, bool bStrip = false)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	p_iBotType[client] = Bot_Normal;
 	p_iBotVariant[client] = 0;
 	p_iBotAttrib[client] = 0;
@@ -2547,6 +2556,9 @@ void ResetRobotData(int client, bool bStrip = false)
 // sets robot model
 void SetRobotModel(int client, TFClassType TFClass)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	char strModel[PLATFORM_MAX_PATH];
 	
 	switch( TFClass )
@@ -2597,6 +2609,9 @@ void SetRobotModel(int client, TFClassType TFClass)
 // teleports robot players to random spawn points
 void TeleportToSpawnPoint(int client, TFClassType TFClass)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	int iSpawn;
 	float vecOrigin[3];
 	float vecAngles[3];
@@ -2896,6 +2911,9 @@ void CheckTeams()
 // applies giant robot loop sounds to clients
 void StopRobotLoopSound(int client)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	StopSound(client, SNDCHAN_STATIC, ROBOT_SND_GIANT_SCOUT);
 	StopSound(client, SNDCHAN_STATIC, ROBOT_SND_GIANT_SOLDIER);
 	StopSound(client, SNDCHAN_STATIC, ROBOT_SND_GIANT_PYRO);
@@ -2906,6 +2924,9 @@ void StopRobotLoopSound(int client)
 
 void ApplyRobotLoopSound(int client)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	StopRobotLoopSound(client);
 	CreateTimer(0.2, Timer_ApplyRobotSound, client, TIMER_FLAG_NO_MAPCHANGE);
 }
@@ -2940,7 +2961,7 @@ int GetRandomBLUPlayer()
 	int counter = 0; // counts how many valid players we have
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if( IsValidClient(i) )
+		if( IsValidClient(i) && !IsFakeClient(i) )
 		{
 			if( p_iBotTeam[i] == TFTeam_Blue )
 			{

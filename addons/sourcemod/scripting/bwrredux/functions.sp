@@ -444,6 +444,9 @@ int GetFirstAvailableWeapon(int client)
 
 void BlockBombPickup(int client)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	int iWeapon = GetFirstAvailableWeapon(client);
 	if( iWeapon != -1 )
 	{
@@ -1075,6 +1078,9 @@ int CreateParticle( float flOrigin[3], const char[] strParticle, float flDuratio
 
 void Robot_GibGiant(int client, float OriginVec[3])
 {
+	if( IsFakeClient(client) )
+		return;
+
 	int Ent;
 
 	//Initialize:

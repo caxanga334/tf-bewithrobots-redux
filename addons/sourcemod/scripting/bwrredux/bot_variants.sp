@@ -106,6 +106,9 @@ void StripWeapons( int client )
 // use TF2Items for giving weapons
 int SpawnWeapon(int client,char[] name,int index,int level,int qual,bool bWearable = false)
 {
+	if( IsFakeClient(client) )
+		return -1;
+
 	Handle hWeapon = TF2Items_CreateItem(OVERRIDE_ALL|FORCE_GENERATION|PRESERVE_ATTRIBUTES);
 	TF2Items_SetClassname(hWeapon, name);
 	TF2Items_SetItemIndex(hWeapon, index);
@@ -131,6 +134,9 @@ int SpawnWeapon(int client,char[] name,int index,int level,int qual,bool bWearab
 
 void GiveNormalInventory(int client ,int botvariant)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	int iWeapon;
 	
@@ -476,6 +482,9 @@ void GiveNormalInventory(int client ,int botvariant)
 // giant inventory
 void GiveGiantInventory(int client ,int botvariant)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	int iWeapon;
 	
@@ -907,6 +916,9 @@ char GetGiantVariantName(TFClassType TFClass, int botvariant)
 // add attributes to own variants
 void SetOwnAttributes(int client , bool bGiant)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	int iWeapon;
 	
@@ -1054,6 +1066,9 @@ void SetOwnAttributes(int client , bool bGiant)
 
 void GiveBusterInventory(int client)
 {
+	if( IsFakeClient(client) )
+		return;
+
 	int iWeapon = -1;
 	iWeapon = SpawnWeapon( client, "tf_weapon_stickbomb", 307, 1, 6, false );
 	TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 2325.0);
