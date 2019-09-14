@@ -641,39 +641,6 @@ public Action Command_Debug( int client, int nArgs )
 	
 	ReplyToCommand(client, "Class Array Size: %i", array_avclass.Length);
 	
-	TFClassType TFClass;
-	char strClass[16]
-	for( int i = 1; i <= 9; i++ )
-	{
-		TFClass = view_as<TFClassType>(i);
-		if( IsClassAvailable(TFClass) )
-		{
-			switch( TFClass )
-			{
-				case TFClass_Scout: strcopy(strClass, 16, "Scout");
-				case TFClass_Soldier: strcopy(strClass, 16, "Soldier");
-				case TFClass_Pyro: strcopy(strClass, 16, "Pyro");
-				case TFClass_DemoMan: strcopy(strClass, 16, "Demoman");
-				case TFClass_Heavy: strcopy(strClass, 16, "Heavy");
-				case TFClass_Engineer: strcopy(strClass, 16, "Engineer");
-				case TFClass_Medic: strcopy(strClass, 16, "Medic");
-				case TFClass_Sniper: strcopy(strClass, 16, "Sniper");
-				case TFClass_Spy: strcopy(strClass, 16, "Spy");
-			}
-			ReplyToCommand(client, "Found %s", strClass);
-		}
-	}
-	
-	bool bReady = view_as<bool>(GameRules_GetProp( "m_bPlayerReady", _, client));
-	if( bReady )
-	{
-		ReplyToCommand(client, "Ready");
-	}
-	else
-	{
-		ReplyToCommand(client, "Not Ready");
-	}
-	
 	for(int i = 0;i <= MaxClients;i++)
 	{
 		if( IsValidClient(i) && !IsFakeClient(i) )
@@ -682,7 +649,8 @@ public Action Command_Debug( int client, int nArgs )
 			{
 				case TFTeam_Red: ReplyToCommand(client, "%N Team: RED", i);
 				case TFTeam_Blue: ReplyToCommand(client, "%N Team: BLU", i);
-				case TFTeam_Spectator: ReplyToCommand(client, "%N Team: SPEC", i);
+				case TFTeam_Spectator: ReplyToCommand(client, "%N Team: SPECTATOR", i);
+				case TFTeam_Unassigned: ReplyToCommand(client, "%N Team: UNASSIGNED", i);
 			}
 		}
 	}
@@ -1408,6 +1376,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			{
 				case TFClass_Spy: // spies should always spawn on their hints
 				{
+					TF2_AddCondition(client, TFCond_Stealthed, 5.0);
 					TeleportSpyRobot(client);
 					EmitGSToRed("Announcer.MVM_Spy_Alert");
 				}
