@@ -1,10 +1,13 @@
 #include <sourcemod>
 #include <tf2>
 #include <tf2_stocks>
+#include <morecolors>
+#include <caxanga334>
+#define REQUIRE_PLUGIN
 #include <tf2attributes>
 #include <tf2_isPlayerInSpawn>
 #include <tf2wearables>
-#include <morecolors>
+#include <navmesh>
 #define REQUIRE_EXTENSIONS
 #define AUTOLOAD_EXTENSIONS
 #include <sdkhooks>
@@ -264,8 +267,6 @@ public void OnMapStart()
 	
 	if(LibraryExists("SteamWorks"))
 		SteamWorks_SetGameDescription("Be With Robots Redux");
-	
-	CheckMapForEntities();
 	
 	int i = -1;
 	
@@ -1407,26 +1408,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			{
 				case TFClass_Spy: // spies should always spawn on their hints
 				{
-					iTeleTarget = FindNearestSpyHint();
-					if( iTeleTarget != -1 ) // found spy hint
-					{
-						TF2_AddCondition(client, TFCond_StealthedUserBuffFade, 2.0);
-						TeleportPlayerToEntity(iTeleTarget, client)
-						
-					}
-					else
-					{
-						iTeleTarget = FindBestBluTeleporter();
-						if( iTeleTarget != -1 ) // found teleporter
-						{
-							TF2_AddCondition(client, TFCond_StealthedUserBuffFade, 5.0);
-							SpawnOnTeleporter(iTeleTarget,client);
-						}
-						else
-						{
-							TeleportToSpawnPoint(client, TFClass);
-						}
-					}
+					TeleportSpyRobot(client);
 					EmitGSToRed("Announcer.MVM_Spy_Alert");
 				}
 				case TFClass_Engineer:

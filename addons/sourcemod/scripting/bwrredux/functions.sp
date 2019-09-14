@@ -33,14 +33,6 @@ int GetRandomPlayer(TFTeam Team, bool bIncludeBots = false)
 	return players_available[iRandom];
 }
 
-bool IsValidClient( int client )
-{
-	if( client <= 0 ) return false;
-	if( client > MaxClients ) return false;
-	if( !IsClientConnected(client) ) return false;
-	return IsClientInGame(client);
-}
-
 // IsMvM code by FlaminSarge
 bool IsMvM(bool forceRecalc = false)
 {
@@ -60,42 +52,22 @@ bool IsMvM(bool forceRecalc = false)
 	return ismvm;
 }
 
-// searches for a info_target to teleport spies to.
-int FindNearestSpyHint()
+void TeleportSpyRobot(int client)
 {
-	float pVec[3];
-	float nVec[3];
-	int found = -1;
-	float MAX_DIST = 10000.0;
-	float found_dist = MAX_DIST;
-	float aux_dist;
-	int i5 = -1;
-	while((i5 = FindEntityByClassname(i5, "info_target")) != -1)
-	{
-		if(IsValidEntity(i5))
-		{
-			char strName[64];
-			GetEntPropString(i5, Prop_Data, "m_iName", strName, sizeof(strName));
-			if(strcmp(strName, "bwr_spy_spawnpoint") == 0)
-			{
-				GetEntPropVector(i5, Prop_Send, "m_vecOrigin", nVec);
-				for (int i = 1; i <= MaxClients; i++)
-				{
-					if (IsClientInGame(i) && IsPlayerAlive(i) && TF2_GetClientTeam(i) == TFTeam_Red )
-					{
-						GetClientEyePosition(i, pVec);
-						aux_dist = GetVectorDistance(pVec, nVec, false);
-						if(aux_dist < found_dist && aux_dist > 2000) // to not spawn in the line of fire
-						{
-							found = i5;
-							found_dist = aux_dist;
-						}
-					}
-				}
-			}
-		}
-	}
-	return found;
+	int target = GetRandomClientFromTeam( view_as<int>(TFTeam_Red), false);
+	float TargetPos[3], CenterPos[3];
+	char targetname[MAX_NAME_LENGTH];
+	
+	GetClientName(target, targetname, sizeof(targetname));
+	GetClientAbsOrigin(target, TargetPos);
+	TargetPos[0] += GetRandomFloat(-500.0, 500.0);
+	TargetPos[1] += GetRandomFloat(-500.0, 500.0);
+	
+	CNavArea NavArea = NavMesh_GetNearestArea(TargetPos, false, 1500.0, false, true);
+	NavArea.GetCenter(CenterPos);
+	CenterPos[2] += 25.0;
+	TeleportEntity(client, CenterPos, NULL_VECTOR, NULL_VECTOR);
+	CPrintToChat(client, "{blue}You spawned near {green}%s", targetname);
 }
 
 // searches for an engineer nest close to the bomb
@@ -152,19 +124,6 @@ int FindEngineerNestNearBomb()
 }
 
 // teleports a client to the entity origin.
-void TeleportPlayerToEntity(int iEntity, int client, float OffsetVec[3] = {0.0,0.0,0.0})
-{
-	float EntVec[3];
-	float FinalVec[3];
-	if( IsValidEntity(iEntity) )
-	{
-		GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", EntVec);
-		AddVectors(EntVec, OffsetVec, FinalVec);
-		TeleportEntity(client, FinalVec, NULL_VECTOR, NULL_VECTOR);
-	}
-}
-
-// teleports a client to the entity origin.
 // also adds engineer spawn particle
 void TeleportEngineerToEntity(int iEntity, int client, float OffsetVec[3] = {0.0,0.0,0.0})
 {
@@ -178,48 +137,6 @@ void TeleportEngineerToEntity(int iEntity, int client, float OffsetVec[3] = {0.0
 		CreateTEParticle("teleported_blue",FinalVec, _, _,3.0,iEntity,1,0);
 		CreateTEParticle("teleported_mvm_bot",FinalVec, _, _,3.0,iEntity,1,0);
 	}
-}
-
-// checks for spy & engineers teleport entities.
-void CheckMapForEntities()
-{
-	int i = -1;
-	bool bSpy;
-	bool bEngineer;
-	char map[PLATFORM_MAX_PATH];
-	char display[PLATFORM_MAX_PATH];
-	
-	GetCurrentMap(map, sizeof(map));
-	GetMapDisplayName(map, display, sizeof(display));
-	
-	while((i = FindEntityByClassname(i, "info_target")) != -1)
-	{
-		if(IsValidEntity(i))
-		{
-			char strName[64];
-			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
-			if(strcmp(strName, "bwr_spy_spawnpoint") == 0)
-			{
-				bSpy = true;
-				break;
-			}
-		}
-	}
-	
-	i = -1;
-	while((i = FindEntityByClassname(i, "bot_hint_engineer_nest")) != -1)
-	{
-		if(IsValidEntity(i))
-		{
-			bEngineer = true;
-		}
-	}
-	
-	if( !bSpy )
-		LogError("Spy teleport is not supported by the map: %s", display);
-		
-	if( !bEngineer )
-		LogError("Engineer teleport is not supported by the map: %s", display);
 }
 
 // searches for a teleporter exit 
