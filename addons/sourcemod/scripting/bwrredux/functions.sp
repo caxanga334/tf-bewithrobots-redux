@@ -169,8 +169,8 @@ int FindBestBluTeleporter()
 	{
 		if( IsValidEntity(i) )
 		{
-			if( GetEntProp( i, Prop_Send, "m_bHasSapper" ) == 0 && GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) && GetEntPropFloat(i, Prop_Send, "m_flPercentageConstructed") >= 0.99 )
-			{		
+			if( GetEntProp( i, Prop_Send, "m_bHasSapper" ) == 0 && GetEntProp( i, Prop_Send, "m_iTeamNum" ) != view_as<int>(TFTeam_Red) && GetEntPropFloat(i, Prop_Send, "m_flPercentageConstructed") >= 0.99 )
+			{ // teleporters from spectator are also valid since we started moving dead blu players to spec
 				if( iBombOwner == -1 || iBombOwner > MaxClients)
 				{
 					GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
