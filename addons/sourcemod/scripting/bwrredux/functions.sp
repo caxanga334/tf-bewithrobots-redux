@@ -60,10 +60,11 @@ void TeleportSpyRobot(int client)
 	
 	GetClientName(target, targetname, sizeof(targetname));
 	GetClientAbsOrigin(target, TargetPos);
-	TargetPos[0] += GetRandomFloat(-500.0, 500.0);
-	TargetPos[1] += GetRandomFloat(-500.0, 500.0);
+	TargetPos[0] += GetRandomFloat(-1000.0, 1000.0);
+	TargetPos[1] += GetRandomFloat(-1000.0, 1000.0);
+	TargetPos[2] += GetRandomFloat(-300.0, 300.0);
 	
-	CNavArea NavArea = NavMesh_GetNearestArea(TargetPos, false, 1500.0, false, true);
+	CNavArea NavArea = NavMesh_GetNearestArea(TargetPos, false, 2000.0, false, true);
 	NavArea.GetCenter(CenterPos);
 	CenterPos[2] += 25.0;
 	TeleportEntity(client, CenterPos, NULL_VECTOR, NULL_VECTOR);
