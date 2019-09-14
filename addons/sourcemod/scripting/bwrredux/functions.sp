@@ -55,6 +55,21 @@ bool IsMvM(bool forceRecalc = false)
 void TeleportSpyRobot(int client)
 {
 	int target = GetRandomClientFromTeam( view_as<int>(TFTeam_Red), false);
+	int oldtarget = target;
+	
+	if( TF2Spawn_IsClientInSpawn2(target) )
+	{
+		int i = 0;
+		while( i < 20)
+		{
+			target = GetRandomClientFromTeam( view_as<int>(TFTeam_Red), false);
+			if( target != oldtarget )
+				break;
+				
+			i++;
+		}
+	}
+	
 	float TargetPos[3], CenterPos[3];
 	char targetname[MAX_NAME_LENGTH];
 	
