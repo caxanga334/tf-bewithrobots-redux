@@ -244,7 +244,7 @@ void SpawnOnTeleporter(int teleporter,int client)
 		
 		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.1); // 0.1 sec to compensate for a small delay
 		TeleportEntity(client, OriginVec, NULL_VECTOR, NULL_VECTOR);
-		EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", teleporter);
+		EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", teleporter, SND_NOFLAGS, teleporter, OriginVec);
 	}
 }
 
@@ -895,7 +895,9 @@ void SentryBuster_Explode( client )
 		return;
 	
 	CreateTimer( 1.98, Timer_SentryBuster_Explode, client, TIMER_FLAG_NO_MAPCHANGE );
-	EmitGameSoundToAll("MVM.SentryBusterSpin");
+	float BusterPosVec[3];
+	GetClientAbsOrigin(client, BusterPosVec);
+	EmitGameSoundToAll("MVM.SentryBusterSpin", client, SND_NOFLAGS, client, BusterPosVec);
 	
 	SetEntProp( client, Prop_Data, "m_takedamage", 0, 1 );
 }

@@ -492,14 +492,16 @@ public Action OnTouchCaptureZone(int entity, int other)
 	{
 		if( g_bIsCarrier[other] )
 		{
+			float CarrierPos[3];
+			GetClientAbsOrigin(other, CarrierPos);
 			TF2_AddCondition(other, TFCond_FreezeInput, 2.3);
 			if( HT_BombDeployTimer == INVALID_HANDLE )
 			{
 				HT_BombDeployTimer = CreateTimer(2.1, Timer_DeployBomb, other);
 				if( p_iBotType[other] == Bot_Giant || p_iBotType[other] == Bot_Boss )
-					EmitGameSoundToAll("MVM.DeployBombGiant", other);
+					EmitGameSoundToAll("MVM.DeployBombGiant", other, SND_NOFLAGS, other, CarrierPos);
 				else
-					EmitGameSoundToAll("MVM.DeployBombSmall", other);
+					EmitGameSoundToAll("MVM.DeployBombSmall", other, SND_NOFLAGS, other, CarrierPos);
 			}
 		}
 	}
@@ -1135,7 +1137,10 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	CreateTimer(0.1, Timer_OnPlayerSpawn, client);
+	if( IsFakeClient(client) )
+		CreateTimer(1.0, Timer_OnFakePlayerSpawn, client);
+	else
+		CreateTimer(0.1, Timer_OnPlayerSpawn, client);
 	
 	if( array_avclass.Length < 1 )
 	{
@@ -1181,13 +1186,15 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss )
 		{
-			EmitGameSoundToAll("MVM.GiantHeavyExplodes", client);
+			float SndPos[3];
+			GetClientAbsOrigin(client, SndPos);
+			EmitGameSoundToAll("MVM.GiantHeavyExplodes", client, SND_NOFLAGS, client, SndPos);
 			float clientPosVec[3];
 			GetClientAbsOrigin(client, clientPosVec);
 			Robot_GibGiant(client, clientPosVec);
 		}
 		
-		CreateTimer(0.2, Timer_RemoveFromBLU, client);
+		CreateTimer(1.0, Timer_RemoveFromBLU, client);
 	}
 	
 	return Plugin_Continue;
@@ -1277,24 +1284,13 @@ public Action MsgHook_MVMRespec(UserMsg msg_id, BfRead msg, const int[] players,
 *****************************************************/
 
 public Action Timer_OnPlayerSpawn(Handle timer, any client)
-{
-	int iTeleTarget = -1;
-	
-	if( IsClientInGame(client) && IsFakeClient(client) )  // teleport bots to teleporters
-	{
-		iTeleTarget = FindBestBluTeleporter();
-		if( iTeleTarget != -1 )
-		{
-			SpawnOnTeleporter(iTeleTarget,client);
-		}
-		return Plugin_Stop;
-	}
-	
+{	
 	if( !IsValidClient(client) )
 		return Plugin_Stop;
 		
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	char strBotName[128];
+	int iTeleTarget = -1;
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
@@ -1437,6 +1433,23 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				
 			TF2_RegeneratePlayer(client);
 		}
+	}
+	
+	return Plugin_Stop;
+}
+
+public Action Timer_OnFakePlayerSpawn(Handle timer, any client)
+{
+	int iTeleTarget = -1;
+	
+	if( IsClientInGame(client) )  // teleport bots to teleporters
+	{
+		iTeleTarget = FindBestBluTeleporter();
+		if( iTeleTarget != -1 )
+		{
+			SpawnOnTeleporter(iTeleTarget,client);
+		}
+		return Plugin_Stop;
 	}
 	
 	return Plugin_Stop;
@@ -1713,7 +1726,7 @@ public Action Timer_SentryBuster_Explode(Handle timer, any client)
 	CreateParticle( flExplosionPos, "explosionTrail_seeds_mvm", 5.5 );	//fluidSmokeExpl_ring_mvm  explosionTrail_seeds_mvm
 	
 	ForcePlayerSuicide( client );
-	EmitGameSoundToAll("MVM.SentryBusterExplode", client);
+	EmitGameSoundToAll("MVM.SentryBusterExplode", client, SND_NOFLAGS, client, flExplosionPos);
 	
 	return Plugin_Stop;
 }
