@@ -1629,7 +1629,7 @@ public Action Timer_OnTeleporterFinished(Handle timer, any index)
 	if( !IsValidEntity(index) )
 		return Plugin_Stop;
 		
-	if( !HasEntProp(index, Prop_Send, "m_flPercentageConstructed");
+	if( !HasEntProp(index, Prop_Send, "m_flPercentageConstructed") )
 		return Plugin_Stop;
 		
 	float flProgress = GetEntPropFloat(index, Prop_Send, "m_flPercentageConstructed");
