@@ -1615,7 +1615,7 @@ public Action Timer_BuildObject(Handle timer, any index)
 					SetEntProp(index, Prop_Data, "m_iMaxHealth", 300);
 					SetVariantInt(300);
 					AcceptEntityInput(index, "SetHealth");
-					CreateTimer(0.2, Timer_OnTeleporterFinished, index, TIMER_REPEAT);
+					CreateTimer(0.2, Timer_OnTeleporterFinished, index, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 				}
 			}
 		}
@@ -1627,6 +1627,9 @@ public Action Timer_BuildObject(Handle timer, any index)
 public Action Timer_OnTeleporterFinished(Handle timer, any index)
 {
 	if( !IsValidEntity(index) )
+		return Plugin_Stop;
+		
+	if( !HasEntProp(index, Prop_Send, "m_flPercentageConstructed");
 		return Plugin_Stop;
 		
 	float flProgress = GetEntPropFloat(index, Prop_Send, "m_flPercentageConstructed");
