@@ -1140,7 +1140,7 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 	if( IsFakeClient(client) )
 		CreateTimer(1.0, Timer_OnFakePlayerSpawn, client);
 	else
-		CreateTimer(0.1, Timer_OnPlayerSpawn, client);
+		CreateTimer(0.3, Timer_OnPlayerSpawn, client);
 	
 	if( array_avclass.Length < 1 )
 	{
@@ -1494,7 +1494,7 @@ public Action Timer_WaveSpawnBluHuman(Handle timer)
 			if( p_iBotTeam[i] == TFTeam_Blue && TF2_GetClientTeam(i) == TFTeam_Spectator )
 			{
 				MovePlayerToBLU(i);
-				CreateTimer(0.2, Timer_RespawnBLUPlayer, i);
+				CreateTimer(1.0, Timer_RespawnBLUPlayer, i);
 			}
 		}
 	}
