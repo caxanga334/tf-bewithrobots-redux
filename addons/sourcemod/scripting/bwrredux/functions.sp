@@ -1032,7 +1032,7 @@ void Robot_GibGiant(int client, float OriginVec[3])
 	DispatchSpawn(Ent);
 
 	//Remove Body:
-	CreateTimer(0.1, Timer_RemoveBody, client, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(0.05, Timer_RemoveBody, client, TIMER_FLAG_NO_MAPCHANGE);
 	CreateTimer(8.0, Timer_RemoveGibs, Ent, TIMER_FLAG_NO_MAPCHANGE);
 }
 

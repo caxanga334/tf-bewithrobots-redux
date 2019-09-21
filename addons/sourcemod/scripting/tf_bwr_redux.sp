@@ -1194,7 +1194,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			Robot_GibGiant(client, clientPosVec);
 		}
 		
-		CreateTimer(1.0, Timer_RemoveFromBLU, client);
+		CreateTimer(0.15, Timer_RemoveFromBLU, client);
 	}
 	
 	return Plugin_Continue;
