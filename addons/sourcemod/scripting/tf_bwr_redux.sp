@@ -2582,9 +2582,6 @@ void ResetRobotData(int client, bool bStrip = false)
 	rp.Carrier = false;
 	g_bUpgradeStation[client] = false;
 	rp.Spawned = false;
-	rp.MiniBoss(false);
-	rp.BotSkill(BotSkill_Easy);
-	rp.IsABot(false);
 	if( bStrip )
 		StripWeapons(client);
 }
