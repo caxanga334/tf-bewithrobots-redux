@@ -18,16 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.7"
-
-// TODO
-/**
-- add particle for when engineers spawn on map hint
-- set building levels for human robot engineers
-- add code for humans to deploy the bomb
-- add sentry buster
-- find a way to create an explosion
-**/
+#define PLUGIN_VERSION "0.0.8"
 
 // maximum class variants that exists
 #define MAX_SCOUT 6
@@ -136,6 +127,42 @@ enum
 	BotAttrib_CannotCarryBomb = 64,
 	BotAttrib_CannotBuildTele = 128, // disallow engineers to build teleporters
 };
+
+// Methodmaps
+
+methodmap RoboPlayer
+{
+	public RoboPlayer(int index) { return view_as<RoboPlayer>(index); }
+	property int index 
+	{ 
+		public get()	{ return view_as<int>(this); }
+	}
+	property int Type
+	{
+		public get()	{ return p_iBotType[this.index]; }
+		public set( int value ) { p_iBotType[this.index] = value; }
+	}
+	property int Variant
+	{
+		public get()	{ return p_iBotVariant[this.index]; }
+		public set( int value ) { p_iBotVariant[this.index] = value; }
+	}
+	property int Attributes
+	{
+		public get()	{ return p_iBotAttrib[this.index]; }
+		public set( int value ) { p_iBotAttrib[this.index] = value; }
+	}
+	property TFClassType Class
+	{
+		public get()	{ return p_BotClass[this.index]; }
+		public set( TFClassType class ) { p_BotClass[this.index] = class; }
+	}
+	property bool Carrier
+	{
+		public get()	{ return g_bIsCarrier[this.index]; }
+		public set( bool value ) { g_bIsCarrier[this.index] = value; }
+	}
+}
  
 public Plugin myinfo =
 {
