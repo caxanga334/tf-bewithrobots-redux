@@ -14,6 +14,7 @@ Plugin made to replace Be With Robots 2
 * [TF2 Is Player In Spawn?](https://forums.alliedmods.net/showthread.php?p=2196313)
 * [TF2Wearables](https://github.com/nosoop/sourcemod-tf2wearables)
 * [Stripper](http://www.bailopan.net/stripper/snapshots/1.2/) (Optional,Recommended)
+* [NavMesh](https://github.com/caxanga334/sm-plugins/blob/master/source/navmesh.sp)
 * [MvM Visible Max Players](https://forums.alliedmods.net/showpost.php?p=1819270) (Optional,Recommended)
 
 # Contact
