@@ -162,6 +162,28 @@ methodmap RoboPlayer
 		public get()	{ return g_bIsCarrier[this.index]; }
 		public set( bool value ) { g_bIsCarrier[this.index] = value; }
 	}
+	property bool Spawned
+	{
+		public get()	{ return p_bSpawned[this.index]; }
+		public set( bool value ) { p_bSpawned[this.index] = value; }
+	}
+	property TFTeam Team
+	{
+		public get()	{ return p_iBotTeam[this.index]; }
+		public set( TFTeam value ) { p_iBotTeam[this.index] = value; }
+	}
+	public void MiniBoss(bool value)
+	{
+		SetEntProp( this.index, Prop_Send, "m_bIsMiniBoss", view_as<int>(value) );
+	}
+	public void BotSkill(int value)
+	{
+		SetEntProp( this.index, Prop_Send, "m_nBotSkill", value );
+	}
+	public void IsABot(bool value)
+	{
+		SetEntProp( this.index, Prop_Send, "m_bIsABot", view_as<int>(value) );
+	}
 }
  
 public Plugin myinfo =
@@ -363,6 +385,7 @@ public void OnGameFrame()
 		{		
 			if(TF2_GetClientTeam(i) == TFTeam_Blue)
 			{
+				RoboPlayer rp = RoboPlayer(i);
 				if( GameRules_GetRoundState() == RoundState_BetweenRounds )
 				{
 					TF2_AddCondition(i, TFCond_FreezeInput, 0.255);
@@ -373,7 +396,7 @@ public void OnGameFrame()
 					TF2_AddCondition(i, TFCond_UberchargedHidden, 0.255);
 				}
 				
-				if( p_iBotAttrib[i] & BotAttrib_InfiniteCloak )
+				if( rp.Attributes & BotAttrib_InfiniteCloak )
 				{
 					SetEntPropFloat( i, Prop_Send, "m_flCloakMeter", 100.0 );
 				}
@@ -460,7 +483,8 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 		
-		if( p_iBotType[client] == Bot_Buster )
+		RoboPlayer rp = RoboPlayer(client);
+		if( rp.Type == Bot_Buster )
 		{
 			if( buttons & IN_ATTACK )
 			{
@@ -517,7 +541,8 @@ public Action OnTouchCaptureZone(int entity, int other)
 
 	if(IsValidClient(other))
 	{
-		if( g_bIsCarrier[other] )
+		RoboPlayer rp = RoboPlayer(other);
+		if( rp.Carrier )
 		{
 			float CarrierPos[3];
 			GetClientAbsOrigin(other, CarrierPos);
@@ -525,7 +550,7 @@ public Action OnTouchCaptureZone(int entity, int other)
 			if( HT_BombDeployTimer == INVALID_HANDLE )
 			{
 				HT_BombDeployTimer = CreateTimer(2.1, Timer_DeployBomb, other);
-				if( p_iBotType[other] == Bot_Giant || p_iBotType[other] == Bot_Boss )
+				if( rp.Type == Bot_Giant || rp.Type == Bot_Boss )
 					EmitGameSoundToAll("MVM.DeployBombGiant", other, SND_NOFLAGS, other, CarrierPos);
 				else
 					EmitGameSoundToAll("MVM.DeployBombSmall", other, SND_NOFLAGS, other, CarrierPos);
@@ -549,7 +574,8 @@ public Action OnEndTouchCaptureZone(int entity, int other)
 		
 	if(IsValidClient(other))
 	{
-		if( g_bIsCarrier[other] )
+		RoboPlayer rp = RoboPlayer(other);
+		if( rp.Carrier )
 		{
 			if( HT_BombDeployTimer != INVALID_HANDLE )
 			{
@@ -783,18 +809,19 @@ public Action Command_ForceBot( int client, int nArgs )
 	
 	for(int i = 0; i < target_count; i++)
 	{
+		RoboPlayer rp = RoboPlayer(i);
 		if( TF2_GetClientTeam(target_list[i]) == TFTeam_Blue )
 		{
-			p_iBotVariant[target_list[i]] = iArg4;
-			p_BotClass[target_list[i]] = TargetClass;
+			rp.Variant = iArg4;
+			rp.Class = TargetClass;
 			if(bForceGiants)
 			{
-				p_iBotType[target_list[i]] = Bot_Giant;
+				rp.Type = Bot_Giant;
 				SetGiantVariantExtras(target_list[i],TargetClass, iArg4);
 			}
 			else
 			{
-				p_iBotType[target_list[i]] = Bot_Normal;
+				rp.Type = Bot_Normal;
 				SetVariantExtras(target_list[i],TargetClass, iArg4);
 			}
 			TF2_SetPlayerClass(target_list[i], TargetClass, _, true);
@@ -869,6 +896,7 @@ public Action Command_MoveTeam( int client, int nArgs )
 	
 	for(int i = 0; i < target_count; i++)
 	{
+		RoboPlayer rp = RoboPlayer(i);
 		if( NewTargetTeam == TFTeam_Blue )
 		{
 			if( array_avclass.Length < 1 )
@@ -880,19 +908,19 @@ public Action Command_MoveTeam( int client, int nArgs )
 			}
 			else
 			{
-				p_iBotTeam[target_list[i]] = TFTeam_Blue;
+				rp.Team = TFTeam_Blue;
 				//MovePlayerToBLU(target_list[i]);
 				RemovePlayerFromBLU(target_list[i]);
 			}
 		}
 		else if( NewTargetTeam == TFTeam_Red )
 		{
-			p_iBotTeam[target_list[i]] = TFTeam_Red;
+			rp.Team = TFTeam_Red;
 			MovePlayerToRED(target_list[i]);
 		}
 		else
 		{
-			p_iBotTeam[target_list[i]] = TFTeam_Spectator;
+			rp.Team = TFTeam_Spectator;
 			MovePlayerToSpec(target_list[i]);
 		}
 		LogAction(client, target_list[i], "\"%L\" changed \"%L\"'s team to %s", client, target_list[i], strLogTeam);
@@ -1129,9 +1157,10 @@ public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
+		RoboPlayer rp = RoboPlayer(client);
 		if( IsClassAvailable(TFClass) )
 		{
-			p_BotClass[client] = TFClass;
+			rp.Class = TFClass;
 			PickRandomVariant(client,TFClass,false);
 			SetVariantExtras(client,TFClass, p_iBotVariant[client]);
 		}
@@ -1150,11 +1179,12 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
-		if( p_iBotAttrib[client] & BotAttrib_AlwaysCrits )
+		RoboPlayer rp = RoboPlayer(client);
+		if( rp.Attributes & BotAttrib_AlwaysCrits )
 		{
 			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 		}
-		if( p_iBotAttrib[client] & BotAttrib_AlwaysMiniCrits )
+		if( rp.Attributes & BotAttrib_AlwaysMiniCrits )
 		{
 			TF2_AddCondition(client, TFCond_Buffed, TFCondDuration_Infinite);
 		}		
@@ -1201,6 +1231,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
+		RoboPlayer rp = RoboPlayer(client);
 		if( TF2_GetPlayerClass(client) == TFClass_Engineer )
 		{
 			AnnounceEngineerDeath(client);
@@ -1210,8 +1241,8 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			if( GetClassCount(TFClass_Spy, TFTeam_Blue, true, false) <= 1 )
 				EmitGSToRed("Announcer.mvm_spybot_death_all");
 		}
-		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
-		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss )
+		rp.MiniBoss(false);
+		if( rp.Type == Bot_Giant || rp.Type == Bot_Boss )
 		{
 			float SndPos[3];
 			GetClientAbsOrigin(client, SndPos);
@@ -1267,9 +1298,10 @@ public Action E_FlagPickup(Event event, const char[] name, bool dontBroadcast)
 	if( event.GetInt("eventtype") == TF_FLAGEVENT_PICKEDUP )
 	{
 		int client = event.GetInt("player");
+		RoboPlayer rp = RoboPlayer(client);
 		if( !IsFakeClient(client) )
 		{
-			g_bIsCarrier[client] = true;
+			rp.Carrier = true;
 		}
 	}
 }
@@ -1279,9 +1311,10 @@ public Action E_FlagDrop(Event event, const char[] name, bool dontBroadcast)
 	if( event.GetInt("eventtype") == TF_FLAGEVENT_DROPPED )
 	{
 		int client = event.GetInt("player");
+		RoboPlayer rp = RoboPlayer(client);
 		if( !IsFakeClient(client) )
 		{
-			g_bIsCarrier[client] = false;
+			rp.Carrier = false;
 		}
 	}
 }
@@ -1907,16 +1940,17 @@ void MovePlayerToBLU(int client)
 // special funcstions that moves players to spectator without data reset
 void RemovePlayerFromBLU(int client)
 {
+	if(IsFakeClient(client))
+		return;
+
+	RoboPlayer rp = RoboPlayer(client);
 	StopRobotLoopSound(client);
 	ScalePlayerModel(client, 1.0);
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
-	if( !IsFakeClient(client) )
-	{
-		SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
-		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
-		SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
-	}
+	rp.BotSkill(BotSkill_Easy);
+	rp.MiniBoss(false);
+	rp.IsABot(false);
 	TF2_ChangeClientTeam(client, TFTeam_Spectator);
 }
 
@@ -2014,16 +2048,17 @@ void PickRandomRobot(int client)
 	int iRandom = GetRandomInt(0, iSize);
 	int iClass = array_avclass.Get(iRandom);
 	bool bGiants = false;
+	RoboPlayer rp = RoboPlayer(client);
 	
 	// sentry buster
 	if(iAvailable & 512 && GameRules_GetRoundState() == RoundState_RoundRunning)
 	{
 		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() )
 		{
-			p_BotClass[client] = TFClass_DemoMan;
-			p_iBotVariant[client] = 0;
-			p_iBotType[client] = Bot_Buster;
-			p_iBotAttrib[client] = BotAttrib_CannotCarryBomb;
+			rp.Class = TFClass_DemoMan;
+			rp.Variant = 0;
+			rp.Type = Bot_Buster;
+			rp.Attributes = BotAttrib_CannotCarryBomb;
 			g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
 			CreateTimer(0.1, Timer_SetRobotClass, client);
 			return;
@@ -2081,6 +2116,8 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 {
 	if( IsFakeClient(client) )
 		return;
+		
+	RoboPlayer rp = RoboPlayer(client);
 
 	//TF2_SetPlayerClass(client, TFClass);
 	CreateTimer(0.1, Timer_SetRobotClass, client);
@@ -2092,51 +2129,51 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		{
 			case TFClass_Scout:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SCOUT_GIANT);
-				p_BotClass[client] = TFClass_Scout;
+				rp.Variant = GetRandomInt(-1, MAX_SCOUT_GIANT);
+				rp.Class = TFClass_Scout;
 			}
 			case TFClass_Soldier:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SOLDIER_GIANT);
-				p_BotClass[client] = TFClass_Soldier;
+				rp.Variant = GetRandomInt(-1, MAX_SOLDIER_GIANT);
+				rp.Class = TFClass_Soldier;
 			}
 			case TFClass_Pyro:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_PYRO_GIANT);
-				p_BotClass[client] = TFClass_Pyro;
+				rp.Variant = GetRandomInt(-1, MAX_PYRO_GIANT);
+				rp.Class = TFClass_Pyro;
 			}
 			case TFClass_DemoMan:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_DEMO_GIANT);
-				p_BotClass[client] = TFClass_DemoMan;
+				rp.Variant = GetRandomInt(-1, MAX_DEMO_GIANT);
+				rp.Class = TFClass_DemoMan;
 			}
 			case TFClass_Heavy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_HEAVY_GIANT);
-				p_BotClass[client] = TFClass_Heavy;
+				rp.Variant = GetRandomInt(-1, MAX_HEAVY_GIANT);
+				rp.Class = TFClass_Heavy;
 			}
 			case TFClass_Engineer:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_ENGINEER_GIANT);
-				p_BotClass[client] = TFClass_Engineer;
+				rp.Variant = GetRandomInt(-1, MAX_ENGINEER_GIANT);
+				rp.Class = TFClass_Engineer;
 			}
 			case TFClass_Medic:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_MEDIC_GIANT);
-				p_BotClass[client] = TFClass_Medic;
+				rp.Variant = GetRandomInt(-1, MAX_MEDIC_GIANT);
+				rp.Class = TFClass_Medic;
 			}
 			case TFClass_Sniper:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SNIPER_GIANT);
-				p_BotClass[client] = TFClass_Sniper;
+				rp.Variant = GetRandomInt(-1, MAX_SNIPER_GIANT);
+				rp.Class = TFClass_Sniper;
 			}
 			case TFClass_Spy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SPY_GIANT);
-				p_BotClass[client] = TFClass_Spy;
+				rp.Variant = GetRandomInt(-1, MAX_SPY_GIANT);
+				rp.Class = TFClass_Spy;
 			}
 		}
-		SetGiantVariantExtras(client, TFClass, p_iBotVariant[client]);
+		SetGiantVariantExtras(client, TFClass, rp.Variant);
 	}
 	else
 	{
@@ -2146,51 +2183,51 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		{
 			case TFClass_Scout:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SCOUT);
-				p_BotClass[client] = TFClass_Scout;
+				rp.Variant = GetRandomInt(-1, MAX_SCOUT);
+				rp.Class = TFClass_Scout;
 			}
 			case TFClass_Soldier:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SOLDIER);
-				p_BotClass[client] = TFClass_Soldier;
+				rp.Variant = GetRandomInt(-1, MAX_SOLDIER);
+				rp.Class = TFClass_Soldier;
 			}
 			case TFClass_Pyro:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_PYRO);
-				p_BotClass[client] = TFClass_Pyro;
+				rp.Variant = GetRandomInt(-1, MAX_PYRO);
+				rp.Class = TFClass_Pyro;
 			}
 			case TFClass_DemoMan:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_DEMO);
-				p_BotClass[client] = TFClass_DemoMan;
+				rp.Variant = GetRandomInt(-1, MAX_DEMO);
+				rp.Class = TFClass_DemoMan;
 			}
 			case TFClass_Heavy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_HEAVY);
-				p_BotClass[client] = TFClass_Heavy;
+				rp.Variant = GetRandomInt(-1, MAX_HEAVY);
+				rp.Class = TFClass_Heavy;
 			}
 			case TFClass_Engineer:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_ENGINEER);
-				p_BotClass[client] = TFClass_Engineer;
+				rp.Variant = GetRandomInt(-1, MAX_ENGINEER);
+				rp.Class = TFClass_Engineer;
 			}
 			case TFClass_Medic:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_MEDIC);
-				p_BotClass[client] = TFClass_Medic;
+				rp.Variant = GetRandomInt(-1, MAX_MEDIC);
+				rp.Class = TFClass_Medic;
 			}
 			case TFClass_Sniper:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SNIPER);
-				p_BotClass[client] = TFClass_Sniper;
+				rp.Variant = GetRandomInt(-1, MAX_SNIPER);
+				rp.Class = TFClass_Sniper;
 			}
 			case TFClass_Spy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SPY);
-				p_BotClass[client] = TFClass_Spy;
+				rp.Variant = GetRandomInt(-1, MAX_SPY);
+				rp.Class = TFClass_Spy;
 			}
 		}
-		SetVariantExtras(client, TFClass, p_iBotVariant[client]);
+		SetVariantExtras(client, TFClass, rp.Variant);
 	}
 }
 
@@ -2536,13 +2573,18 @@ void ResetRobotData(int client, bool bStrip = false)
 	if( IsFakeClient(client) )
 		return;
 
-	p_iBotType[client] = Bot_Normal;
-	p_iBotVariant[client] = 0;
-	p_iBotAttrib[client] = 0;
-	p_BotClass[client] = TFClass_Unknown;
-	g_bIsCarrier[client] = false;
+	RoboPlayer rp = RoboPlayer(client);
+
+	rp.Type = Bot_Normal;
+	rp.Variant = 0;
+	rp.Attributes = 0;
+	rp.Class = TFClass_Unknown;
+	rp.Carrier = false;
 	g_bUpgradeStation[client] = false;
-	p_bSpawned[client] = false;
+	rp.Spawned = false;
+	rp.MiniBoss(false);
+	rp.BotSkill(BotSkill_Easy);
+	rp.IsABot(false);
 	if( bStrip )
 		StripWeapons(client);
 }
