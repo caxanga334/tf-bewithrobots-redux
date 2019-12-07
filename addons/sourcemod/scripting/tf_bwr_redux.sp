@@ -699,6 +699,7 @@ public Action Command_Debug( int client, int nArgs )
 		CReplyToCommand(client, "{green}Giants available");
 	
 	ReplyToCommand(client, "Class Array Size: %i", array_avclass.Length);
+	ReplyToCommand(client, "Giant Array Size: %i", array_avgiants.Length);
 	
 	for(int i = 0;i <= MaxClients;i++)
 	{
@@ -2144,7 +2145,7 @@ void PickRandomRobot(int client)
 		}
 	}
 	
-	if( OR_IsGiantAvaiable && GetRandomInt(0, 100) <= c_iGiantChance.IntValue && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue )
+	if( OR_IsGiantAvaiable && GetRandomInt(0, 100) <= c_iGiantChance.IntValue && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue && array_avgiants.Length >= 1 )
 	{
 		bGiants = true;
 	}
