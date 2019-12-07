@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.8"
+#define PLUGIN_VERSION "0.0.9"
 
 // maximum class variants that exists
 #define MAX_SCOUT 6
@@ -60,6 +60,7 @@ bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
 Handle HT_BombDeployTimer;
 
 ArrayList array_avclass; // array containing available classes
+ArrayList array_avgiants; // array containing available giant classes
 ArrayList array_spawns; // spawn points for human players
 
 // others
@@ -294,6 +295,7 @@ public void OnPluginStart()
 	HookUserMessage(ID_MVMResetUpgrade, MsgHook_MVMRespec);
 	
 	array_avclass = new ArrayList(10);
+	array_avgiants = new ArrayList(10);
 	array_spawns = new ArrayList();
 	
 	AutoExecConfig(true, "plugin.bwrredux");
@@ -328,6 +330,7 @@ public void OnMapStart()
 	}
 	
 	array_avclass.Clear();
+	array_avgiants.Clear();
 	
 	// add custom tag
 	AddPluginTag("BWRR");
@@ -690,9 +693,10 @@ public Action Command_Debug( int client, int nArgs )
 	ReplyToCommand(client, "Current Wave: %i, Max Wave: %i", iCur, iTotalWaveNum);
 	
 	if(OR_IsHalloweenMission())
-	{
 		ReplyToCommand(client, "Halloween Popfile");
-	}
+		
+	if(OR_IsGiantAvaiable())
+		CReplyToCommand(client, "{green}Giants available");
 	
 	ReplyToCommand(client, "Class Array Size: %i", array_avclass.Length);
 	
@@ -1235,6 +1239,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		if( TF2_GetPlayerClass(client) == TFClass_Engineer )
 		{
 			AnnounceEngineerDeath(client);
+			CreateTimer(1.0, Timer_FixBuildings, client);
 		}
 		else if( TF2_GetPlayerClass(client) == TFClass_Spy )
 		{
@@ -1871,6 +1876,35 @@ public Action Timer_ApplyRobotSound(Handle timer, any client)
 	return Plugin_Stop;
 }
 
+public Action Timer_FixBuildings(Handle timer, any client)
+{
+	char class[64];
+	
+	for(int i = MaxClients+1; i < 2048; i++)
+	{
+		if(!IsValidEntity(i))
+			continue;
+			
+		GetEntityClassname(i, class, sizeof(class))
+		
+		if( StrEqual(class, "obj_sentrygun", false) || StrEqual(class, "obj_dispenser", false) || StrEqual(class, "obj_teleporter", false) )
+		{
+			if(GetEntPropEnt(i, Prop_Send, "m_hBuilder") != client)
+				continue;
+		
+			if( GetEntProp(i, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Spectator) )
+			{
+				SetEntProp(i, Prop_Send, "m_iTeamNum", view_as<int>(TFTeam_Blue))
+				SetEntPropEnt(i, Prop_Send, "m_hBuilder", -1);
+				SetEntProp(i, Prop_Send, "m_bWasMapPlaced", 1);
+			}
+		}
+		else
+			continue;
+	}
+	return Plugin_Stop;
+}
+
 /****************************************************
 					FUNCTIONS
 *****************************************************/
@@ -1984,55 +2018,102 @@ void UpdateClassArray()
 	int iAvailable = OR_GetAvailableClasses();
 	
 	array_avclass.Clear();
+	array_avgiants.Clear();
 	
-	if(iAvailable & 1) // scout
+	if(iAvailable & scout_normal) // scout
 	{
 		array_avclass.Push(1); // this number is the same as TFClassType enum
 	}
-	if(iAvailable & 2) // soldier
+	if(iAvailable & soldier_normal) // soldier
 	{
 		array_avclass.Push(3);
 	}
-	if(iAvailable & 4) // pyro
+	if(iAvailable & pyro_normal) // pyro
 	{
 		array_avclass.Push(7);
 	}
-	if(iAvailable & 8) // demoman
+	if(iAvailable & demoman_normal) // demoman
 	{
 		array_avclass.Push(4);
 	}
-	if(iAvailable & 16) // heavy
+	if(iAvailable & heavy_normal) // heavy
 	{
 		array_avclass.Push(6);
 	}
-	if(iAvailable & 32) // engineer
+	if(iAvailable & engineer_normal) // engineer
 	{
 		array_avclass.Push(9);
 	}
-	if(iAvailable & 64) // medic
+	if(iAvailable & medic_normal) // medic
 	{
 		array_avclass.Push(5);
 	}
-	if(iAvailable & 128) // sniper
+	if(iAvailable & sniper_normal) // sniper
 	{
 		array_avclass.Push(2);
 	}
-	if(iAvailable & 256) // spy
+	if(iAvailable & spy_normal) // spy
 	{
 		array_avclass.Push(8);
+	}
+	
+	// Giants
+	if(iAvailable & scout_giant) // scout
+	{
+		array_avgiants.Push(1); // this number is the same as TFClassType enum
+	}
+	if(iAvailable & soldier_giant) // soldier
+	{
+		array_avgiants.Push(3);
+	}
+	if(iAvailable & pyro_giant) // pyro
+	{
+		array_avgiants.Push(7);
+	}
+	if(iAvailable & demoman_giant) // demoman
+	{
+		array_avgiants.Push(4);
+	}
+	if(iAvailable & heavy_giant) // heavy
+	{
+		array_avgiants.Push(6);
+	}
+	if(iAvailable & engineer_giant) // engineer
+	{
+		array_avgiants.Push(9);
+	}
+	if(iAvailable & medic_giant) // medic
+	{
+		array_avgiants.Push(5);
+	}
+	if(iAvailable & sniper_giant) // sniper
+	{
+		array_avgiants.Push(2);
+	}
+	if(iAvailable & spy_giant) // spy
+	{
+		array_avgiants.Push(8);
 	}
 }
 
 // returns true if the specified class is available for the current wave
-bool IsClassAvailable(TFClassType TFClass)
+bool IsClassAvailable(TFClassType TFClass, bool bGiants = false)
 {
 	if( array_avclass.Length < 1 )
 		return false;
 		
 	int iClass = view_as<int>(TFClass);
 	
-	if( array_avclass.FindValue(iClass) != -1 )
-		return true;
+	if(bGiants)
+	{
+		if( array_avgiants.FindValue(iClass) != -1 )
+			return true;
+	}
+	else
+	{
+		if( array_avclass.FindValue(iClass) != -1 )
+			return true;
+	}
 
 	return false;	
 }
@@ -2044,9 +2125,7 @@ void PickRandomRobot(int client)
 		return;
 	
 	int iAvailable = OR_GetAvailableClasses();
-	int iSize = GetArraySize(array_avclass) - 1;
-	int iRandom = GetRandomInt(0, iSize);
-	int iClass = array_avclass.Get(iRandom);
+	int iSize, iRandom, iClass;
 	bool bGiants = false;
 	RoboPlayer rp = RoboPlayer(client);
 	
@@ -2064,10 +2143,25 @@ void PickRandomRobot(int client)
 			return;
 		}
 	}
-	if(iAvailable & 1024)
+	
+	if( OR_IsGiantAvaiable && GetRandomInt(0, 100) <= c_iGiantChance.IntValue && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue )
 	{
 		bGiants = true;
-	}	
+	}
+	
+	if( bGiants )
+	{
+		iSize = GetArraySize(array_avgiants) - 1;
+		iRandom = GetRandomInt(0, iSize);
+		iClass = array_avgiants.Get(iRandom);
+	}
+	else
+	{
+		iSize = GetArraySize(array_avclass) - 1;
+		iRandom = GetRandomInt(0, iSize);
+		iClass = array_avclass.Get(iRandom);
+	}
+	
 	
 	// select a random robot variant
 	switch( iClass )
@@ -2121,7 +2215,7 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 
 	//TF2_SetPlayerClass(client, TFClass);
 	CreateTimer(0.1, Timer_SetRobotClass, client);
-	if( GetRandomInt(0, 100) <= c_iGiantChance.IntValue && bGiants && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue )
+	if( bGiants )
 	{
 		// giant
 		p_iBotType[client] = Bot_Giant;

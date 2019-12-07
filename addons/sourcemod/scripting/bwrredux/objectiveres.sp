@@ -4,20 +4,32 @@
 int iCurrentWave; // current wave
 int iMaxWave; // total wave
 int iPopFileType; // Event popfile?
-int iAvailableClasses; // which classes are available for the current wave
-bool bClasses[11]; // temporary solution
-// 0 - none (how?)
-// 1 - scout
-// 2 - soldier
-// 4 - pyro
-// 8 - demoman
-// 16 - heavy
-// 32 - engineer
-// 64 - medic
-// 128 - sniper
-// 256 - spy
-// 512 - sentrybuster
-// 1024 - giant
+int iAvailableClasses = 0; // which classes are available for the current wave // bit
+//bool bClasses[11]; // temporary solution
+
+enum // class bits
+{
+	none = 0,
+	scout_normal = 1,
+	soldier_normal = 2,
+	pyro_normal = 4,
+	demoman_normal = 8,
+	heavy_normal = 16,
+	engineer_normal = 32,
+	medic_normal = 64,
+	sniper_normal = 128,
+	spy_normal = 256,
+	sentrybuster = 512,
+	scout_giant = 1024,
+	soldier_giant = 2048,
+	pyro_giant = 4096,
+	demoman_giant = 8192,
+	heavy_giant = 16384,
+	engineer_giant = 32768,
+	medic_giant = 65536,
+	sniper_giant = 131072,
+	spy_giant = 262144,
+};
 
 enum MvMWaveClassFlags
 {
@@ -33,11 +45,6 @@ enum MvMWaveClassFlags
 void OR_Update()
 {
 	iAvailableClasses = 0;
-	
-	for(int i = 0; i <= 10; i++)
-	{
-		bClasses[i] = false;
-	}
 	
 	int iResource = FindEntityByClassname(-1, "tf_objective_resource");
 	if(IsValidEntity(iResource))
@@ -85,65 +92,92 @@ void OR_Update()
 			{
 				//PrintToServer("[%i] iClassCount %i bActive %i icon \"%s\" flags \"%i\" \"\%s\"", i, iClassCount, bClassActive, strIcon, iClassFlags, strFlags);
 				// search for class names in the icon names
-				if(StrContains(strIcon, "scout", false) != -1 && bClasses[0] == false)
+				if(StrContains(strIcon, "scout", false) != -1 && (iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS)) == 0 && (iAvailableClasses & scout_normal) == 0)
 				{
-					iAvailableClasses += 1;
-					bClasses[0] = true;
+					iAvailableClasses |= scout_normal;
 				}
-				if(StrContains(strIcon, "soldier", false) != -1 && bClasses[1] == false)
+				if(StrContains(strIcon, "soldier", false) != -1 && (iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS)) == 0 && (iAvailableClasses & soldier_normal) == 0)
 				{
-					iAvailableClasses += 2;
-					bClasses[1] = true;
+					iAvailableClasses |= soldier_normal;
 				}
-				if(StrContains(strIcon, "pyro", false) != -1 && bClasses[2] == false)
+				if(StrContains(strIcon, "pyro", false) != -1 && (iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS)) == 0 && (iAvailableClasses & pyro_normal) == 0)
 				{
-					iAvailableClasses += 4;
-					bClasses[2] = true;
+					iAvailableClasses |= pyro_normal;
 				}
-				if(StrContains(strIcon, "demo", false) != -1 && bClasses[3] == false)
+				if(StrContains(strIcon, "demo", false) != -1 && (iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS)) == 0 && (iAvailableClasses & demoman_normal) == 0)
 				{
-					iAvailableClasses += 8;
-					bClasses[3] = true;
+					iAvailableClasses |= demoman_normal;
 				}
-				if(StrContains(strIcon, "heavy", false) != -1 && bClasses[4] == false)
+				if(StrContains(strIcon, "heavy", false) != -1 && (iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS)) == 0 && (iAvailableClasses & heavy_normal) == 0)
 				{
-					iAvailableClasses += 16;
-					bClasses[4] = true;
+					iAvailableClasses |= heavy_normal;
 				}
-				if(StrContains(strIcon, "engineer", false) != -1 && bClasses[5] == false)
+				if(StrContains(strIcon, "engineer", false) != -1 && (iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS)) == 0 && (iAvailableClasses & engineer_normal) == 0)
 				{
-					iAvailableClasses += 32;
-					bClasses[5] = true;
+					iAvailableClasses |= engineer_normal;
 				}
-				if(StrContains(strIcon, "medic", false) != -1 && bClasses[6] == false)
+				if(StrContains(strIcon, "medic", false) != -1 && (iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS)) == 0 && (iAvailableClasses & medic_normal) == 0)
 				{
-					iAvailableClasses += 64;
-					bClasses[6] = true;
+					iAvailableClasses |= medic_normal;
 				}
-				if(StrContains(strIcon, "sniper", false) != -1 && bClasses[7] == false)
+				if(StrContains(strIcon, "sniper", false) != -1 && (iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS)) == 0 && (iAvailableClasses & sniper_normal) == 0)
 				{
-					iAvailableClasses += 128;
-					bClasses[7] = true;
+					iAvailableClasses |= sniper_normal;
 				}
-				if(StrContains(strIcon, "spy", false) != -1 && bClasses[8] == false)
+				if(StrContains(strIcon, "spy", false) != -1 && (iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS)) == 0 && (iAvailableClasses & spy_normal) == 0)
 				{
-					iAvailableClasses += 256;
-					bClasses[8] = true;
+					iAvailableClasses |= spy_normal;
 				}
-				if(StrContains(strIcon, "sentry_buster", false) != -1 && bClasses[9] == false)
+				if(StrContains(strIcon, "sentry_buster", false) != -1 && (iAvailableClasses & scout_normal) == 0)
 				{
-					iAvailableClasses += 512;
-					bClasses[9] = true;
+					iAvailableClasses |= sentrybuster;
 				}
-				//if(StrContains(strIcon, "_giant", false) != -1 && bClasses[10] == false)
-				if(iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && bClasses[10] == false)
+				// giant variants
+				if(StrContains(strIcon, "scout", false) != -1 && iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && (iAvailableClasses & scout_giant) == 0)
+				{
+					iAvailableClasses |= scout_giant;
+				}
+				if(StrContains(strIcon, "soldier", false) != -1 && iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && (iAvailableClasses & soldier_giant) == 0)
+				{
+					iAvailableClasses |= soldier_giant;
+				}
+				if(StrContains(strIcon, "pyro", false) != -1 && iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && (iAvailableClasses & pyro_giant) == 0)
+				{
+					iAvailableClasses |= pyro_giant;
+				}
+				if(StrContains(strIcon, "demo", false) != -1 && iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && (iAvailableClasses & demoman_giant) == 0)
+				{
+					iAvailableClasses |= demoman_giant;
+				}
+				if(StrContains(strIcon, "heavy", false) != -1 && iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && (iAvailableClasses & heavy_giant) == 0)
+				{
+					iAvailableClasses |= heavy_giant;
+				}
+				if(StrContains(strIcon, "engineer", false) != -1 && iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && (iAvailableClasses & engineer_giant) == 0)
+				{
+					iAvailableClasses |= engineer_giant;
+				}
+				if(StrContains(strIcon, "medic", false) != -1 && iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && (iAvailableClasses & medic_giant) == 0)
+				{
+					iAvailableClasses |= medic_giant;
+				}
+				if(StrContains(strIcon, "sniper", false) != -1 && iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && (iAvailableClasses & sniper_giant) == 0)
+				{
+					iAvailableClasses |= sniper_giant;
+				}
+				if(StrContains(strIcon, "spy", false) != -1 && iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && (iAvailableClasses & spy_giant) == 0)
+				{
+					iAvailableClasses |= spy_giant;
+				}
+				
+/**				if(iClassFlags & view_as<int>(CLASSFLAG_MINIBOSS) && bClasses[10] == false)
 				{
 					if( StrContains(strIcon, "sentry_buster", false) == -1 && StrContains(strIcon, "tank", false) == -1 )
 					{
 						iAvailableClasses += 1024;
 						bClasses[10] = true;
 					}
-				}
+				} **/
 			}
 		}
 	}
@@ -157,13 +191,9 @@ int OR_GetAvailableClasses()
 bool OR_IsHalloweenMission()
 {
 	if(iPopFileType == 1)
-	{
 		return true;
-	}
 	else
-	{
 		return false;
-	}
 }
 
 int OR_GetCurrentWave()
@@ -174,4 +204,16 @@ int OR_GetCurrentWave()
 int OR_GetMaxWave()
 {
 	return iMaxWave;
+}
+
+bool OR_IsGiantAvaiable()
+{
+	if( iAvailableClasses & scout_giant || iAvailableClasses & soldier_giant || iAvailableClasses & pyro_giant
+	|| iAvailableClasses & demoman_giant || iAvailableClasses & heavy_giant || iAvailableClasses & engineer_giant
+	|| iAvailableClasses & medic_giant || iAvailableClasses & sniper_giant || iAvailableClasses & spy_giant )
+	{
+		return true;
+	}
+	
+	return false;
 }
