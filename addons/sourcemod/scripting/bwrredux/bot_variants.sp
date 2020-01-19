@@ -404,6 +404,23 @@ void GiveNormalInventory(int client ,int botvariant)
 					SpawnWeapon( client, "tf_weapon_bonesaw", 8, 1, 6, false );
 					return;				
 				}
+				case 2: // Quick-fix Mega Heal Medic
+				{
+					SpawnWeapon( client, "tf_weapon_syringegun_medic", 17, 1, 6, false );
+					iWeapon = SpawnWeapon( client, "tf_weapon_medigun", 411, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "heal rate bonus", 10.0);
+					SpawnWeapon( client, "tf_weapon_bonesaw", 8, 1, 6, false );
+					return;				
+				}
+				case 3: // Shield Medic
+				{
+					SpawnWeapon( client, "tf_weapon_syringegun_medic", 17, 1, 6, false );
+					iWeapon = SpawnWeapon( client, "tf_weapon_medigun", 411, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "generate rage on heal", 2.0);
+					TF2Attrib_SetByName(iWeapon, "increase buff duration", 1.2);
+					SpawnWeapon( client, "tf_weapon_bonesaw", 8, 1, 6, false );
+					return;				
+				}
 			}	
 		}
 		case TFClass_Sniper:
@@ -810,6 +827,8 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 				case -1: strcopy( strBotName, 128, "Your own Medic" );
 				case 0: strcopy( strBotName, 128, "Uber Medic" );
 				case 1: strcopy( strBotName, 128, "Kritzkrieg Medic" );
+				case 2: strcopy( strBotName, 128, "Mega Heal Medic" );
+				case 3: strcopy( strBotName, 128, "Shield Medic" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}			
 		}

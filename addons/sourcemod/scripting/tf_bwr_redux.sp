@@ -24,7 +24,7 @@
 #define MAX_SCOUT 6
 #define MAX_SCOUT_GIANT 1
 #define MAX_SOLDIER 6
-#define MAX_SOLDIER_GIANT 1
+#define MAX_SOLDIER_GIANT 3
 #define MAX_PYRO 3
 #define MAX_PYRO_GIANT 1
 #define MAX_DEMO 3
@@ -33,7 +33,7 @@
 #define MAX_HEAVY_GIANT 1
 #define MAX_ENGINEER 3
 #define MAX_ENGINEER_GIANT 1
-#define MAX_MEDIC 1
+#define MAX_MEDIC 3
 #define MAX_MEDIC_GIANT 1
 #define MAX_SNIPER 1
 #define MAX_SNIPER_GIANT 1
