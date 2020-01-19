@@ -959,7 +959,6 @@ char GetGiantVariantName(TFClassType TFClass, int botvariant)
 			{
 				case -1: strcopy( strBotName, 128, "Your own Giant Sniper" );
 				case 0: strcopy( strBotName, 128, "Standard Sniper" );
-				case 1: strcopy( strBotName, 128, "Batsaber Scout" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}
 		}
@@ -969,7 +968,6 @@ char GetGiantVariantName(TFClassType TFClass, int botvariant)
 			{
 				case -1: strcopy( strBotName, 128, "Your own Giant Spy" );
 				case 0: strcopy( strBotName, 128, "Standard Spy" );
-				case 1: strcopy( strBotName, 128, "Batsaber Scout" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}
 		}
