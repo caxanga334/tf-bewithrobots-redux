@@ -52,6 +52,7 @@ bool IsMvM(bool forceRecalc = false)
 	return ismvm;
 }
 
+// V2: New code uses navmesh to find a position near a random RED player.
 void TeleportSpyRobot(int client)
 {
 	int target = GetRandomClientFromTeam( view_as<int>(TFTeam_Red), false);

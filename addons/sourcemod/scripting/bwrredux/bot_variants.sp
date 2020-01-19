@@ -37,7 +37,7 @@ void StripItems( int client, bool RemoveWeapons = true )
 		// bug: sappers and toolboxes aren't removed however this shouldn't be a problem.
 	}
 	
-	if( !OR_IsHalloweenMission() )
+	if( !OR_IsHalloweenMission() ) // Allow players to have wearables on wave 666
 	{
 		iEntity = -1;
 		while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable" ) ) > MaxClients )
@@ -542,6 +542,33 @@ void GiveGiantInventory(int client ,int botvariant)
 					TF2Attrib_SetByName(iWeapon, "Projectile speed increased", 0.5);
 					return;			
 				}
+				case 2: // Giant Rapid Fire Soldier
+				{
+					iWeapon = SpawnWeapon( client, "tf_weapon_rocketlauncher", 18, 1, 6, false );
+					TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 3600.0);
+					TF2Attrib_SetByName(client, "move speed bonus", 0.5);
+					TF2Attrib_SetByName(client, "damage force reduction", 0.4);
+					TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.4);
+					TF2Attrib_SetByName(client, "override footstep sound set", 3.0);
+					TF2Attrib_SetByName(iWeapon, "faster reload rate", -0.8);
+					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 0.5);
+					TF2Attrib_SetByName(iWeapon, "Projectile speed increased", 0.65);
+					return;
+				}
+				case 3: // Giant Burst Fire Soldier
+				{
+					iWeapon = SpawnWeapon( client, "tf_weapon_rocketlauncher", 18, 1, 6, false );
+					TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 3600.0);
+					TF2Attrib_SetByName(client, "move speed bonus", 0.5);
+					TF2Attrib_SetByName(client, "damage force reduction", 0.4);
+					TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.4);
+					TF2Attrib_SetByName(client, "override footstep sound set", 3.0);
+					TF2Attrib_SetByName(iWeapon, "faster reload rate", 0.6);
+					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 0.1);
+					TF2Attrib_SetByName(iWeapon, "Projectile speed increased", 0.65);
+					TF2Attrib_SetByName(iWeapon, "clip size upgrade atomic", 5.0);
+					return;
+				}
 			}	
 		}
 		case TFClass_Pyro:
@@ -835,6 +862,8 @@ char GetGiantVariantName(TFClassType TFClass, int botvariant)
 				case -1: strcopy( strBotName, 128, "Your own Giant Soldier" );
 				case 0: strcopy( strBotName, 128, "Giant Soldier" );
 				case 1: strcopy( strBotName, 128, "Giant Charged Soldier" );
+				case 2: strcopy( strBotName, 128, "Giant Rapid Fire Soldier" );
+				case 3: strcopy( strBotName, 128, "Giant Burst Fire Soldier" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}			
 		}
