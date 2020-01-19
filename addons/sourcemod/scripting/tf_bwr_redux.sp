@@ -119,13 +119,13 @@ enum
 enum
 {
 	BotAttrib_None = 0,
-	BotAttrib_AlwaysCrits = 1,
-	BotAttrib_FullCharge = 2,
-	BotAttrib_InfiniteCloak = 4,
-	BotAttrib_AutoDisguise = 8,
-	BotAttrib_AlwaysMiniCrits = 16,
+	BotAttrib_AlwaysCrits = 1, // 100% crit chance
+	BotAttrib_FullCharge = 2, // spawns with full charge (medic, soldier buff)
+	BotAttrib_InfiniteCloak = 4, // Spies never run out of cloak
+	BotAttrib_AutoDisguise = 8, // Automatically give a disguise to the spy
+	BotAttrib_AlwaysMiniCrits = 16, // 100% minicrit chance
 	BotAttrib_TeleportToHint = 32, // teleport engineers to a nest near the bomb.
-	BotAttrib_CannotCarryBomb = 64,
+	BotAttrib_CannotCarryBomb = 64, // Blocks players from carrying the bomb
 	BotAttrib_CannotBuildTele = 128, // disallow engineers to build teleporters
 };
 
@@ -463,7 +463,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	{
 		if( TF2Spawn_IsClientInSpawn2(client) )
 		{
-			if( buttons & IN_ATTACK )
+			if( buttons & IN_ATTACK ) // block attack buttons when robot players are inside their spawn room.
 			{
 				buttons &= ~IN_ATTACK;
 				buttons &= ~IN_ATTACK2;
@@ -489,7 +489,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		RoboPlayer rp = RoboPlayer(client);
 		if( rp.Type == Bot_Buster )
 		{
-			if( buttons & IN_ATTACK )
+			if( buttons & IN_ATTACK ) // Allows sentry busters to detonate by pressing M1
 			{
 				if( !(TF2_IsPlayerInCondition(client, TFCond_Taunting)) )
 				{
@@ -514,7 +514,7 @@ public void OnTagsChanged(ConVar convar, char[] oldValue, char[] newValue)
 /****************************************************
 					SDKHOOKS
 *****************************************************/
-
+// Called when an entity touches an upgrade station entity
 public Action OnTouchUpgradeStation(int entity, int other)
 {
 	if(IsValidClient(other) && !IsFakeClient(other))
@@ -531,6 +531,7 @@ public Action OnTouchUpgradeStation(int entity, int other)
 	}
 }
 
+// Called when an entity touches the capture zone
 public Action OnTouchCaptureZone(int entity, int other)
 {		
 	if( IsValidClient(other) && IsFakeClient(other) )
@@ -564,6 +565,7 @@ public Action OnTouchCaptureZone(int entity, int other)
 	return Plugin_Continue;
 }
 
+// Called when an entity stop touching the flag capture zone
 public Action OnEndTouchCaptureZone(int entity, int other)
 {
 	if( IsValidClient(other) && IsFakeClient(other) )
@@ -619,7 +621,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 	if( GameRules_GetRoundState() == RoundState_TeamWin )
 		return Plugin_Handled;
 		
-	if( array_avclass.Length < 1 )
+	if( array_avclass.Length < 1 ) // Block join BLU to avoid errors
 	{
 		CPrintToChat(client, "Wave Data isn't ready, rebuilding... Please try again."); // to-do: translate
 		OR_Update();
@@ -627,6 +629,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
+	// Denied: Not enough players in RED to join while a wave is running.
 	int iMinRed = c_iMinRedinProg.IntValue;
 	if( GameRules_GetRoundState() == RoundState_RoundRunning && GetTeamClientCount(2) < iMinRed )
 	{
@@ -635,6 +638,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
+	// Denied: Not enough players in RED to join.
 	iMinRed = c_iMinRed.IntValue;
 	if( GetTeamClientCount(2) < iMinRed )
 	{
@@ -643,12 +647,14 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
+	// Denied: BLU is at full capacity.
 	if( GetHumanRobotCount() >= c_iMaxBlu.IntValue )
 	{
 		CPrintToChat(client, "%t", "Blu Full");
 		return Plugin_Handled;
 	}
 	
+	// Denied: Players cannot join BLU while ready.
 	bool bReady = view_as<bool>(GameRules_GetProp( "m_bPlayerReady", _, client));
 	if( bReady && GameRules_GetRoundState() == RoundState_BetweenRounds )
 	{
@@ -656,6 +662,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
+	// Denied: Player used an upgrade station.
 	if( g_bUpgradeStation[client] )
 	{
 		CPrintToChat(client,"%t","Used Upgrade");
@@ -2120,6 +2127,7 @@ bool IsClassAvailable(TFClassType TFClass, bool bGiants = false)
 }
 
 // ***ROBOT VARIANT***
+// Selects a random robot for the given client.
 void PickRandomRobot(int client)
 {
 	if(!IsClientInGame(client) || IsFakeClient(client))
@@ -2130,7 +2138,7 @@ void PickRandomRobot(int client)
 	bool bGiants = false;
 	RoboPlayer rp = RoboPlayer(client);
 	
-	// sentry buster
+	// First, check if we can spawn a buster.
 	if(iAvailable & 512 && GameRules_GetRoundState() == RoundState_RoundRunning)
 	{
 		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() )
@@ -2145,18 +2153,19 @@ void PickRandomRobot(int client)
 		}
 	}
 	
+	// Checks if giants are allowed.
 	if( OR_IsGiantAvaiable && GetRandomInt(0, 100) <= c_iGiantChance.IntValue && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue && array_avgiants.Length >= 1 )
 	{
 		bGiants = true;
 	}
 	
-	if( bGiants )
+	if( bGiants ) // Spawn the player as a giant robot.
 	{
 		iSize = GetArraySize(array_avgiants) - 1;
 		iRandom = GetRandomInt(0, iSize);
 		iClass = array_avgiants.Get(iRandom);
 	}
-	else
+	else // Spawn the player as a normal robot.
 	{
 		iSize = GetArraySize(array_avclass) - 1;
 		iRandom = GetRandomInt(0, iSize);
@@ -2461,7 +2470,7 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 	return bValid;
 }
 
-// set effects and bot mode for variants
+// Set attributes on the robots.
 void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
 	p_iBotAttrib[client] = 0; //reset
