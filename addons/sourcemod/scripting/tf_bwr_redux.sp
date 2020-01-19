@@ -35,7 +35,7 @@
 #define MAX_ENGINEER_GIANT 1
 #define MAX_MEDIC 3
 #define MAX_MEDIC_GIANT 1
-#define MAX_SNIPER 1
+#define MAX_SNIPER 2
 #define MAX_SNIPER_GIANT 1
 #define MAX_SPY 3
 #define MAX_SPY_GIANT 1

@@ -263,11 +263,13 @@ void GiveNormalInventory(int client ,int botvariant)
 				case 0: // standard pyro
 				{
 					SpawnWeapon( client, "tf_weapon_flamethrower", 21, 1, 6, false ); // client, classname, item index, level, quality, Is Wearable?
+					SpawnWeapon( client, "tf_weapon_fireaxe", 2, 1, 6, false ); // Fire Axe
 					return;					
 				}
 				case 1: // flare pyro
 				{
 					SpawnWeapon( client, "tf_weapon_flaregun", 39, 1, 6, false );
+					SpawnWeapon( client, "tf_weapon_fireaxe", 2, 1, 6, false ); // Fire Axe
 					return;					
 				}
 				case 2: // Pyro Pusher
@@ -276,6 +278,7 @@ void GiveNormalInventory(int client ,int botvariant)
 					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 0.75);
 					TF2Attrib_SetByName(iWeapon, "faster reload rate", 1.25);
 					TF2Attrib_SetByName(iWeapon, "Projectile speed increased", 0.35);
+					SpawnWeapon( client, "tf_weapon_fireaxe", 2, 1, 6, false ); // Fire Axe
 					return;					
 				}
 				case 3: // Fast Scorch Shot
@@ -284,6 +287,7 @@ void GiveNormalInventory(int client ,int botvariant)
 					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 0.75);
 					TF2Attrib_SetByName(iWeapon, "faster reload rate", 1.0);
 					TF2Attrib_SetByName(iWeapon, "Projectile speed increased", 1.30);
+					SpawnWeapon( client, "tf_weapon_fireaxe", 2, 1, 6, false ); // Fire Axe
 					return;					
 				}
 			}			
@@ -431,13 +435,25 @@ void GiveNormalInventory(int client ,int botvariant)
 				{
 					SpawnWeapon( client, "tf_weapon_sniperrifle", 14, 1, 6, false );
 					SpawnWeapon( client, "tf_weapon_club", 3, 1, 6, false );
+					if(GetRandomInt(0,10) > 3)
+						SpawnWeapon( client, "tf_wearable_razorback", 57, 1, 6, true );
 					return;
 				}
 				case 1: // bowman
 				{
 					SpawnWeapon( client, "tf_weapon_compound_bow", 56, 1, 6, false );
 					SpawnWeapon( client, "tf_weapon_club", 3, 1, 6, false );
+					if(GetRandomInt(0,10) > 5)
+						SpawnWeapon( client, "tf_wearable_razorback", 57, 1, 6, true );
 					return;			
+				}
+				case 2: // Sydney Sniper
+				{
+					SpawnWeapon( client, "tf_weapon_sniperrifle", 230, 1, 6, false ); // The Sydney Sleeper
+					SpawnWeapon( client, "tf_weapon_club", 3, 1, 6, false );
+					if(GetRandomInt(0,10) > 1)
+						SpawnWeapon( client, "tf_wearable_razorback", 57, 1, 6, true );
+					return;
 				}
 			}
 		}
@@ -839,6 +855,7 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 				case -1: strcopy( strBotName, 128, "Your own Sniper" );
 				case 0: strcopy( strBotName, 128, "Standard Sniper" );
 				case 1: strcopy( strBotName, 128, "Bowman" );
+				case 2: strcopy( strBotName, 128, "Sydney Sniper" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}
 		}
