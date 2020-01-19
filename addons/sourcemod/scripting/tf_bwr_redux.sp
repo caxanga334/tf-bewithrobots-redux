@@ -1,7 +1,7 @@
 #include <sourcemod>
 #include <tf2>
 #include <tf2_stocks>
-#include <morecolors>
+//#include <morecolors>
 #include <caxanga334>
 #define REQUIRE_PLUGIN
 #include <tf2attributes>
@@ -83,10 +83,6 @@ ConVar c_svTag; // server tags
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
-
-// offsets
-int g_iOffsetMissionBot;
-int g_iOffsetSupportLimited;
 
 enum SpawnType
 {
@@ -212,13 +208,7 @@ stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 }
 
 public void OnPluginStart()
-{	
-	// game data
-	Handle hConf = LoadGameConfigFile("bwr-redux");
-	
-	if(LookupOffset(g_iOffsetMissionBot,         "CTFPlayer", "m_nCurrency"))		    g_iOffsetMissionBot         -= GameConfGetOffset(hConf, "m_bMissionBot");
-	if(LookupOffset(g_iOffsetSupportLimited,     "CTFPlayer", "m_nCurrency"))		    g_iOffsetSupportLimited     -= GameConfGetOffset(hConf, "m_bSupportLimited");
-
+{
 	// convars
 	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
 	c_iMinRed = CreateConVar("sm_bwrr_minred", "5", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
@@ -623,7 +613,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 		
 	if( array_avclass.Length < 1 ) // Block join BLU to avoid errors
 	{
-		CPrintToChat(client, "Wave Data isn't ready, rebuilding... Please try again."); // to-do: translate
+		PrintToChat(client, "Wave Data isn't ready, rebuilding... Please try again."); // to-do: translate
 		OR_Update();
 		UpdateClassArray();
 		return Plugin_Handled;
@@ -633,8 +623,8 @@ public Action Command_JoinBLU( int client, int nArgs )
 	int iMinRed = c_iMinRedinProg.IntValue;
 	if( GameRules_GetRoundState() == RoundState_RoundRunning && GetTeamClientCount(2) < iMinRed )
 	{
-		CPrintToChat(client,"%t", "Not in Prog");
-		CPrintToChat(client,"%t","Num Red",iMinRed);
+		PrintToChat(client,"%t", "Not in Prog");
+		PrintToChat(client,"%t","Num Red",iMinRed);
 		return Plugin_Handled;
 	}
 	
@@ -642,15 +632,15 @@ public Action Command_JoinBLU( int client, int nArgs )
 	iMinRed = c_iMinRed.IntValue;
 	if( GetTeamClientCount(2) < iMinRed )
 	{
-		CPrintToChat(client,"%t","Need Red");
-		CPrintToChat(client,"%t","Num Red",iMinRed);
+		PrintToChat(client,"%t","Need Red");
+		PrintToChat(client,"%t","Num Red",iMinRed);
 		return Plugin_Handled;
 	}
 	
 	// Denied: BLU is at full capacity.
 	if( GetHumanRobotCount() >= c_iMaxBlu.IntValue )
 	{
-		CPrintToChat(client, "%t", "Blu Full");
+		PrintToChat(client, "%t", "Blu Full");
 		return Plugin_Handled;
 	}
 	
@@ -658,14 +648,14 @@ public Action Command_JoinBLU( int client, int nArgs )
 	bool bReady = view_as<bool>(GameRules_GetProp( "m_bPlayerReady", _, client));
 	if( bReady && GameRules_GetRoundState() == RoundState_BetweenRounds )
 	{
-		CPrintToChat(client,"%t","Unready");
+		PrintToChat(client,"%t","Unready");
 		return Plugin_Handled;
 	}
 	
 	// Denied: Player used an upgrade station.
 	if( g_bUpgradeStation[client] )
 	{
-		CPrintToChat(client,"%t","Used Upgrade");
+		PrintToChat(client,"%t","Used Upgrade");
 		return Plugin_Handled;
 	}
 	
@@ -1210,6 +1200,9 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 		CreateTimer(1.0, Timer_OnFakePlayerSpawn, client);
 	else
 		CreateTimer(0.3, Timer_OnPlayerSpawn, client);
+		
+	if( TF2_GetClientTeam(client) == TFTeam_Red )
+		p_iBotTeam[client] = TFTeam_Red;
 	
 	if( array_avclass.Length < 1 )
 	{
@@ -1367,8 +1360,6 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
-		SetEntData(client, g_iOffsetMissionBot, 	1, _, true);	//Makes player death not decrement wave bot count
-		SetEntData(client, g_iOffsetSupportLimited, 0, _, true);	//Makes player death not decrement wave bot count
 	
 		//TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
 		g_bIsCarrier[client] = false;
@@ -1434,7 +1425,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			strBotName = GetNormalVariantName(TFClass, p_iBotVariant[client]);
 			StopRobotLoopSound(client);
 		}
-		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
+		PrintToChat(client, "%t", "Bot Spawn", strBotName);
 		SetRobotScale(client,TFClass);
 		SetRobotModel(client,TFClass);
 		
@@ -1755,7 +1746,7 @@ public Action Timer_DeployBomb(Handle timer, any client)
 	
 	char strPlrName[MAX_NAME_LENGTH];
 	GetClientName(client, strPlrName, sizeof(strPlrName));
-	CPrintToChatAll("%t", "Bomb Deploy", strPlrName);
+	PrintToChatAll("%t", "Bomb Deploy", strPlrName);
 	LogAction(client, -1, "Player \"%L\" deployed the bomb.", client);
 	TriggerHatchExplosion();
 	
@@ -1766,8 +1757,8 @@ public Action Timer_DeployBomb(Handle timer, any client)
 
 public Action Timer_Announce(Handle timer)
 {
-	CPrintToChatAll("{cyan}Be With Robots Redux By {green}Anonymous Player{cyan}.");
-	CPrintToChatAll("{cyan}https://github.com/caxanga334/tf-bewithrobots-redux");
+	PrintToChatAll("Be With Robots Redux By Anonymous Player.");
+	PrintToChatAll("https://github.com/caxanga334/tf-bewithrobots-redux");
 }
 
 public Action Timer_SentryBuster_Explode(Handle timer, any client)
@@ -1958,8 +1949,6 @@ void MovePlayerToSpec(int client)
 // moves player to BLU team.
 void MovePlayerToBLU(int client)
 {
-	SetEntData(client, g_iOffsetMissionBot, 	1, _, true);	//Makes player death not decrement wave bot count
-	SetEntData(client, g_iOffsetSupportLimited, 0, _, true);	//Makes player death not decrement wave bot count
 	StopRobotLoopSound(client);
 	ForcePlayerSuicide(client);
 	if( !IsFakeClient(client) )
@@ -3018,7 +3007,7 @@ void CheckTeams()
 			{
 				p_iBotTeam[iTarget] = TFTeam_Red;
 				MovePlayerToRED(iTarget);
-				CPrintToChat(iTarget, "%t", "Moved Blu Full");
+				PrintToChat(iTarget, "%t", "Moved Blu Full");
 			}
 		}
 	}
@@ -3038,7 +3027,7 @@ void CheckTeams()
 				{
 					p_iBotTeam[iTarget] = TFTeam_Red;
 					MovePlayerToRED(iTarget);
-					CPrintToChat(iTarget, "%t", "Moved Blu Balance");
+					PrintToChat(iTarget, "%t", "Moved Blu Balance");
 				}
 			}
 		}

@@ -2,45 +2,45 @@
 {
 	"Used Upgrade"
 	{
-		"en"	"{white}[BWRR] {cyan}You need to refund your upgrades in order to join {blue}BLU{cyan}."
+		"en"	"[BWRR] You need to refund your upgrades in order to join BLU."
 	}
 	"Need Red"
 	{
-		"en"	"{white}[BWRR] {cyan}You can't join {blue}BLU{cyan}. There aren't enough players in {red}RED{cyan} team."
+		"en"	"[BWRR] You can't join BLU. There aren't enough players in RED team."
 	}
 	"Not in Prog"
 	{
-		"en"	"{white}[BWRR] {cyan}You can't join {blue}BLU{cyan} while the wave is in progress. There aren't enough players in {red}RED{cyan} team."
+		"en"	"[BWRR] You can't join BLU while the wave is in progress. There aren't enough players in RED team."
 	}
 	"Blu Full"
 	{
-		"en"	"{white}[BWRR] {cyan}You can't join {blue}BLU{cyan}. {blue}BLU{cyan} team is full."
+		"en"	"[BWRR] You can't join BLU BLU team is full."
 	}
 	"Num Red"
 	{
 		"#format"	"{1:d}"
-		"en"	"{cyan}There must be at least {1} players on {red}RED{cyan}."
+		"en"	"There must be at least {1} players on RED."
 	}
 	"Bot Spawn"
 	{
 		"#format"	"{1:s}"
-		"en"	"{white}[BWRR] {cyan}You've spawned as {green}{1}{cyan}."
+		"en"	"[BWRR] You've spawned as {1}."
 	}
 	"Unready"
 	{
-		"en"	"{white}[BWRR] {cyan}You cannot join {blue}BLU{cyan} while ready."
+		"en"	"[BWRR] You cannot join BLU while ready."
 	}
 	"Moved Blu Full"
 	{
-		"en"	"{white}[BWRR] {cyan}You were moved to {red}RED{cyan} because {blue}BLU{cyan} team is full."
+		"en"	"[BWRR] You were moved to RED because BLU team is full."
 	}
 	"Moved Blu Balance"
 	{
-		"en"	"{white}[BWRR] {cyan}You were moved to {red}RED{cyan} to balance teams."
+		"en"	"[BWRR] You were moved to RED to balance teams."
 	}
 	"Bomb Deploy"
 	{
 		"#format"	"{1:s}"
-		"en"	"{white}[BWRR] {green}{1} {cyan}deployed the bomb."
+		"en"	"[BWRR] {1} deployed the bomb."
 	}
 }

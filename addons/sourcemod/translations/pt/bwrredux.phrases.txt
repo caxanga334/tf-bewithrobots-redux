@@ -2,45 +2,45 @@
 {
 	"Used Upgrade"
 	{
-		"pt"	"{white}[BWRR] {cyan}Você precisa reembolsar suas melhorias para poder entrar na equipe {blue}BLU{cyan}."
+		"pt"	"[BWRR] Você precisa reembolsar suas melhorias para poder entrar na equipe BLU."
 	}
 	"Need Red"
 	{
-		"pt"	"{white}[BWRR] {cyan}Você não pode entrar na equipe {blue}BLU{cyan}. Não há jogadores suficientes na equipe {red}RED{cyan}."
+		"pt"	"[BWRR] Você não pode entrar na equipe BLU. Não há jogadores suficientes na equipe RED."
 	}
 	"Not in Prog"
 	{
-		"pt"	"{white}[BWRR] {cyan}Você não pode entrar na equipe {blue}BLU{cyan} enquanto a onda estiver em progresso. Não há jogadores suficientes na equipe {red}RED{cyan}."
+		"pt"	"[BWRR] Você não pode entrar na equipe BLU enquanto a onda estiver em progresso. Não há jogadores suficientes na equipe RED."
 	}
 	"Blu Full"
 	{
-		"pt"	"{white}[BWRR] {cyan}Você não pode entrar na equipe {blue}BLU{cyan}. A equipe {blue}BLU{cyan} está cheia."
+		"pt"	"[BWRR] Você não pode entrar na equipe BLU. A equipe BLU está cheia."
 	}
 	"Num Red"
 	{
 		"#format"	"{1:d}"
-		"pt"	"{cyan}Deve haver pelo menos {1} jogadores na equipe {red}RED{cyan}."
+		"pt"	"Deve haver pelo menos {1} jogadores na equipe RED."
 	}
 	"Bot Spawn"
 	{
 		"#format"	"{1:s}"
-		"pt"	"{white}[BWRR] {cyan}You've spawned as {green}{1}{cyan}."
+		"pt"	"[BWRR] You've spawned as {1}."
 	}
 	"Unready"
 	{
-		"pt"	"{white}[BWRR] {cyan}Você não pode entrar na equipe {blue}BLU{cyan} enquanto estiver pronto ."
+		"pt"	"[BWRR] Você não pode entrar na equipe BLU enquanto estiver pronto ."
 	}
 	"Moved Blu Full"
 	{
-		"pt"	"{white}[BWRR] {cyan}Você foi movido para a equipe {red}RED{cyan} porque a equipe {blue}BLU{cyan} está cheia."
+		"pt"	"[BWRR] Você foi movido para a equipe RED porque a equipe BLU está cheia."
 	}
 	"Moved Blu Balance"
 	{
-		"pt"	"{white}[BWRR] {cyan}Você foi movido para a equipe {red}RED{cyan} para balancear as equipes."
+		"pt"	"[BWRR] Você foi movido para a equipe RED para balancear as equipes."
 	}
 	"Bomb Deploy"
 	{
 		"#format"	"{1:s}"
-		"pt"	"{white}[BWRR] {green}{1} {cyan}implantou a bomba."
+		"pt"	"[BWRR] {1} implantou a bomba."
 	}
 }

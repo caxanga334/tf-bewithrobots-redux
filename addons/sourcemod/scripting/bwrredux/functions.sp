@@ -84,7 +84,7 @@ void TeleportSpyRobot(int client)
 	NavArea.GetCenter(CenterPos);
 	CenterPos[2] += 25.0;
 	TeleportEntity(client, CenterPos, NULL_VECTOR, NULL_VECTOR);
-	CPrintToChat(client, "{blue}You spawned near {green}%s", targetname);
+	PrintToChat(client, "You spawned near %s", targetname);
 }
 
 // searches for an engineer nest close to the bomb
