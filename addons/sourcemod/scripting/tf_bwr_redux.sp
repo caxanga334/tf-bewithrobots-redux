@@ -1092,6 +1092,12 @@ public Action Command_SetRobot( int client, int nArgs )
 		
 	if(TF2_GetClientTeam(client) != TFTeam_Blue)
 		return Plugin_Handled;
+		
+	if(!TF2Spawn_IsClientInSpawn(client))
+	{
+		ReplyToCommand(client, "This command can only be used inside spawn.");
+		return Plugin_Handled;
+	}
 
 	if( GetEngineTime() < g_flLastForceBot[client] )
 	{
