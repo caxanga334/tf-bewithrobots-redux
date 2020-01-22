@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.12"
+#define PLUGIN_VERSION "0.0.13"
 
 // maximum class variants that exists
 #define MAX_SCOUT 6
@@ -66,6 +66,7 @@ ArrayList array_spawns; // spawn points for human players
 // others
 bool g_bUpgradeStation[MAXPLAYERS + 1];
 float g_flNextBusterTime;
+float g_flLastForceBot[MAXPLAYERS +1 ]; // Last time a player forced a bot
 
 // convars
 ConVar c_iMinRed;
@@ -80,6 +81,7 @@ ConVar c_flBusterDelay; // delay between human sentry buster spawns.
 ConVar c_iBusterMinKills; // minimum amount of kills a sentry needs to have before becoming a threat
 ConVar c_svTag; // server tags
 ConVar c_bDebug; // Enable debug mode
+ConVar c_flForceDelay; // Delay between force bot command usage
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -222,6 +224,7 @@ public void OnPluginStart()
 	c_iBusterMinKills = CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
 	c_flBluRespawnTime = CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Respawn Time for BLU Players.", FCVAR_NONE, true, 5.0, true, 30.0);
 	c_bDebug = CreateConVar("sm_bwrr_debug_enabled", "0.0", "Enable/Disable the debug mode.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_flForceDelay = CreateConVar("sm_bwrr_force_delay", "100.0", "Delay between force bot command usage.", FCVAR_NONE, true, 0.0, true, 600.0);
 	
 	c_svTag = FindConVar("sv_tags");
 	
@@ -247,6 +250,8 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_robotclass", Command_BotClass, "Changes your robot variant." );
 	RegConsoleCmd( "sm_rc", Command_BotClass, "Changes your robot variant." );
 	RegConsoleCmd( "sm_bwrr_players", Command_ShowPlayers, "Shows the players in each team" );
+	RegConsoleCmd( "sm_robotinfo", Command_RobotInfo, "Prints information about a specific robot" );
+	RegConsoleCmd( "sm_setrobot", Command_SetRobot, "Forces a specific robot variant on you." );
 	RegAdminCmd( "sm_bwrr_debug", Command_Debug, ADMFLAG_ROOT, "Prints some debug messages." );
 	RegAdminCmd( "sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
 	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
@@ -986,6 +991,215 @@ public Action Command_ShowPlayers( int client, int nArgs )
 	return Plugin_Handled;
 }
 
+public Action Command_RobotInfo( int client, int nArgs )
+{
+	if( nArgs < 3 )
+	{
+		ReplyToCommand(client, "Usage: sm_robotinfo <class> <type: 0 - normal | 1 - giant> <variant>");
+		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy");
+		return Plugin_Handled;
+	}
+	
+	char arg1[16], arg2[4], arg3[4], strVariantName[128];
+	int iArg2, iArg3;
+	TFClassType TargetClass = TFClass_Unknown;
+	bool bGiants = false;
+	
+	GetCmdArg(1, arg1, sizeof(arg1));
+	GetCmdArg(2, arg2, sizeof(arg2));
+	GetCmdArg(3, arg3, sizeof(arg3));
+	iArg2 = StringToInt(arg2);
+	iArg3 = StringToInt(arg3);
+	
+	if(iArg2 != 0)
+		bGiants = true;
+	
+	if( StrEqual(arg1, "scout", false) )
+	{
+		TargetClass = TFClass_Scout;
+	}
+	else if( StrEqual(arg1, "soldier", false) )
+	{
+		TargetClass = TFClass_Soldier;
+	}
+	else if( StrEqual(arg1, "pyro", false) )
+	{
+		TargetClass = TFClass_Pyro;
+	}
+	else if( StrEqual(arg1, "demoman", false) )
+	{
+		TargetClass = TFClass_DemoMan;
+	}
+	else if( StrEqual(arg1, "heavy", false) )
+	{
+		TargetClass = TFClass_Heavy;
+	}
+	else if( StrEqual(arg1, "engineer", false) )
+	{
+		TargetClass = TFClass_Engineer;
+	}
+	else if( StrEqual(arg1, "medic", false) )
+	{
+		TargetClass = TFClass_Medic;
+	}
+	else if( StrEqual(arg1, "sniper", false) )
+	{
+		TargetClass = TFClass_Sniper;
+	}
+	else if( StrEqual(arg1, "spy", false) )
+	{
+		TargetClass = TFClass_Spy;
+	}
+	
+	if( TargetClass == TFClass_Unknown )
+	{
+		ReplyToCommand(client, "ERROR: Invalid class.");
+		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy.");
+		return Plugin_Handled;
+	}
+	
+	if(IsValidVariant(bGiants, TargetClass, iArg3))
+	{
+		if(bGiants)
+			strVariantName = GetGiantVariantName(TargetClass, iArg3);
+		else
+			strVariantName = GetNormalVariantName(TargetClass, iArg3);
+			
+		ReplyToCommand(client, "ID: %d", iArg3);
+		ReplyToCommand(client, "Name: %s", strVariantName);
+		
+		if(IsClassAvailable(TargetClass, bGiants))
+			ReplyToCommand(client, "Status: Available for the current wave");
+		else
+			ReplyToCommand(client, "Status: Unavailable for the current wave");
+	}
+	else
+		ReplyToCommand(client, "ERROR: Invalid Variant.");
+	
+	return Plugin_Handled;
+}
+
+public Action Command_SetRobot( int client, int nArgs )
+{
+	if(!IsValidClient(client))
+		return Plugin_Handled;
+		
+	if(!IsPlayerAlive(client))
+	{
+		ReplyToCommand(client, "Only living players can use this command.");
+		return Plugin_Handled;
+	}
+		
+	if(TF2_GetClientTeam(client) != TFTeam_Blue)
+		return Plugin_Handled;
+
+	if( GetEngineTime() < g_flLastForceBot[client] )
+	{
+		int iWaitTime = RoundToNearest(g_flLastForceBot[client] - GetEngineTime());
+		ReplyToCommand(client, "You must wait %d seconds before using this command again.", iWaitTime);
+		return Plugin_Handled;
+	}
+
+	if( nArgs < 3 )
+	{
+		ReplyToCommand(client, "Usage: sm_setrobot <class> <type: 0 - normal | 1 - giant> <variant>");
+		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy");
+		return Plugin_Handled;
+	}
+
+	char arg1[16], arg2[4], arg3[4];
+	int iArg2, iArg3;
+	TFClassType TargetClass = TFClass_Unknown;
+	bool bGiants = false;
+	
+	GetCmdArg(1, arg1, sizeof(arg1));
+	GetCmdArg(2, arg2, sizeof(arg2));
+	GetCmdArg(3, arg3, sizeof(arg3));
+	iArg2 = StringToInt(arg2);
+	iArg3 = StringToInt(arg3);
+	
+	if(iArg2 != 0)
+	{
+		bGiants = true;
+		
+		if( !OR_IsGiantAvaiable() && GetTeamClientCount(2) < c_iGiantMinRed.IntValue )
+		{
+			ReplyToCommand(client, "Giant robots are not available.");
+			return Plugin_Handled;
+		}
+	}
+
+	if( StrEqual(arg1, "scout", false) )
+	{
+		TargetClass = TFClass_Scout;
+	}
+	else if( StrEqual(arg1, "soldier", false) )
+	{
+		TargetClass = TFClass_Soldier;
+	}
+	else if( StrEqual(arg1, "pyro", false) )
+	{
+		TargetClass = TFClass_Pyro;
+	}
+	else if( StrEqual(arg1, "demoman", false) )
+	{
+		TargetClass = TFClass_DemoMan;
+	}
+	else if( StrEqual(arg1, "heavy", false) )
+	{
+		TargetClass = TFClass_Heavy;
+	}
+	else if( StrEqual(arg1, "engineer", false) )
+	{
+		TargetClass = TFClass_Engineer;
+	}
+	else if( StrEqual(arg1, "medic", false) )
+	{
+		TargetClass = TFClass_Medic;
+	}
+	else if( StrEqual(arg1, "sniper", false) )
+	{
+		TargetClass = TFClass_Sniper;
+	}
+	else if( StrEqual(arg1, "spy", false) )
+	{
+		TargetClass = TFClass_Spy;
+	}
+	
+	if( TargetClass == TFClass_Unknown )
+	{
+		ReplyToCommand(client, "ERROR: Invalid class.");
+		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy.");
+		return Plugin_Handled;
+	}
+	
+	if(IsValidVariant(bGiants, TargetClass, iArg3))
+	{
+		if(IsClassAvailable(TargetClass, bGiants))
+		{
+			if(bGiants)
+				SetRobotOnPlayer(client, iArg3, Bot_Giant, TargetClass);
+			else
+				SetRobotOnPlayer(client, iArg3, Bot_Normal, TargetClass);
+				
+			g_flLastForceBot[client] = GetEngineTime() + c_flForceDelay.FloatValue;
+		}
+		else
+		{
+			ReplyToCommand(client, "This robot is not available for this wave");
+			g_flLastForceBot[client] = GetEngineTime() + 5.0; // small cooldown
+			return Plugin_Handled;
+		}
+	}
+	else
+	{
+		ReplyToCommand(client, "ERROR: Invalid Variant.");
+		g_flLastForceBot[client] = GetEngineTime() + 5.0; // small cooldown
+	}
+	
+	return Plugin_Handled;
+}
+
 /****************************************************
 					LISTENER
 *****************************************************/
@@ -1103,6 +1317,10 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	UpdateClassArray();
 	CheckTeams();
 	g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		g_flLastForceBot[i] = GetEngineTime();
+	}
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
@@ -2280,6 +2498,43 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 	}
 }
 
+// Sets a specific robot on a player
+void SetRobotOnPlayer(int client, int iVariant, int type, TFClassType TFClass)
+{
+	if(!IsValidClient(client) && !IsPlayerAlive(client))
+		return;
+		
+	if(TF2_GetClientTeam(client) != TFTeam_Blue)
+		return;
+		
+	if(type == Bot_Giant)
+	{
+		if(!IsValidVariant(true, TFClass, iVariant))
+		{
+			return;
+		}
+	}
+	else
+	{
+		if(!IsValidVariant(false, TFClass, iVariant))
+		{
+			return;
+		}
+	}
+
+	p_iBotType[client] = type;
+	p_iBotVariant[client] = iVariant;
+	p_BotClass[client] = TFClass;
+
+	if(type == Bot_Giant)
+		SetGiantVariantExtras(client, TFClass, iVariant);
+	else
+		SetVariantExtras(client, TFClass, iVariant);
+		
+	CreateTimer(0.1, Timer_SetRobotClass, client);
+	CreateTimer(0.5, Timer_Respawn, client);
+}
+
 /**
  * Checks if a robot variant is valid.
  *
@@ -2629,6 +2884,7 @@ void ResetRobotData(int client, bool bStrip = false)
 	p_bSpawned[client] = false;
 	g_bIsCarrier[client] = false;
 	g_bUpgradeStation[client] = false;
+	g_flLastForceBot[client] = GetEngineTime();
 	if( bStrip )
 		StripWeapons(client);
 }
