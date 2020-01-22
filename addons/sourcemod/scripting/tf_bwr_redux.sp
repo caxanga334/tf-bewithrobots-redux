@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.11"
+#define PLUGIN_VERSION "0.0.12"
 
 // maximum class variants that exists
 #define MAX_SCOUT 6
@@ -66,7 +66,6 @@ ArrayList array_spawns; // spawn points for human players
 // others
 bool g_bUpgradeStation[MAXPLAYERS + 1];
 float g_flNextBusterTime;
-Handle HT_HumanRobotWaveSpawn;
 
 // convars
 ConVar c_iMinRed;
@@ -221,7 +220,7 @@ public void OnPluginStart()
 	c_bSmallMap = CreateConVar("sm_bwrr_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_flBusterDelay = CreateConVar("sm_bwrr_sentry_buster_delay", "95.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
 	c_iBusterMinKills = CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
-	c_flBluRespawnTime = CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Wave respawn time for BLU players.", FCVAR_NONE, true, 5.0, true, 30.0);
+	c_flBluRespawnTime = CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Respawn Time for BLU Players.", FCVAR_NONE, true, 5.0, true, 30.0);
 	c_bDebug = CreateConVar("sm_bwrr_debug_enabled", "0.0", "Enable/Disable the debug mode.", FCVAR_NONE, true, 0.0, true, 1.0);
 	
 	c_svTag = FindConVar("sv_tags");
@@ -380,7 +379,6 @@ public void OnGameFrame()
 		{		
 			if(TF2_GetClientTeam(i) == TFTeam_Blue)
 			{
-				RoboPlayer rp = RoboPlayer(i);
 				if( GameRules_GetRoundState() == RoundState_BetweenRounds )
 				{
 					TF2_AddCondition(i, TFCond_FreezeInput, 0.255);
@@ -391,7 +389,7 @@ public void OnGameFrame()
 					TF2_AddCondition(i, TFCond_UberchargedHidden, 0.255);
 				}
 				
-				if( rp.Attributes & BotAttrib_InfiniteCloak )
+				if( p_iBotAttrib[i] & BotAttrib_InfiniteCloak )
 				{
 					SetEntPropFloat( i, Prop_Send, "m_flCloakMeter", 100.0 );
 				}
@@ -660,10 +658,8 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
-	//MovePlayerToBLU(client);
+	MovePlayerToBLU(client);
 	p_iBotTeam[client] = TFTeam_Blue;
-	MovePlayerToSpec(client);
-	ReplyToCommand(client, "You have joined BLU queue. You will spawn when the wave starts");
 	return Plugin_Handled;
 }
 
@@ -698,6 +694,7 @@ public Action Command_Debug( int client, int nArgs )
 	
 	ReplyToCommand(client, "Class Array Size: %i", array_avclass.Length);
 	ReplyToCommand(client, "Giant Array Size: %i", array_avgiants.Length);
+	ReplyToCommand(client, "Client Data: RT: %d, RV: %d, RA: %d", p_iBotType[client], p_iBotVariant[client], p_iBotAttrib[client]);
 	
 	return Plugin_Handled;
 }
@@ -806,16 +803,16 @@ public Action Command_ForceBot( int client, int nArgs )
 	{
 		if( TF2_GetClientTeam(target_list[i]) == TFTeam_Blue )
 		{
-			p_iBotVariant[i] = iArg4;
-			p_BotClass[i] = TargetClass;
+			p_iBotVariant[target_list[i]] = iArg4;
+			p_BotClass[target_list[i]] = TargetClass;
 			if(bForceGiants)
 			{
-				p_iBotType[i] = Bot_Giant;
+				p_iBotType[target_list[i]] = Bot_Giant;
 				SetGiantVariantExtras(target_list[i],TargetClass, iArg4);
 			}
 			else
 			{
-				p_iBotType[i] = Bot_Normal;
+				p_iBotType[target_list[i]] = Bot_Normal;
 				SetVariantExtras(target_list[i],TargetClass, iArg4);
 			}
 			TF2_SetPlayerClass(target_list[i], TargetClass, _, true);
@@ -902,8 +899,7 @@ public Action Command_MoveTeam( int client, int nArgs )
 			else
 			{
 				p_iBotTeam[i] = TFTeam_Blue;
-				//MovePlayerToBLU(target_list[i]);
-				RemovePlayerFromBLU(target_list[i]);
+				MovePlayerToBLU(target_list[i]);
 			}
 		}
 		else if( NewTargetTeam == TFTeam_Red )
@@ -1107,7 +1103,6 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	UpdateClassArray();
 	CheckTeams();
 	g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
-	CreateWaveTimer();
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
@@ -1120,7 +1115,6 @@ public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 			CreateTimer(3.0, Timer_UpdateRobotClasses, i);
 		}
 	}
-	DeleteWaveTimer();
 }
 
 public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
@@ -1128,7 +1122,6 @@ public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 	OR_Update();
 	UpdateClassArray();
 	CreateTimer(2.0, Timer_RemoveFromSpec);
-	DeleteWaveTimer();
 }
 
 public Action E_MissionComplete(Event event, const char[] name, bool dontBroadcast)
@@ -1140,7 +1133,6 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 			MovePlayerToSpec(i);
 		}
 	}
-	DeleteWaveTimer();
 }
 
 public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
@@ -1246,7 +1238,8 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			Robot_GibGiant(client, clientPosVec);
 		}
 		
-		CreateTimer(0.15, Timer_RemoveFromBLU, client);
+		CreateTimer(c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client);
+		CreateTimer(1.0, Timer_PickRandomRobot, client);
 	}
 	
 	return Plugin_Continue;
@@ -1514,7 +1507,7 @@ public Action Timer_OnFakePlayerSpawn(Handle timer, any client)
 	
 	return Plugin_Stop;
 }
-
+// Delayed set class to fix some small bugs
 public Action Timer_SetRobotClass(Handle timer, any client)
 {
 	if( !IsValidClient(client) || IsFakeClient(client) )
@@ -1545,27 +1538,12 @@ public Action Timer_RespawnBLUPlayer(Handle timer, any client)
 	return Plugin_Stop;
 }
 
-public Action Timer_WaveSpawnBluHuman(Handle timer)
-{
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if( IsValidClient(i) && !IsFakeClient(i) && !IsPlayerAlive(i) && GameRules_GetRoundState() == RoundState_RoundRunning )
-		{
-			if( p_iBotTeam[i] == TFTeam_Blue && TF2_GetClientTeam(i) == TFTeam_Spectator )
-			{
-				MovePlayerToBLU(i);
-				CreateTimer(1.0, Timer_RespawnBLUPlayer, i);
-			}
-		}
-	}
-}
-
-public Action Timer_RemoveFromBLU(Handle timer, any client)
+public Action Timer_PickRandomRobot(Handle timer, any client)
 {
 	if( !IsValidClient(client) || IsFakeClient(client) )
 		return Plugin_Stop;
 		
-	RemovePlayerFromBLU(client);
+	PickRandomRobot(client);
 	
 	return Plugin_Stop;
 }
@@ -1606,7 +1584,8 @@ public Action Timer_UpdateRobotClasses(Handle timer, any client)
 	
 	return Plugin_Stop;
 }
-
+// Used to move players back to RED team when a wave fails
+// TF2 automatically removes humans from BLU team when a wave is lost
 public Action Timer_RemoveFromSpec(Handle timer, any client)
 {
 	for(int i = 1; i <= MaxClients; i++)
@@ -1632,10 +1611,10 @@ public Action Timer_BuildObject(Handle timer, any index)
 		if( strcmp(classname, "obj_sentrygun", false) == 0 )
 		{
 			if( GetEntProp( index, Prop_Send, "m_bMiniBuilding" ) == 1 || GetEntProp( index, Prop_Send, "m_bDisposableBuilding" ) == 1 )
-			{
+			{ // mini building, don't set to level 3
 				DispatchKeyValue(index, "defaultupgrade", "0");
 			}
-			else
+			else // normal building, set to level 3
 			{
 				DispatchKeyValue(index, "defaultupgrade", "2");
 			}
@@ -1651,7 +1630,7 @@ public Action Timer_BuildObject(Handle timer, any index)
 		{
 			int iBuilder = GetEntPropEnt( index, Prop_Send, "m_hBuilder" );
 			if( p_iBotAttrib[iBuilder] & BotAttrib_CannotBuildTele )
-			{
+			{ // This engineer variant can't building teleporters
 				SetVariantInt(9999);
 				AcceptEntityInput(index, "RemoveHealth");
 				PrintCenterText(iBuilder, "YOU CANNOT BUILD TELEPORTERS");
@@ -1660,6 +1639,7 @@ public Action Timer_BuildObject(Handle timer, any index)
 			{
 				SetVariantInt(9999);
 				AcceptEntityInput(index, "RemoveHealth");
+				PrintCenterText(iBuilder, "BUILD EXIT");
 			}
 			else
 			{
@@ -1927,17 +1907,17 @@ void MovePlayerToRED(int client)
 // moves players to spectator
 void MovePlayerToSpec(int client)
 {
+	if(IsFakeClient(client))
+		return;
+
 	StopRobotLoopSound(client);
 	ScalePlayerModel(client, 1.0);
 	ResetRobotData(client, true);
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
-	if( !IsFakeClient(client) )
-	{
-		SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
-		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
-		SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
-	}
+	SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
+	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
+	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
 	LogMessage("Player \"%L\" joined SPECTATOR team.", client);
 	TF2_ChangeClientTeam(client, TFTeam_Spectator);
 }
@@ -1945,14 +1925,14 @@ void MovePlayerToSpec(int client)
 // moves player to BLU team.
 void MovePlayerToBLU(int client)
 {
+	if(IsFakeClient(client))
+		return;
+
 	StopRobotLoopSound(client);
 	ForcePlayerSuicide(client);
-	if( !IsFakeClient(client) )
-	{
-		SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
-		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
-		SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(true) );
-	}
+	SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
+	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
+	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(true) );
 	
 	int iEntFlags = GetEntityFlags( client );
 	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
@@ -1962,22 +1942,6 @@ void MovePlayerToBLU(int client)
 	
 	ScalePlayerModel(client, 1.0);
 	PickRandomRobot(client);
-}
-
-// special funcstions that moves players to spectator without data reset
-void RemovePlayerFromBLU(int client)
-{
-	if(IsFakeClient(client))
-		return;
-	
-	StopRobotLoopSound(client);
-	ScalePlayerModel(client, 1.0);
-	SetVariantString( "" );
-	AcceptEntityInput( client, "SetCustomModel" );
-	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
-	SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
-	SetEntProp( client, Prop_Send, "m_bIsABot", 0 );
-	TF2_ChangeClientTeam(client, TFTeam_Spectator);
 }
 
 // returns the number of human players on BLU/ROBOT team
@@ -3045,27 +3009,6 @@ void ApplyRobotLoopSound(int client)
 
 	StopRobotLoopSound(client);
 	CreateTimer(0.2, Timer_ApplyRobotSound, client, TIMER_FLAG_NO_MAPCHANGE);
-}
-
-// wave spawn manager
-
-void CreateWaveTimer()
-{
-	if( HT_HumanRobotWaveSpawn != INVALID_HANDLE )	
-	{
-		KillTimer(HT_HumanRobotWaveSpawn);
-		HT_HumanRobotWaveSpawn = INVALID_HANDLE;
-	}
-	HT_HumanRobotWaveSpawn = CreateTimer(c_flBluRespawnTime.FloatValue, Timer_WaveSpawnBluHuman, _, TIMER_REPEAT);
-}
-
-void DeleteWaveTimer()
-{	
-	if( HT_HumanRobotWaveSpawn != INVALID_HANDLE )	
-	{
-		KillTimer(HT_HumanRobotWaveSpawn);
-		HT_HumanRobotWaveSpawn = INVALID_HANDLE;
-	}	
 }
 
 // end wave spawn manager

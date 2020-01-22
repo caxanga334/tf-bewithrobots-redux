@@ -417,7 +417,9 @@ void OnDestroyedTeleporter(const char[] output, int caller, int activator, float
 {
 	AcceptEntityInput(caller,"KillHierarchy");
 }
-
+// Fires a bunch of tracers to check if there is enough space for robots (and giants) to spawn.
+// The player size can be found here: https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper's_Reference
+// Remember that giant's size is multiplied by 1.75 (some bosses uses 1.9).
 bool CheckTeleportClamping(int telepoter)
 {
 	float VecTeleporter[3], RayAngles[3], RayEndPos[3];
