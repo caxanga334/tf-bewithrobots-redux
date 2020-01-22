@@ -1113,7 +1113,7 @@ public Action Command_SetRobot( int client, int nArgs )
 		return Plugin_Handled;
 	}
 
-	char arg1[16], arg2[4], arg3[4];
+	char arg1[16], arg2[4], arg3[4], strVariantName[128];
 	int iArg2, iArg3;
 	TFClassType TargetClass = TFClass_Unknown;
 	bool bGiants = false;
@@ -1184,11 +1184,18 @@ public Action Command_SetRobot( int client, int nArgs )
 		if(IsClassAvailable(TargetClass, bGiants))
 		{
 			if(bGiants)
+			{
 				SetRobotOnPlayer(client, iArg3, Bot_Giant, TargetClass);
+				strVariantName = GetGiantVariantName(TargetClass, iArg3);
+			}
 			else
+			{
 				SetRobotOnPlayer(client, iArg3, Bot_Normal, TargetClass);
+				strVariantName = GetNormalVariantName(TargetClass, iArg3);
+			}
 				
 			g_flLastForceBot[client] = GetEngineTime() + c_flForceDelay.FloatValue;
+			LogAction(client, -1, "\"%L\" changed to %s", client, strVariantName);
 		}
 		else
 		{
