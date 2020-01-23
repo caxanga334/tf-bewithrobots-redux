@@ -1000,7 +1000,7 @@ public Action Command_RobotInfo( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
-	char arg1[16], arg2[4], arg3[4], strVariantName[128];
+	char arg1[16], arg2[16], arg3[16], strVariantName[128];
 	int iArg2, iArg3;
 	TFClassType TargetClass = TFClass_Unknown;
 	bool bGiants = false;
@@ -1010,6 +1010,12 @@ public Action Command_RobotInfo( int client, int nArgs )
 	GetCmdArg(3, arg3, sizeof(arg3));
 	iArg2 = StringToInt(arg2);
 	iArg3 = StringToInt(arg3);
+	
+	if( iArg2 < 0 || iArg2 > 1 )
+	{
+		ReplyToCommand(client, "ERROR: Use 0 for Normal Bot and 1 for Giant Bot");
+		return Plugin_Handled;
+	}
 	
 	if(iArg2 != 0)
 		bGiants = true;
@@ -1113,7 +1119,7 @@ public Action Command_SetRobot( int client, int nArgs )
 		return Plugin_Handled;
 	}
 
-	char arg1[16], arg2[4], arg3[4], strVariantName[128];
+	char arg1[16], arg2[16], arg3[16], strVariantName[128];
 	int iArg2, iArg3;
 	TFClassType TargetClass = TFClass_Unknown;
 	bool bGiants = false;
@@ -1123,6 +1129,12 @@ public Action Command_SetRobot( int client, int nArgs )
 	GetCmdArg(3, arg3, sizeof(arg3));
 	iArg2 = StringToInt(arg2);
 	iArg3 = StringToInt(arg3);
+	
+	if( iArg2 < 0 || iArg2 > 1 )
+	{
+		ReplyToCommand(client, "ERROR: Use 0 for Normal Bot and 1 for Giant Bot");
+		return Plugin_Handled;
+	}
 	
 	if(iArg2 != 0)
 	{
@@ -2127,7 +2139,7 @@ void MovePlayerToRED(int client)
 	AcceptEntityInput( client, "SetCustomModel" );
 	LogMessage("Player \"%L\" joined RED team.", client);
 	ChangeClientTeam(client, view_as<int>(TFTeam_Red));
-	SetEntProp(client, Prop_Send, "m_iTeamNum", view_as<int>(TFTeam_Red));
+	SetEntProp( client, Prop_Send, "m_iTeamNum", view_as<int>(TFTeam_Red));
 	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
 	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 	
