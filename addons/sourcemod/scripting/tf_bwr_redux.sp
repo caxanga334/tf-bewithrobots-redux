@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.13"
+#define PLUGIN_VERSION "0.0.14"
 
 // maximum class variants that exists
 #define MAX_SCOUT 6
@@ -212,7 +212,7 @@ stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 public void OnPluginStart()
 {
 	// convars
-	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD|FCVAR_SPONLY);
+	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
 	c_iMinRed = CreateConVar("sm_bwrr_minred", "5", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
 	c_iMinRedinProg = CreateConVar("sm_bwrr_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
 	c_iGiantChance = CreateConVar("sm_bwrr_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
@@ -252,6 +252,7 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_bwrr_players", Command_ShowPlayers, "Shows the players in each team" );
 	RegConsoleCmd( "sm_robotinfo", Command_RobotInfo, "Prints information about a specific robot" );
 	RegConsoleCmd( "sm_setrobot", Command_SetRobot, "Forces a specific robot variant on you." );
+	RegConsoleCmd( "sm_waveinfo", Command_WaveInfo, "Prints information about the current wave." );
 	RegAdminCmd( "sm_bwrr_debug", Command_Debug, ADMFLAG_ROOT, "Prints some debug messages." );
 	RegAdminCmd( "sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
 	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
@@ -1221,6 +1222,99 @@ public Action Command_SetRobot( int client, int nArgs )
 		ReplyToCommand(client, "ERROR: Invalid Variant.");
 		g_flLastForceBot[client] = GetEngineTime() + 5.0; // small cooldown
 	}
+	
+	return Plugin_Handled;
+}
+// Prints information about the current wave.
+public Action Command_WaveInfo( int client, int nArgs )
+{
+	if(!IsClientInGame(client))
+		return Plugin_Handled;
+
+	int iAvailable = OR_GetAvailableClasses();
+	int iCurrentWave = OR_GetCurrentWave();
+	int iMaxWave = OR_GetMaxWave();
+	char strNormalBots[256], strGiantBots[256];
+	
+	if(iAvailable & scout_normal) // scout
+	{
+		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Scout");
+	}
+	if(iAvailable & soldier_normal) // soldier
+	{
+		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Soldier");
+	}
+	if(iAvailable & pyro_normal) // pyro
+	{
+		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Pyro");
+	}
+	if(iAvailable & demoman_normal) // demoman
+	{
+		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Demoman");
+	}
+	if(iAvailable & heavy_normal) // heavy
+	{
+		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Heavy");
+	}
+	if(iAvailable & engineer_normal) // engineer
+	{
+		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Engineer");
+	}
+	if(iAvailable & medic_normal) // medic
+	{
+		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Medic");
+	}
+	if(iAvailable & sniper_normal) // sniper
+	{
+		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Sniper");
+	}
+	if(iAvailable & spy_normal) // spy
+	{
+		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Spy");
+	}
+	
+	// Giants
+	if(iAvailable & scout_giant) // scout
+	{
+		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Scout");
+	}
+	if(iAvailable & soldier_giant) // soldier
+	{
+		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Soldier");
+	}
+	if(iAvailable & pyro_giant) // pyro
+	{
+		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Pyro");
+	}
+	if(iAvailable & demoman_giant) // demoman
+	{
+		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Demoman");
+	}
+	if(iAvailable & heavy_giant) // heavy
+	{
+		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Heavy");
+	}
+	if(iAvailable & engineer_giant) // engineer
+	{
+		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Engineer");
+	}
+	if(iAvailable & medic_giant) // medic
+	{
+		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Medic");
+	}
+	if(iAvailable & sniper_giant) // sniper
+	{
+		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Sniper");
+	}
+	if(iAvailable & spy_giant) // spy
+	{
+		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Spy");
+	}
+	
+	ReplyToCommand(client, "Wave %d of %d", iCurrentWave, iMaxWave);
+	ReplyToCommand(client, "Available Robots:");
+	ReplyToCommand(client, "Normal Robots: %s", strNormalBots);
+	ReplyToCommand(client, "Giant Robots: %s", strGiantBots);
 	
 	return Plugin_Handled;
 }
