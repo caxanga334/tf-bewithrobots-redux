@@ -1230,88 +1230,90 @@ public Action Command_WaveInfo( int client, int nArgs )
 {
 	if(!IsClientInGame(client))
 		return Plugin_Handled;
-
-	int iAvailable = OR_GetAvailableClasses();
-	int iCurrentWave = OR_GetCurrentWave();
-	int iMaxWave = OR_GetMaxWave();
+		
+	int iABots, iCW, iMW;
 	char strNormalBots[256], strGiantBots[256];
+
+	iABots = OR_GetAvailableClasses();
+	iCW = OR_GetCurrentWave();
+	iMW = OR_GetMaxWave();
 	
-	if(iAvailable & scout_normal) // scout
+	if(iABots & scout_normal) // scout
 	{
 		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Scout");
 	}
-	if(iAvailable & soldier_normal) // soldier
+	if(iABots & soldier_normal) // soldier
 	{
 		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Soldier");
 	}
-	if(iAvailable & pyro_normal) // pyro
+	if(iABots & pyro_normal) // pyro
 	{
 		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Pyro");
 	}
-	if(iAvailable & demoman_normal) // demoman
+	if(iABots & demoman_normal) // demoman
 	{
 		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Demoman");
 	}
-	if(iAvailable & heavy_normal) // heavy
+	if(iABots & heavy_normal) // heavy
 	{
 		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Heavy");
 	}
-	if(iAvailable & engineer_normal) // engineer
+	if(iABots & engineer_normal) // engineer
 	{
 		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Engineer");
 	}
-	if(iAvailable & medic_normal) // medic
+	if(iABots & medic_normal) // medic
 	{
 		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Medic");
 	}
-	if(iAvailable & sniper_normal) // sniper
+	if(iABots & sniper_normal) // sniper
 	{
 		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Sniper");
 	}
-	if(iAvailable & spy_normal) // spy
+	if(iABots & spy_normal) // spy
 	{
 		Format(strNormalBots, sizeof(strNormalBots), "%s %s", strNormalBots, "Spy");
 	}
 	
 	// Giants
-	if(iAvailable & scout_giant) // scout
+	if(iABots & scout_giant) // scout
 	{
 		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Scout");
 	}
-	if(iAvailable & soldier_giant) // soldier
+	if(iABots & soldier_giant) // soldier
 	{
 		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Soldier");
 	}
-	if(iAvailable & pyro_giant) // pyro
+	if(iABots & pyro_giant) // pyro
 	{
 		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Pyro");
 	}
-	if(iAvailable & demoman_giant) // demoman
+	if(iABots & demoman_giant) // demoman
 	{
 		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Demoman");
 	}
-	if(iAvailable & heavy_giant) // heavy
+	if(iABots & heavy_giant) // heavy
 	{
 		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Heavy");
 	}
-	if(iAvailable & engineer_giant) // engineer
+	if(iABots & engineer_giant) // engineer
 	{
 		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Engineer");
 	}
-	if(iAvailable & medic_giant) // medic
+	if(iABots & medic_giant) // medic
 	{
 		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Medic");
 	}
-	if(iAvailable & sniper_giant) // sniper
+	if(iABots & sniper_giant) // sniper
 	{
 		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Sniper");
 	}
-	if(iAvailable & spy_giant) // spy
+	if(iABots & spy_giant) // spy
 	{
 		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Spy");
 	}
 	
-	ReplyToCommand(client, "Wave %d of %d", iCurrentWave, iMaxWave);
+	ReplyToCommand(client, "Wave %d of %d", iCW, iMW);
 	ReplyToCommand(client, "Available Robots:");
 	ReplyToCommand(client, "Normal Robots: %s", strNormalBots);
 	ReplyToCommand(client, "Giant Robots: %s", strGiantBots);
@@ -2308,82 +2310,82 @@ bool IsSmallMap()
 // use the function OR_Update to read the tf_objective_resource's data.
 void UpdateClassArray()
 {
-	int iAvailable = OR_GetAvailableClasses();
+	int iABots = OR_GetAvailableClasses();
 	
 	array_avclass.Clear();
 	array_avgiants.Clear();
 	
-	if(iAvailable & scout_normal) // scout
+	if(iABots & scout_normal) // scout
 	{
 		array_avclass.Push(1); // this number is the same as TFClassType enum
 	}
-	if(iAvailable & soldier_normal) // soldier
+	if(iABots & soldier_normal) // soldier
 	{
 		array_avclass.Push(3);
 	}
-	if(iAvailable & pyro_normal) // pyro
+	if(iABots & pyro_normal) // pyro
 	{
 		array_avclass.Push(7);
 	}
-	if(iAvailable & demoman_normal) // demoman
+	if(iABots & demoman_normal) // demoman
 	{
 		array_avclass.Push(4);
 	}
-	if(iAvailable & heavy_normal) // heavy
+	if(iABots & heavy_normal) // heavy
 	{
 		array_avclass.Push(6);
 	}
-	if(iAvailable & engineer_normal) // engineer
+	if(iABots & engineer_normal) // engineer
 	{
 		array_avclass.Push(9);
 	}
-	if(iAvailable & medic_normal) // medic
+	if(iABots & medic_normal) // medic
 	{
 		array_avclass.Push(5);
 	}
-	if(iAvailable & sniper_normal) // sniper
+	if(iABots & sniper_normal) // sniper
 	{
 		array_avclass.Push(2);
 	}
-	if(iAvailable & spy_normal) // spy
+	if(iABots & spy_normal) // spy
 	{
 		array_avclass.Push(8);
 	}
 	
 	// Giants
-	if(iAvailable & scout_giant) // scout
+	if(iABots & scout_giant) // scout
 	{
 		array_avgiants.Push(1); // this number is the same as TFClassType enum
 	}
-	if(iAvailable & soldier_giant) // soldier
+	if(iABots & soldier_giant) // soldier
 	{
 		array_avgiants.Push(3);
 	}
-	if(iAvailable & pyro_giant) // pyro
+	if(iABots & pyro_giant) // pyro
 	{
 		array_avgiants.Push(7);
 	}
-	if(iAvailable & demoman_giant) // demoman
+	if(iABots & demoman_giant) // demoman
 	{
 		array_avgiants.Push(4);
 	}
-	if(iAvailable & heavy_giant) // heavy
+	if(iABots & heavy_giant) // heavy
 	{
 		array_avgiants.Push(6);
 	}
-	if(iAvailable & engineer_giant) // engineer
+	if(iABots & engineer_giant) // engineer
 	{
 		array_avgiants.Push(9);
 	}
-	if(iAvailable & medic_giant) // medic
+	if(iABots & medic_giant) // medic
 	{
 		array_avgiants.Push(5);
 	}
-	if(iAvailable & sniper_giant) // sniper
+	if(iABots & sniper_giant) // sniper
 	{
 		array_avgiants.Push(2);
 	}
-	if(iAvailable & spy_giant) // spy
+	if(iABots & spy_giant) // spy
 	{
 		array_avgiants.Push(8);
 	}
@@ -2418,12 +2420,12 @@ void PickRandomRobot(int client)
 	if(!IsClientInGame(client) || IsFakeClient(client))
 		return;
 	
-	int iAvailable = OR_GetAvailableClasses();
+	int iABots = OR_GetAvailableClasses();
 	int iSize, iRandom, iClass;
 	bool bGiants = false;
 	
 	// First, check if we can spawn a buster.
-	if(iAvailable & 512 && GameRules_GetRoundState() == RoundState_RoundRunning)
+	if(iABots & 512 && GameRules_GetRoundState() == RoundState_RoundRunning)
 	{
 		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() )
 		{
