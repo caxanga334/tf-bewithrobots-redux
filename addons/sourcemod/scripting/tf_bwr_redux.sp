@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.14"
+#define PLUGIN_VERSION "0.0.15"
 
 // maximum class variants that exists
 #define MAX_SCOUT 6
@@ -1701,6 +1701,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			if( TFClass == TFClass_Medic )
 			{
+				SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 ); // Medigun's Shield
 				int iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary);
 				if( IsValidEdict( iWeapon ) )
 					SetEntPropFloat( iWeapon, Prop_Send, "m_flChargeLevel", 1.0 );
