@@ -1,7 +1,7 @@
 #include <sourcemod>
 #include <tf2>
 #include <tf2_stocks>
-//#include <morecolors>
+#include <autoexecconfig>
 #include <caxanga334>
 #define REQUIRE_PLUGIN
 #include <tf2attributes>
@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.15"
+#define PLUGIN_VERSION "0.0.16"
 
 // maximum class variants that exists
 #define MAX_SCOUT 6
@@ -82,6 +82,7 @@ ConVar c_iBusterMinKills; // minimum amount of kills a sentry needs to have befo
 ConVar c_svTag; // server tags
 ConVar c_bDebug; // Enable debug mode
 ConVar c_flForceDelay; // Delay between force bot command usage
+ConVar c_flFDGiant // Extra delay added when the forced bot is a giant
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -211,20 +212,32 @@ stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 
 public void OnPluginStart()
 {
+	// Sets the file for the include, must be done before using most other functions
+	// The .cfg file extension can be left off
+	AutoExecConfig_SetFile("plugin.bwrredux");
+
 	// convars
 	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
-	c_iMinRed = CreateConVar("sm_bwrr_minred", "5", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
-	c_iMinRedinProg = CreateConVar("sm_bwrr_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
-	c_iGiantChance = CreateConVar("sm_bwrr_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
-	c_iGiantMinRed = CreateConVar("sm_bwrr_giantminred", "5", "Minimum amount of players on RED team to allow human giants. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 8.0);
-	c_iMaxBlu = CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 5.0);
-	c_bAutoTeamBalance = CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_bSmallMap = CreateConVar("sm_bwrr_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_flBusterDelay = CreateConVar("sm_bwrr_sentry_buster_delay", "95.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
-	c_iBusterMinKills = CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
-	c_flBluRespawnTime = CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Respawn Time for BLU Players.", FCVAR_NONE, true, 5.0, true, 30.0);
-	c_bDebug = CreateConVar("sm_bwrr_debug_enabled", "0.0", "Enable/Disable the debug mode.", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_flForceDelay = CreateConVar("sm_bwrr_force_delay", "100.0", "Delay between force bot command usage.", FCVAR_NONE, true, 0.0, true, 600.0);
+	c_iMinRed = AutoExecConfig_CreateConVar("sm_bwrr_minred", "5", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
+	c_iMinRedinProg = AutoExecConfig_CreateConVar("sm_bwrr_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
+	c_iGiantChance = AutoExecConfig_CreateConVar("sm_bwrr_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_iGiantMinRed = AutoExecConfig_CreateConVar("sm_bwrr_giantminred", "5", "Minimum amount of players on RED team to allow human giants. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 8.0);
+	c_iMaxBlu = AutoExecConfig_CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 5.0);
+	c_bAutoTeamBalance = AutoExecConfig_CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bSmallMap = AutoExecConfig_CreateConVar("sm_bwrr_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_flBusterDelay = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_delay", "95.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
+	c_iBusterMinKills = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
+	c_flBluRespawnTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Respawn Time for BLU Players.", FCVAR_NONE, true, 5.0, true, 30.0);
+	c_bDebug = AutoExecConfig_CreateConVar("sm_bwrr_debug_enabled", "0.0", "Enable/Disable the debug mode.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_flForceDelay = AutoExecConfig_CreateConVar("sm_bwrr_force_delay", "100.0", "Delay between force bot command usage.", FCVAR_NONE, true, 0.0, true, 600.0);
+	c_flFDGiant = AutoExecConfig_CreateConVar("sm_bwrr_force_giant_delay", "50.0", "Extra delay that will be added to sm_setrobot if the spawned robot is a giant", FCVAR_NONE, true, 0.0, true, 300.0);
+	
+	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
+	AutoExecConfig_ExecuteFile();
+	
+	// Cleaning is an optional operation that removes whitespaces that might have been introduced and formats the file in a certain way
+	// It is an expensive operation (file operations is relatively slow) and should be done at the end when the file will not be written to anymore
+	AutoExecConfig_CleanFile();
 	
 	c_svTag = FindConVar("sv_tags");
 	
@@ -294,8 +307,6 @@ public void OnPluginStart()
 	array_avclass = new ArrayList(10);
 	array_avgiants = new ArrayList(10);
 	array_spawns = new ArrayList();
-	
-	AutoExecConfig(true, "plugin.bwrredux");
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -1098,7 +1109,10 @@ public Action Command_SetRobot( int client, int nArgs )
 	}
 		
 	if(TF2_GetClientTeam(client) != TFTeam_Blue)
+	{
+		ReplyToCommand(client, "This command an only be used by BLU players");
 		return Plugin_Handled;
+	}
 		
 	if(!TF2Spawn_IsClientInSpawn(client))
 	{
@@ -1206,8 +1220,6 @@ public Action Command_SetRobot( int client, int nArgs )
 				SetRobotOnPlayer(client, iArg3, Bot_Normal, TargetClass);
 				strVariantName = GetNormalVariantName(TargetClass, iArg3);
 			}
-				
-			g_flLastForceBot[client] = GetEngineTime() + c_flForceDelay.FloatValue;
 			LogAction(client, -1, "\"%L\" changed to %s", client, strVariantName);
 		}
 		else
@@ -1221,7 +1233,24 @@ public Action Command_SetRobot( int client, int nArgs )
 	{
 		ReplyToCommand(client, "ERROR: Invalid Variant.");
 		g_flLastForceBot[client] = GetEngineTime() + 5.0; // small cooldown
+		return Plugin_Handled;
 	}
+	
+	if(GameRules_GetRoundState() == RoundState_BetweenRounds)
+	{
+		g_flLastForceBot[client] = GetEngineTime() + 5.0; // small cooldown when the wave is not in progress
+		return Plugin_Handled;
+	}
+	
+	if(bGiants)
+	{
+		g_flLastForceBot[client] = GetEngineTime() + c_flForceDelay.FloatValue + c_flFDGiant.FloatValue;
+	}
+	else
+	{
+		g_flLastForceBot[client] = GetEngineTime() + c_flForceDelay.FloatValue;
+	}
+	
 	
 	return Plugin_Handled;
 }
