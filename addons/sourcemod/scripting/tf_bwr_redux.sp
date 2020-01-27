@@ -1435,6 +1435,9 @@ public Action Listener_Build(int client, const char[] command, int argc)
 
 public Action Listener_CallVote(int client, const char[] command, int argc)
 {
+	if(!IsValidClient(client))
+		return Plugin_Handled;
+
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
 		return Plugin_Handled;
@@ -2475,6 +2478,9 @@ void PickRandomRobot(int client)
 		bGiants = true;
 	}
 	
+	if( array_avgiants.Length >= 1 && array_avclass.Length < 1 ) // Normal robots not available for the current wave.
+		bGiants = true;
+	
 	if( bGiants ) // Spawn the player as a giant robot.
 	{
 		iSize = GetArraySize(array_avgiants) - 1;
@@ -3369,6 +3375,7 @@ void CheckTeams()
 				p_iBotTeam[iTarget] = TFTeam_Red;
 				MovePlayerToRED(iTarget);
 				PrintToChat(iTarget, "%t", "Moved Blu Full");
+				LogAction(iTarget, -1, "\"%L\" was moved to RED (full)", iTarget);
 			}
 		}
 	}
@@ -3389,6 +3396,7 @@ void CheckTeams()
 					p_iBotTeam[iTarget] = TFTeam_Red;
 					MovePlayerToRED(iTarget);
 					PrintToChat(iTarget, "%t", "Moved Blu Balance");
+					LogAction(iTarget, -1, "\"%L\" was moved to RED (auto team balance)", iTarget);
 				}
 			}
 		}
