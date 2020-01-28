@@ -688,7 +688,6 @@ public Action Command_JoinRED( int client, int nArgs )
 	if( TF2_GetClientTeam(client) == TFTeam_Red )
 		return Plugin_Handled;
 	
-	p_iBotTeam[client] = TFTeam_Red;
 	MovePlayerToRED(client);
 
 	return Plugin_Handled;
@@ -921,7 +920,6 @@ public Action Command_MoveTeam( int client, int nArgs )
 		}
 		else if( NewTargetTeam == TFTeam_Red )
 		{
-			p_iBotTeam[i] = TFTeam_Red;
 			MovePlayerToRED(target_list[i]);
 		}
 		else
@@ -1256,10 +1254,7 @@ public Action Command_SetRobot( int client, int nArgs )
 }
 // Prints information about the current wave.
 public Action Command_WaveInfo( int client, int nArgs )
-{
-	if(!IsClientInGame(client))
-		return Plugin_Handled;
-		
+{		
 	int iABots, iCW, iMW;
 	char strNormalBots[256], strGiantBots[256];
 
@@ -1591,7 +1586,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		if( TF2_GetPlayerClass(client) == TFClass_Engineer )
 		{
 			AnnounceEngineerDeath(client);
-			CreateTimer(1.0, Timer_FixBuildings, client);
+			//CreateTimer(1.0, Timer_FixBuildings, client); // Not needed anymore
 		}
 		else if( TF2_GetPlayerClass(client) == TFClass_Spy )
 		{
@@ -1611,6 +1606,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		
 		CreateTimer(c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client);
 		CreateTimer(1.0, Timer_PickRandomRobot, client);
+		StopRobotLoopSound(client);
 	}
 	
 	return Plugin_Continue;
@@ -1885,7 +1881,7 @@ public Action Timer_SetRobotClass(Handle timer, any client)
 	if( !IsValidClient(client) || IsFakeClient(client) )
 		return Plugin_Stop;
 		
-	TF2_SetPlayerClass(client, p_BotClass[client], _, true);
+	TF2_SetPlayerClass(client, p_BotClass[client], true, true);
 	
 	return Plugin_Stop;
 }
@@ -1964,7 +1960,6 @@ public Action Timer_RemoveFromSpec(Handle timer, any client)
 	{
 		if( IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Spectator )
 		{
-			p_iBotTeam[i] = TFTeam_Red;
 			MovePlayerToRED(i);
 		}
 	}
@@ -2198,7 +2193,7 @@ public Action Timer_RemoveGibs(Handle timer, any entity)
 		}
 	}
 }
-
+// Applies the giant sound, needs delay to compensate for latency
 public Action Timer_ApplyRobotSound(Handle timer, any client)
 {
 	if( !IsValidClient(client) || IsFakeClient(client) )
@@ -2222,8 +2217,8 @@ public Action Timer_ApplyRobotSound(Handle timer, any client)
 	
 	return Plugin_Stop;
 }
-
-public Action Timer_FixBuildings(Handle timer, any client)
+// No longer needed
+/*public Action Timer_FixBuildings(Handle timer, any client) 
 {
 	char class[64];
 	
@@ -2251,7 +2246,7 @@ public Action Timer_FixBuildings(Handle timer, any client)
 	}
 	return Plugin_Stop;
 }
-
+*/
 /****************************************************
 					FUNCTIONS
 *****************************************************/
@@ -2271,6 +2266,7 @@ void MovePlayerToRED(int client)
 	SetEntProp( client, Prop_Send, "m_iTeamNum", view_as<int>(TFTeam_Red));
 	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
 	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
+	p_iBotTeam[client] = TFTeam_Red;
 	
 	if( TF2_GetPlayerClass(client) == TFClass_Unknown )
 		ShowVGUIPanel(client, "class_red");
@@ -2324,7 +2320,7 @@ int GetHumanRobotCount()
 	{
 		if(IsClientInGame(i) && !IsFakeClient(i))
 		{			
-			if(p_iBotTeam[i] == TFTeam_Blue)
+			if(TF2_GetClientTeam(i) == TFTeam_Blue)
 			{
 				count++;
 			}
@@ -3372,7 +3368,6 @@ void CheckTeams()
 			iTarget = GetRandomBLUPlayer();
 			if( iTarget > 0 )
 			{
-				p_iBotTeam[iTarget] = TFTeam_Red;
 				MovePlayerToRED(iTarget);
 				PrintToChat(iTarget, "%t", "Moved Blu Full");
 				LogAction(iTarget, -1, "\"%L\" was moved to RED (full)", iTarget);
@@ -3386,14 +3381,13 @@ void CheckTeams()
 		{
 			int iCount = c_iMinRed.IntValue - (iInRed + 1);
 			if( iCount < c_iMinRed.IntValue )
-				LogMessage("Auto Balancing teams. Count: %i, In RED: %i", iCount, iInRed);
+				LogMessage("Auto Balancing teams. Count: %i, In RED: %i, In BLU: %i", iCount, iInRed, iInBlu);
 			
 			for( int i = 1; i <= iCount; i++ )
 			{
 				iTarget = GetRandomBLUPlayer();
 				if( iTarget > 0 )
 				{
-					p_iBotTeam[iTarget] = TFTeam_Red;
 					MovePlayerToRED(iTarget);
 					PrintToChat(iTarget, "%t", "Moved Blu Balance");
 					LogAction(iTarget, -1, "\"%L\" was moved to RED (auto team balance)", iTarget);
@@ -3437,7 +3431,7 @@ int GetRandomBLUPlayer()
 	{
 		if( IsValidClient(i) && !IsFakeClient(i) )
 		{
-			if( p_iBotTeam[i] == TFTeam_Blue )
+			if( TF2_GetClientTeam(i) == TFTeam_Blue )
 			{
 				players_available[counter] = i; // stores the client userid
 				counter++;				
