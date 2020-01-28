@@ -1397,6 +1397,12 @@ public Action Listener_Ready(int client, const char[] command, int argc)
 
 public Action Listener_Suicide(int client, const char[] command, int argc)
 {
+	if( !IsValidClient(client) )
+		return Plugin_Handled;
+		
+	if( IsFakeClient(client) )
+		return Plugin_Continue;
+
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
 		return Plugin_Handled;
@@ -1741,7 +1747,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
 			}			
 		}
-		else if( p_iBotAttrib[client] & BotAttrib_CannotCarryBomb )
+		if( p_iBotAttrib[client] & BotAttrib_CannotCarryBomb )
 		{
 			BlockBombPickup(client);
 		}

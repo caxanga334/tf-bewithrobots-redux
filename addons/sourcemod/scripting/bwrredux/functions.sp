@@ -357,35 +357,13 @@ int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false, b
 	return iClassNum;
 }
 
-// returns the entity index of the first available weapon
-int GetFirstAvailableWeapon(int client)
-{
-	int iWeapon = -1;
-	int iSlot = 0;
-	
-	while( iSlot <= 5 )
-	{
-		iWeapon = GetPlayerWeaponSlot(client, iSlot);
-		iSlot++
-		if( iWeapon != -1 )
-		{
-			break;
-		}
-	}
-	
-	return iWeapon;
-}
-
 void BlockBombPickup(int client)
 {
 	if( IsFakeClient(client) )
 		return;
-
-	int iWeapon = GetFirstAvailableWeapon(client);
-	if( iWeapon != -1 )
-	{
-		TF2Attrib_SetByName(iWeapon, "cannot pick up intelligence", 1.0);
-	}
+	
+	// This attribute works when added to a client
+	TF2Attrib_SetByName(client, "cannot pick up intelligence", 1.0);
 }
 
 // add particle to the robot engineer teleporter
