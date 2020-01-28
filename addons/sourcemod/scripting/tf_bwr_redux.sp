@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.16"
+#define PLUGIN_VERSION "0.0.17"
 
 // maximum class variants that exists
 #define MAX_SCOUT 6
@@ -293,8 +293,8 @@ public void OnPluginStart()
 	HookEvent( "player_death", E_Pre_PlayerDeath, EventHookMode_Pre );
 	HookEvent( "player_spawn", E_Pre_PlayerSpawn, EventHookMode_Pre );
 	HookEvent( "player_spawn", E_PlayerSpawn );
-	HookEvent( "teamplay_flag_event", E_FlagPickup );
-	HookEvent( "teamplay_flag_event", E_FlagDrop );
+	HookEvent( "teamplay_flag_event", E_Teamplay_Flag );
+	HookEvent( "teamplay_flag_event", E_Teamplay_Flag );
 	HookEvent( "post_inventory_application", E_Inventory );
 	HookEvent( "player_builtobject", E_BuildObject, EventHookMode_Pre );
 	
@@ -1145,7 +1145,7 @@ public Action Command_SetRobot( int client, int nArgs )
 	
 	if( iArg2 < 0 || iArg2 > 1 )
 	{
-		ReplyToCommand(client, "ERROR: Use 0 for Normal Bot and 1 for Giant Bot");
+		ReplyToCommand(client, "ERROR: Invalid robot type. Use 0 for Normal Bot and 1 for Giant Bot");
 		return Plugin_Handled;
 	}
 	
@@ -1336,6 +1336,12 @@ public Action Command_WaveInfo( int client, int nArgs )
 	{
 		Format(strGiantBots, sizeof(strGiantBots), "%s %s", strGiantBots, "Spy");
 	}
+	
+	if( !strNormalBots[0] )
+		Format(strNormalBots, sizeof(strNormalBots), "%s", "None");
+		
+	if( !strGiantBots[0] )
+		Format(strGiantBots, sizeof(strGiantBots), "%s", "None");
 	
 	ReplyToCommand(client, "Wave %d of %d", iCW, iMW);
 	ReplyToCommand(client, "Available Robots:");
@@ -1647,7 +1653,7 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
-public Action E_FlagPickup(Event event, const char[] name, bool dontBroadcast)
+public Action E_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast)
 {
 	if( event.GetInt("eventtype") == TF_FLAGEVENT_PICKEDUP )
 	{
@@ -1658,10 +1664,6 @@ public Action E_FlagPickup(Event event, const char[] name, bool dontBroadcast)
 			rp.Carrier = true;
 		}
 	}
-}
-
-public Action E_FlagDrop(Event event, const char[] name, bool dontBroadcast)
-{
 	if( event.GetInt("eventtype") == TF_FLAGEVENT_DROPPED )
 	{
 		int client = event.GetInt("player");
