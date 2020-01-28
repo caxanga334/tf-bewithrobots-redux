@@ -29,7 +29,7 @@
 #define MAX_PYRO_GIANT 1
 #define MAX_DEMO 3
 #define MAX_DEMO_GIANT 1
-#define MAX_HEAVY 1
+#define MAX_HEAVY 5
 #define MAX_HEAVY_GIANT 1
 #define MAX_ENGINEER 3
 #define MAX_ENGINEER_GIANT 1
@@ -2860,10 +2860,13 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 				case 3: p_iBotType[client] = Bot_Big;
 			}			
 		}
-/* 		case TFClass_Heavy:
+ 		case TFClass_Heavy:
 		{
-			
-		} */
+			switch( iVariant )
+			{
+				case 4: p_iBotType[client] = Bot_Big;
+			}					
+		}
 		case TFClass_Engineer:
 		{
 			p_iBotAttrib[client] += BotAttrib_CannotCarryBomb; // global

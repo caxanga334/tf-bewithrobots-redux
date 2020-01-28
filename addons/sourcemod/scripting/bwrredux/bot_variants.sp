@@ -339,8 +339,43 @@ void GiveNormalInventory(int client ,int botvariant)
 				}
 				case 1: // Heavyweight Champ
 				{
-					iWeapon = SpawnWeapon( client, "tf_weapon_fists", 43, 1, 6, false );
+					SpawnWeapon( client, "tf_weapon_fists", 43, 1, 6, false );
 					return;					
+				}
+				case 2: // Heater Heavy
+				{
+					SpawnWeapon( client, "tf_weapon_minigun", 811, 1, 6, false );
+					SpawnWeapon( client, "tf_weapon_fists", 5, 1, 6, false );
+					return;
+				}
+				case 3: // Shotgun Heavy
+				{
+					iWeapon = SpawnWeapon( client, "tf_weapon_shotgun_hwg", 11, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "faster reload rate", 0.1);
+					TF2Attrib_SetByName(iWeapon, "fire rate bonus", 2.5);
+					TF2Attrib_SetByName(iWeapon, "bullets per shot bonus", 3.0);
+					TF2Attrib_SetByName(iWeapon, "damage bonus", 0.33);
+					SpawnWeapon( client, "tf_weapon_fists", 5, 1, 6, false );
+					return;
+				}
+				case 4: // Steel Gauntlet Pusher
+				{
+					TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 600.0);
+					iWeapon = SpawnWeapon( client, "tf_weapon_fists", 331, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "damage causes airblast", 1.0);
+					TF2Attrib_SetByName(iWeapon, "damage bonus", 1.50);
+					return;
+				}
+				case 5: // Stun Heavy
+				{
+					TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 80.0);
+					iWeapon = SpawnWeapon( client, "tf_weapon_minigun", 15, 1, 6, false );
+					TF2Attrib_SetByName(iWeapon, "damage causes airblast", 1.0);
+					TF2Attrib_SetByName(iWeapon, "damage penalty", 0.15);
+					TF2Attrib_SetByName(iWeapon, "fire rate penalty", 1.4);
+					TF2Attrib_SetByName(iWeapon, "mod stun waist high airborne", 1.0);
+					TF2Attrib_SetByName(iWeapon, "minigun spinup time increased", 1.8);
+					return;
 				}
 			}			
 		}
@@ -821,6 +856,10 @@ char GetNormalVariantName(TFClassType TFClass, int botvariant)
 				case -1: strcopy( strBotName, 128, "Your own Heavy" );
 				case 0: strcopy( strBotName, 128, "Standard Heavy" );
 				case 1: strcopy( strBotName, 128, "Heavyweight Champ" );
+				case 2: strcopy( strBotName, 128, "Heater Heavy" );
+				case 3: strcopy( strBotName, 128, "Shotgun Heavy" );
+				case 4: strcopy( strBotName, 128, "Steel Gauntlet Pusher" );
+				case 5: strcopy( strBotName, 128, "Stun Heavy" );
 				default: strcopy( strBotName, 128, "Undefined" );
 			}		
 		}
