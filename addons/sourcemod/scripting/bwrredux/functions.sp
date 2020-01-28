@@ -357,6 +357,25 @@ int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false, b
 	return iClassNum;
 }
 
+// returns the entity index of the first available weapon
+int GetFirstAvailableWeapon(int client)
+{
+	int iWeapon = -1;
+	int iSlot = 0;
+	
+	while( iSlot <= 5 )
+	{
+		iWeapon = GetPlayerWeaponSlot(client, iSlot);
+		iSlot++;
+		if( iWeapon != -1 )
+		{
+			break;
+		}
+	}
+	
+	return iWeapon;
+}
+
 void BlockBombPickup(int client)
 {
 	if( IsFakeClient(client) )

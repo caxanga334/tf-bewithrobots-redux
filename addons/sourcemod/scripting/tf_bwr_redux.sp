@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.17"
+#define PLUGIN_VERSION "0.0.18"
 
 // maximum class variants that exists
 #define MAX_SCOUT 6
