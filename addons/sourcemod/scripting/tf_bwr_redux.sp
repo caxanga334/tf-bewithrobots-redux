@@ -3388,7 +3388,7 @@ void CheckTeams()
 	if( bAutoBalance )
 	{
 		// if the number of players in RED is less than the minimum to join BLU
-		if( iInRed < c_iMinRed.IntValue && iInBlu > 0 )
+		if( (iInRed + 1) < c_iMinRed.IntValue && iInBlu > 0 )
 		{
 			int iCount = c_iMinRed.IntValue - (iInRed + 1);
 			if( iCount < c_iMinRed.IntValue )
