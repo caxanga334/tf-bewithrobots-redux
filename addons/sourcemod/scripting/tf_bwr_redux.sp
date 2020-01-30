@@ -1508,7 +1508,7 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 	{
 		if( IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue )
 		{
-			MovePlayerToSpec(i);
+			MovePlayerToRED(i);
 		}
 	}
 }
