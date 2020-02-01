@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.18"
+#define PLUGIN_VERSION "0.0.19"
 
 // maximum class variants that exists
 #define MAX_SCOUT 6
@@ -66,7 +66,9 @@ ArrayList array_spawns; // spawn points for human players
 // others
 bool g_bUpgradeStation[MAXPLAYERS + 1];
 float g_flNextBusterTime;
-float g_flLastForceBot[MAXPLAYERS +1 ]; // Last time a player forced a bot
+float g_flLastForceBot[MAXPLAYERS + 1]; // Last time a player forced a bot
+bool g_bBotMenuIsGiant[MAXPLAYERS + 1];
+TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1];
 
 // convars
 ConVar c_iMinRed;
@@ -266,6 +268,8 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_robotinfo", Command_RobotInfo, "Prints information about a specific robot" );
 	RegConsoleCmd( "sm_setrobot", Command_SetRobot, "Forces a specific robot variant on you." );
 	RegConsoleCmd( "sm_waveinfo", Command_WaveInfo, "Prints information about the current wave." );
+	RegConsoleCmd( "sm_robotmenu", Command_RobotMenu, "Opens the robot selection menu." );
+	RegConsoleCmd( "sm_rm", Command_RobotMenu, "Opens the robot selection menu." );
 	RegAdminCmd( "sm_bwrr_debug", Command_Debug, ADMFLAG_ROOT, "Prints some debug messages." );
 	RegAdminCmd( "sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
 	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
@@ -1099,7 +1103,7 @@ public Action Command_SetRobot( int client, int nArgs )
 {
 	if(!IsValidClient(client))
 		return Plugin_Handled;
-		
+			
 	if(!IsPlayerAlive(client))
 	{
 		ReplyToCommand(client, "Only living players can use this command.");
@@ -1218,7 +1222,7 @@ public Action Command_SetRobot( int client, int nArgs )
 				SetRobotOnPlayer(client, iArg3, Bot_Normal, TargetClass);
 				strVariantName = GetNormalVariantName(TargetClass, iArg3);
 			}
-			LogAction(client, -1, "\"%L\" changed to %s", client, strVariantName);
+			LogAction(client, -1, "\"%L\" selected a robot (%s)", client, strVariantName);
 		}
 		else
 		{
@@ -1465,6 +1469,266 @@ public Action Listener_Taunt(int client, const char[] command, int argc)
 	}
 	
 	return Plugin_Continue;
+}
+
+/****************************************************
+					MENUS
+*****************************************************/
+
+public Action Command_RobotMenu( int client, int nArgs )
+{		
+	if(!IsValidClient(client))
+		return Plugin_Handled;
+		
+	if(IsFakeClient(client))
+		return Plugin_Handled;
+		
+	if(!IsPlayerAlive(client))
+	{
+		ReplyToCommand(client, "Only living players can use this command.");
+		return Plugin_Handled;
+	}
+		
+	if(TF2_GetClientTeam(client) != TFTeam_Blue)
+	{
+		ReplyToCommand(client, "This command an only be used by BLU players");
+		return Plugin_Handled;
+	}
+		
+	if(!TF2Spawn_IsClientInSpawn(client))
+	{
+		ReplyToCommand(client, "This command can only be used inside spawn.");
+		return Plugin_Handled;
+	}
+
+	if( GetEngineTime() < g_flLastForceBot[client] )
+	{
+		int iWaitTime = RoundToNearest(g_flLastForceBot[client] - GetEngineTime());
+		ReplyToCommand(client, "You must wait %d seconds before using this command again.", iWaitTime);
+		return Plugin_Handled;
+	}
+		
+	Menu menu = new Menu(MenuHandler_SelectBotType, MENU_ACTIONS_ALL);
+	
+	menu.SetTitle("Select a Robot Type");
+	
+	bool normalbots = OR_IsNormalAvaiable();
+	bool giantbots = OR_IsGiantAvaiable();
+	
+	if(normalbots)
+	{
+		menu.AddItem("normal_bot", "Normal");
+	}
+	
+	if(!normalbots)
+	{
+		if(giantbots) // Normal bots are not available, make giants available regardless of player count.
+		{
+			menu.AddItem("giant_bot", "Giant");
+		}
+	}
+	else
+	{
+		if(giantbots)
+		{
+			if(GetTeamClientCount(view_as<int>(TFTeam_Red)) >= c_iGiantMinRed.IntValue )
+			{ // Giants available if there are enough players on RED team.
+				menu.AddItem("giant_bot", "Giant");
+			}
+		}
+	}
+	
+	menu.ExitButton = true;
+	menu.Display(client, 30);
+ 
+	return Plugin_Handled;
+}
+
+// Select robot type
+public int MenuHandler_SelectBotType(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			char info[32];
+			bool bFound = menu.GetItem(param2, info, sizeof(info));
+			if(bFound)
+			{
+				if(StrEqual(info, "normal_bot"))
+				{
+					MenuFunc_ShowClassMenu(param1, false);
+				}
+				else if(StrEqual(info, "giant_bot"))
+				{
+					MenuFunc_ShowClassMenu(param1, true);
+				}
+			}
+		}
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}
+	
+	return 0;
+}
+
+void MenuFunc_ShowClassMenu(int client, bool isgiant)
+{
+	TFClassType TFClass = TFClass_Unknown;
+	Menu menu = new Menu(MenuHandler_SelectClass, MENU_ACTIONS_ALL);
+	g_bBotMenuIsGiant[client] = isgiant;
+	
+	menu.SetTitle("Select a Class");
+	
+	for(int i = 1; i <= 9; i++)
+	{
+		TFClass = view_as<TFClassType>(i);
+		if(IsClassAvailable(TFClass, isgiant))
+		{
+			switch(TFClass)
+			{
+				case TFClass_Scout: menu.AddItem("scout", "Scout");
+				case TFClass_Soldier: menu.AddItem("soldier", "Soldier");
+				case TFClass_Pyro: menu.AddItem("pyro", "Pyro");
+				case TFClass_DemoMan: menu.AddItem("demoman", "Demoman");
+				case TFClass_Heavy: menu.AddItem("heavy", "Heavy");
+				case TFClass_Engineer: menu.AddItem("engineer", "Engineer");
+				case TFClass_Medic: menu.AddItem("medic", "Medic");
+				case TFClass_Sniper: menu.AddItem("sniper", "Sniper");
+				case TFClass_Spy: menu.AddItem("spy", "Spy");
+			}
+		}
+	}
+	
+	menu.Pagination = MENU_NO_PAGINATION;
+	menu.ExitButton = false;
+	menu.Display(client, 30);
+	
+	return;
+}
+
+// Selects a class
+public int MenuHandler_SelectClass(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			char info[32];
+			TFClassType selectedclass = TFClass_Unknown;
+			bool bFound = menu.GetItem(param2, info, sizeof(info));
+			if(bFound)
+			{
+				if(StrEqual(info, "scout"))
+				{	selectedclass = TFClass_Scout; }
+				else if(StrEqual(info, "soldier"))
+				{	selectedclass = TFClass_Soldier; }
+				else if(StrEqual(info, "pyro"))
+				{	selectedclass = TFClass_Pyro; }
+				else if(StrEqual(info, "demoman"))
+				{	selectedclass = TFClass_DemoMan; }
+				else if(StrEqual(info, "heavy"))
+				{	selectedclass = TFClass_Heavy; }
+				else if(StrEqual(info, "engineer"))
+				{	selectedclass = TFClass_Engineer; }
+				else if(StrEqual(info, "medic"))
+				{	selectedclass = TFClass_Medic; }
+				else if(StrEqual(info, "sniper"))
+				{	selectedclass = TFClass_Sniper; }
+				else if(StrEqual(info, "spy"))
+				{	selectedclass = TFClass_Spy; }
+				
+				MenuFunc_ShowVariantMenu(param1, selectedclass);
+			}
+		}
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}
+	
+	return 0;
+}
+
+void MenuFunc_ShowVariantMenu(int client, TFClassType variantclass)
+{
+	Menu menu = new Menu(MenuHandler_SelectVariant, MENU_ACTIONS_ALL);
+	char variantid[8], variantname[128];
+	
+	g_BotMenuSelectedClass[client] = variantclass;
+	menu.SetTitle("Select a Variant");
+	
+	if(g_bBotMenuIsGiant[client]) // client selected a giant robot
+	{
+		for(int y = -1; y <= 99; y++)
+		{
+			Format(variantid, sizeof(variantid), "%i", y);
+			variantname = GetNormalVariantName(variantclass, y);
+			
+			if(StrEqual(variantname, "Undefined", false))
+				break;
+				
+			menu.AddItem(variantid, variantname);
+		}
+	}
+	else
+	{
+		for(int y = -1; y <= 99; y++)
+		{
+			Format(variantid, sizeof(variantid), "%i", y);
+			variantname = GetNormalVariantName(variantclass, y);
+			
+			if(StrEqual(variantname, "Undefined", false))
+				break;
+				
+			menu.AddItem(variantid, variantname);
+		}
+	}
+	
+	menu.ExitButton = true;
+	menu.Display(client, 30);
+}
+
+public int MenuHandler_SelectVariant(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			char info[32], botname[128];
+			int id, type = Bot_Normal;
+			bool bFound = menu.GetItem(param2, info, sizeof(info));
+			if(bFound)
+			{
+				id = StringToInt(info);
+				if(g_bBotMenuIsGiant[param1]) { type = Bot_Giant; } else { type = Bot_Normal; }
+				SetRobotOnPlayer(param1, id, type, g_BotMenuSelectedClass[param1]);
+				if( type == Bot_Normal ) 
+				{ 
+					botname = GetNormalVariantName(g_BotMenuSelectedClass[param1], id);
+					g_flLastForceBot[param1] = GetEngineTime() + c_flForceDelay.FloatValue;
+				} 
+				else 
+				{ 
+					botname = GetGiantVariantName(g_BotMenuSelectedClass[param1], id);
+					g_flLastForceBot[param1] = GetEngineTime() + c_flForceDelay.FloatValue + c_flFDGiant.FloatValue;
+				}
+				if(GameRules_GetRoundState() == RoundState_BetweenRounds)
+				{
+					g_flLastForceBot[param1] = GetEngineTime() + 5.0; // small cooldown when the wave is not in progress
+				}
+				LogAction(param1, -1, "\"%L\" selected a robot (%s)", param1,botname);
+			}
+		}
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}
+	
+	return 0;
 }
 
 /****************************************************

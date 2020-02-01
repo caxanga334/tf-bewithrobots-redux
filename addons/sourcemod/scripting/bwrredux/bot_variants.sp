@@ -788,7 +788,6 @@ void GiveGiantInventory(int client ,int botvariant)
 }
 
 // returns the variant name
-// TODO: set names
 char GetNormalVariantName(TFClassType TFClass, int botvariant)
 {
 	char strBotName[128]

@@ -217,3 +217,15 @@ bool OR_IsGiantAvaiable()
 	
 	return false;
 }
+
+bool OR_IsNormalAvaiable()
+{
+	if( iAvailableClasses & scout_normal || iAvailableClasses & soldier_normal || iAvailableClasses & pyro_normal
+	|| iAvailableClasses & demoman_normal || iAvailableClasses & heavy_normal || iAvailableClasses & engineer_normal
+	|| iAvailableClasses & medic_normal || iAvailableClasses & sniper_normal || iAvailableClasses & spy_normal )
+	{
+		return true;
+	}
+	
+	return false;
+}
