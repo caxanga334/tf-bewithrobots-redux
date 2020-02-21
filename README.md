@@ -18,5 +18,4 @@ Plugin made to replace Be With Robots 2
 * [MvM Visible Max Players](https://forums.alliedmods.net/showpost.php?p=1819270) (Optional,Recommended)
 
 # Contact
-* [Steam](http://steamcommunity.com/profiles/76561198053992136)
-* Discord: Anonymous Player#4908
+* [Discord](https://discord.gg/cSdu8Uf)
