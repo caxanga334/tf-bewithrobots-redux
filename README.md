@@ -19,3 +19,5 @@ Plugin made to replace Be With Robots 2
 
 # Contact
 * [Discord](https://discord.gg/cSdu8Uf)
+
+[Compile Instructions](https://github.com/caxanga334/tf-bewithrobots-redux/blob/master/COMPILE.md)
