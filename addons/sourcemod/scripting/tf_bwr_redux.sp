@@ -956,7 +956,7 @@ public Action Command_BotClass( int client, int nArgs )
 		
 	if( !TF2Spawn_IsClientInSpawn2(client) && GameRules_GetRoundState() == RoundState_RoundRunning )
 	{
-		ReplyToCommand(client, "This command can only be used inside the spawn");
+		ReplyToCommand(client, "%t", "BotClassFailMsg");
 		return Plugin_Handled;
 	}
 
@@ -1491,13 +1491,13 @@ public Action Command_RobotMenu( int client, int nArgs )
 		
 	if(TF2_GetClientTeam(client) != TFTeam_Blue)
 	{
-		ReplyToCommand(client, "This command an only be used by BLU players");
+		ReplyToCommand(client, "%t", "CmdErrorBLUOnly");
 		return Plugin_Handled;
 	}
 		
 	if(!TF2Spawn_IsClientInSpawn(client))
 	{
-		ReplyToCommand(client, "This command can only be used inside spawn.");
+		ReplyToCommand(client, "%t", "BotClassFailMsg");
 		return Plugin_Handled;
 	}
 

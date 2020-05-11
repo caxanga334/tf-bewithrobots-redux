@@ -43,4 +43,12 @@
 		"#format"	"{1:s}"
 		"en"	"[BWRR] {1} deployed the bomb."
 	}
+	"BotClassFailMsg"
+	{
+		"en"	"This command can only be used inside spawn."
+	}
+	"CmdErrorBLUOnly"
+	{
+		"en"	"This command can only be used by BLU team."
+	}
 }

@@ -43,4 +43,12 @@
 		"#format"	"{1:s}"
 		"pt"	"[BWRR] {1} implantou a bomba."
 	}
+	"BotClassFailMsg"
+	{
+		"pt"	"Esse comando só pode ser usado dentro do spawn."
+	}
+	"CmdErrorBLUOnly"
+	{
+		"pt"	"Apenas jogadores da equipe BLU pode usar esse comando."
+	}
 }
