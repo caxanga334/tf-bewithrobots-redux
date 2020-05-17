@@ -18,27 +18,8 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.0.19"
+#define PLUGIN_VERSION "0.1.0"
 
-// maximum class variants that exists
-#define MAX_SCOUT 6
-#define MAX_SCOUT_GIANT 1
-#define MAX_SOLDIER 6
-#define MAX_SOLDIER_GIANT 3
-#define MAX_PYRO 3
-#define MAX_PYRO_GIANT 1
-#define MAX_DEMO 3
-#define MAX_DEMO_GIANT 1
-#define MAX_HEAVY 5
-#define MAX_HEAVY_GIANT 1
-#define MAX_ENGINEER 3
-#define MAX_ENGINEER_GIANT 1
-#define MAX_MEDIC 3
-#define MAX_MEDIC_GIANT 1
-#define MAX_SNIPER 2
-#define MAX_SNIPER_GIANT 1
-#define MAX_SPY 3
-#define MAX_SPY_GIANT 1
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
 #define ROBOT_SND_GIANT_SOLDIER "mvm/giant_soldier/giant_soldier_loop.wav"
@@ -308,6 +289,12 @@ public void OnPluginStart()
 		
 	HookUserMessage(ID_MVMResetUpgrade, MsgHook_MVMRespec);
 	
+	RT_InitArrays();
+	RT_ClearArrays();
+	RT_LoadCfgNormal();
+	RT_LoadCfgGiant();
+	RT_PostLoad();
+	
 	array_avclass = new ArrayList(10);
 	array_avgiants = new ArrayList(10);
 	array_spawns = new ArrayList();
@@ -340,6 +327,11 @@ public void OnMapStart()
 			SDKHook(i, SDKHook_StartTouch, OnTouchUpgradeStation);
 		} 
 	}
+	
+	RT_ClearArrays();
+	RT_LoadCfgNormal();
+	RT_LoadCfgGiant();
+	RT_PostLoad();
 	
 	array_avclass.Clear();
 	array_avgiants.Clear();
@@ -633,7 +625,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 		
 	if( array_avclass.Length < 1 ) // Block join BLU to avoid errors
 	{
-		PrintToChat(client, "Wave Data isn't ready, rebuilding... Please try again."); // to-do: translate
+		PrintToChat(client, "Wave Data isn't ready, rebuilding... Please try again.");
 		OR_Update();
 		UpdateClassArray();
 		return Plugin_Handled;
@@ -813,11 +805,11 @@ public Action Command_ForceBot( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
-	char strBotName[128];
+	char strBotName[255];
 	if(iArg3 == 1)
-		strBotName = GetGiantVariantName(TargetClass, iArg4);
+		strBotName = RT_GetTemplateName(TargetClass, iArg4, 1);
 	else
-		strBotName = GetNormalVariantName(TargetClass, iArg4);
+		strBotName = RT_GetTemplateName(TargetClass, iArg4, 0);
 	
 	for(int i = 0; i < target_count; i++)
 	{
@@ -1014,7 +1006,7 @@ public Action Command_RobotInfo( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
-	char arg1[16], arg2[16], arg3[16], strVariantName[128];
+	char arg1[16], arg2[16], arg3[16], strVariantName[255];
 	int iArg2, iArg3;
 	TFClassType TargetClass = TFClass_Unknown;
 	bool bGiants = false;
@@ -1081,9 +1073,9 @@ public Action Command_RobotInfo( int client, int nArgs )
 	if(IsValidVariant(bGiants, TargetClass, iArg3))
 	{
 		if(bGiants)
-			strVariantName = GetGiantVariantName(TargetClass, iArg3);
+			strVariantName = RT_GetTemplateName(TargetClass, iArg3, 1);
 		else
-			strVariantName = GetNormalVariantName(TargetClass, iArg3);
+			strVariantName = RT_GetTemplateName(TargetClass, iArg3, 0);
 			
 		ReplyToCommand(client, "ID: %d", iArg3);
 		ReplyToCommand(client, "Name: %s", strVariantName);
@@ -1136,7 +1128,7 @@ public Action Command_SetRobot( int client, int nArgs )
 		return Plugin_Handled;
 	}
 
-	char arg1[16], arg2[16], arg3[16], strVariantName[128];
+	char arg1[16], arg2[16], arg3[16], strVariantName[255];
 	int iArg2, iArg3;
 	TFClassType TargetClass = TFClass_Unknown;
 	bool bGiants = false;
@@ -1215,12 +1207,12 @@ public Action Command_SetRobot( int client, int nArgs )
 			if(bGiants)
 			{
 				SetRobotOnPlayer(client, iArg3, Bot_Giant, TargetClass);
-				strVariantName = GetGiantVariantName(TargetClass, iArg3);
+				strVariantName = RT_GetTemplateName(TargetClass, iArg3, 0);
 			}
 			else
 			{
 				SetRobotOnPlayer(client, iArg3, Bot_Normal, TargetClass);
-				strVariantName = GetNormalVariantName(TargetClass, iArg3);
+				strVariantName = RT_GetTemplateName(TargetClass, iArg3, 1);
 			}
 			LogAction(client, -1, "\"%L\" selected a robot (%s)", client, strVariantName);
 		}
@@ -1655,34 +1647,28 @@ public int MenuHandler_SelectClass(Menu menu, MenuAction action, int param1, int
 void MenuFunc_ShowVariantMenu(int client, TFClassType variantclass)
 {
 	Menu menu = new Menu(MenuHandler_SelectVariant, MENU_ACTIONS_ALL);
-	char variantid[8], variantname[128];
+	char variantid[8], variantname[255];
 	
 	g_BotMenuSelectedClass[client] = variantclass;
 	menu.SetTitle("Select a Variant");
 	
 	if(g_bBotMenuIsGiant[client]) // client selected a giant robot
 	{
-		for(int y = -1; y <= 99; y++)
+		menu.AddItem("-1", "Own Loadout");
+		for(int i = 0; i < RT_NumTemplates(g_bBotMenuIsGiant[client], variantclass);i++)
 		{
-			Format(variantid, sizeof(variantid), "%i", y);
-			variantname = GetNormalVariantName(variantclass, y);
-			
-			if(StrEqual(variantname, "Undefined", false))
-				break;
-				
+			Format(variantid, sizeof(variantid), "%i", i);
+			variantname = RT_GetTemplateName(variantclass, i, 1);
 			menu.AddItem(variantid, variantname);
 		}
 	}
 	else
 	{
-		for(int y = -1; y <= 99; y++)
+		menu.AddItem("-1", "Own Loadout");
+		for(int i = 0; i < RT_NumTemplates(g_bBotMenuIsGiant[client], variantclass);i++)
 		{
-			Format(variantid, sizeof(variantid), "%i", y);
-			variantname = GetNormalVariantName(variantclass, y);
-			
-			if(StrEqual(variantname, "Undefined", false))
-				break;
-				
+			Format(variantid, sizeof(variantid), "%i", i);
+			variantname = RT_GetTemplateName(variantclass, i, 0)
 			menu.AddItem(variantid, variantname);
 		}
 	}
@@ -1697,7 +1683,7 @@ public int MenuHandler_SelectVariant(Menu menu, MenuAction action, int param1, i
 	{
 		case MenuAction_Select:
 		{
-			char info[32], botname[128];
+			char info[32], botname[255];
 			int id, type = Bot_Normal;
 			bool bFound = menu.GetItem(param2, info, sizeof(info));
 			if(bFound)
@@ -1707,12 +1693,12 @@ public int MenuHandler_SelectVariant(Menu menu, MenuAction action, int param1, i
 				SetRobotOnPlayer(param1, id, type, g_BotMenuSelectedClass[param1]);
 				if( type == Bot_Normal ) 
 				{ 
-					botname = GetNormalVariantName(g_BotMenuSelectedClass[param1], id);
+					botname = RT_GetTemplateName(g_BotMenuSelectedClass[param1], id, 0);
 					g_flLastForceBot[param1] = GetEngineTime() + c_flForceDelay.FloatValue;
 				} 
 				else 
 				{ 
-					botname = GetGiantVariantName(g_BotMenuSelectedClass[param1], id);
+					botname = RT_GetTemplateName(g_BotMenuSelectedClass[param1], id, 1);
 					g_flLastForceBot[param1] = GetEngineTime() + c_flForceDelay.FloatValue + c_flFDGiant.FloatValue;
 				}
 				if(GameRules_GetRoundState() == RoundState_BetweenRounds)
@@ -1904,7 +1890,7 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 				
 				if( p_iBotType[client] == Bot_Giant )
 				{
-					GiveGiantInventory(client,p_iBotVariant[client]);
+					RT_GiveInventory(client, 1, p_iBotVariant[client])
 				}
 				else if( p_iBotType[client] == Bot_Buster )
 				{
@@ -1912,7 +1898,7 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 				}
 				else
 				{
-					GiveNormalInventory(client,p_iBotVariant[client]);
+					RT_GiveInventory(client, 0, p_iBotVariant[client])
 				}
 			}
 			else
@@ -1975,7 +1961,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		return Plugin_Stop;
 		
 	TFClassType TFClass = TF2_GetPlayerClass(client);
-	char strBotName[128];
+	char strBotName[255];
 	int iTeleTarget = -1;
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
@@ -2024,7 +2010,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		// prints the robot variant name to the player.
 		if( p_iBotType[client] == Bot_Giant )
 		{
-			strBotName = GetGiantVariantName(TFClass, p_iBotVariant[client]);
+			strBotName = RT_GetTemplateName(TFClass, p_iBotVariant[client], 1);
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) ); // has nothing to do with variant name but same condition
 			ApplyRobotLoopSound(client);
 		}
@@ -2043,7 +2029,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 		else
 		{
-			strBotName = GetNormalVariantName(TFClass, p_iBotVariant[client]);
+			strBotName = RT_GetTemplateName(TFClass, p_iBotVariant[client], 0);
 			StopRobotLoopSound(client);
 		}
 		PrintToChat(client, "%t", "Bot Spawn", strBotName);
@@ -2821,47 +2807,47 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		{
 			case TFClass_Scout:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SCOUT_GIANT);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Scout;
 			}
 			case TFClass_Soldier:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SOLDIER_GIANT);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Soldier;
 			}
 			case TFClass_Pyro:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_PYRO_GIANT);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Pyro;
 			}
 			case TFClass_DemoMan:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_DEMO_GIANT);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_DemoMan;
 			}
 			case TFClass_Heavy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_HEAVY_GIANT);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Heavy;
 			}
 			case TFClass_Engineer:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_ENGINEER_GIANT);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Engineer;
 			}
 			case TFClass_Medic:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_MEDIC_GIANT);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Medic;
 			}
 			case TFClass_Sniper:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SNIPER_GIANT);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Sniper;
 			}
 			case TFClass_Spy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SPY_GIANT);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Spy;
 			}
 		}
@@ -2875,47 +2861,47 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		{
 			case TFClass_Scout:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SCOUT);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Scout;
 			}
 			case TFClass_Soldier:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SOLDIER);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Soldier;
 			}
 			case TFClass_Pyro:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_PYRO);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Pyro;
 			}
 			case TFClass_DemoMan:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_DEMO);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_DemoMan;
 			}
 			case TFClass_Heavy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_HEAVY);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Heavy;
 			}
 			case TFClass_Engineer:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_ENGINEER);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Engineer;
 			}
 			case TFClass_Medic:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_MEDIC);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Medic;
 			}
 			case TFClass_Sniper:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SNIPER);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Sniper;
 			}
 			case TFClass_Spy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, MAX_SPY);
+				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Spy;
 			}
 		}
@@ -2977,12 +2963,12 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 		{
 			if( bGiants )
 			{
-				if( iVariant >= -1 && iVariant <= MAX_SCOUT_GIANT )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(true, TFClass) - 1) ) // - 1 needed since arrays start with 0
 					bValid = true;
 			}
 			else
 			{
-				if( iVariant >= -1 && iVariant <=  MAX_SCOUT )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(false, TFClass) - 1) )
 					bValid = true;
 			}
 		}
@@ -2990,12 +2976,12 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 		{
 			if( bGiants )
 			{
-				if( iVariant >= -1 && iVariant <= MAX_SOLDIER_GIANT )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(true, TFClass) - 1) )
 					bValid = true;
 			}
 			else
 			{
-				if( iVariant >= -1 && iVariant <= MAX_SOLDIER )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(false, TFClass) - 1) )
 					bValid = true;
 			}
 		}
@@ -3003,12 +2989,12 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 		{
 			if( bGiants )
 			{
-				if( iVariant >= -1 && iVariant <= MAX_PYRO_GIANT )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(true, TFClass) - 1) )
 					bValid = true;
 			}
 			else
 			{
-				if( iVariant >= -1 && iVariant <= MAX_PYRO )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(false, TFClass) - 1) )
 					bValid = true;
 			}
 		}
@@ -3016,12 +3002,12 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 		{
 			if( bGiants )
 			{
-				if( iVariant >= -1 && iVariant <= MAX_DEMO_GIANT )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(true, TFClass) - 1) )
 					bValid = true;
 			}
 			else
 			{
-				if( iVariant >= -1 && iVariant <= MAX_DEMO )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(false, TFClass) - 1) )
 					bValid = true;
 			}
 		}
@@ -3029,12 +3015,12 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 		{
 			if( bGiants )
 			{
-				if( iVariant >= -1 && iVariant <= MAX_HEAVY_GIANT )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(true, TFClass) - 1) )
 					bValid = true;
 			}
 			else
 			{
-				if( iVariant >= -1 && iVariant <= MAX_HEAVY )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(false, TFClass) - 1) )
 					bValid = true;
 			}
 		}
@@ -3042,12 +3028,12 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 		{
 			if( bGiants )
 			{
-				if( iVariant >= -1 && iVariant <= MAX_ENGINEER_GIANT )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(true, TFClass) - 1) )
 					bValid = true;
 			}
 			else
 			{
-				if( iVariant >= -1 && iVariant <= MAX_ENGINEER )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(false, TFClass) - 1) )
 					bValid = true;
 			}
 		}
@@ -3055,12 +3041,12 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 		{
 			if( bGiants )
 			{
-				if( iVariant >= -1 && iVariant <= MAX_MEDIC_GIANT )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(true, TFClass) - 1) )
 					bValid = true;
 			}
 			else
 			{
-				if( iVariant >= -1 && iVariant <= MAX_MEDIC )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(false, TFClass) - 1) )
 					bValid = true;
 			}
 		}
@@ -3068,12 +3054,12 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 		{
 			if( bGiants )
 			{
-				if( iVariant >= -1 && iVariant <= MAX_SNIPER_GIANT )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(true, TFClass) - 1) )
 					bValid = true;
 			}
 			else
 			{
-				if( iVariant >= -1 && iVariant <= MAX_SNIPER )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(false, TFClass) - 1) )
 					bValid = true;
 			}
 		}
@@ -3081,12 +3067,12 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 		{
 			if( bGiants )
 			{
-				if( iVariant >= -1 && iVariant <= MAX_SPY_GIANT )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(true, TFClass) - 1) )
 					bValid = true;
 			}
 			else
 			{
-				if( iVariant >= -1 && iVariant <= MAX_SPY )
+				if( iVariant >= -1 && iVariant <= (RT_NumTemplates(false, TFClass) - 1) )
 					bValid = true;
 			}
 		}
@@ -3098,126 +3084,35 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 // Set attributes on the robots.
 void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
-	p_iBotAttrib[client] = 0; //reset
-	
-	switch( TFClass )
+	if(iVariant < 0)
 	{
-		case TFClass_Scout:
-		{
-			switch( iVariant )
-			{
-				case 6: p_iBotType[client] = Bot_Big;
-			}			
-		}
-		case TFClass_Soldier:
-		{
-			switch( iVariant )
-			{
-				case -1: p_iBotAttrib[client] += BotAttrib_FullCharge;
-				case 2: p_iBotAttrib[client] += BotAttrib_FullCharge;
-				case 3: p_iBotAttrib[client] += BotAttrib_FullCharge;
-				case 4: p_iBotAttrib[client] += BotAttrib_FullCharge;
-			}
-		}
-/* 		case TFClass_Pyro:
-		{
-			
-		} */
-		case TFClass_DemoMan:
-		{
-			switch( iVariant )
-			{
-				case 3: p_iBotType[client] = Bot_Big;
-			}			
-		}
- 		case TFClass_Heavy:
-		{
-			switch( iVariant )
-			{
-				case 4: p_iBotType[client] = Bot_Big;
-			}					
-		}
-		case TFClass_Engineer:
-		{
-			p_iBotAttrib[client] += BotAttrib_CannotCarryBomb; // global
-			switch( iVariant )
-			{
-				case -1: p_iBotAttrib[client] += BotAttrib_TeleportToHint;
-				case 1: p_iBotAttrib[client] += BotAttrib_TeleportToHint;
-				case 2: p_iBotAttrib[client] += (BotAttrib_TeleportToHint + BotAttrib_CannotBuildTele);
-				case 3: p_iBotAttrib[client] += BotAttrib_CannotBuildTele;
-			}			
-		}
-		case TFClass_Medic:
-		{
-			p_iBotAttrib[client] += (BotAttrib_FullCharge + BotAttrib_CannotCarryBomb);
-		}
-		case TFClass_Sniper:
-		{
-			switch( iVariant )
-			{
-				case -1: p_iBotAttrib[client] += BotAttrib_CannotCarryBomb;
-				case 0: p_iBotAttrib[client] += BotAttrib_CannotCarryBomb;
-			}
-		}
-		case TFClass_Spy:
-		{
-			p_iBotAttrib[client] += (BotAttrib_AutoDisguise + BotAttrib_CannotCarryBomb); // global to all spies
-			switch( iVariant )
-			{
-				case 0: p_iBotAttrib[client] += BotAttrib_InfiniteCloak;
-			}
-		}
+		p_iBotAttrib[client] = 0;
+		p_iBotType[client] = Bot_Normal;
+		return;
 	}
+
+
+	int iRobotType = RT_GetType(TFClass, iVariant, 0);
+	p_iBotAttrib[client] = RT_GetAttributesBits(TFClass, iVariant, 0);
+	
+	if(iRobotType < 0)
+		iRobotType = 0;
+	else if(iRobotType >= Bot_Giant)
+		iRobotType = 0;
+		
+	p_iBotType[client] = iRobotType;
 }
 
 void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
-	p_iBotAttrib[client] = 0; //reset
-	
-	switch( TFClass )
+	if(iVariant < 0)
 	{
-/* 		case TFClass_Scout:
-		{
-			
-		} */
-		case TFClass_Soldier:
-		{
-			switch( iVariant )
-			{
-				case -1: p_iBotAttrib[client] += BotAttrib_FullCharge;
-				case 1: p_iBotAttrib[client] += BotAttrib_AlwaysCrits;
-			}			
-		}
-/* 		case TFClass_Pyro:
-		{
-			
-		} */
-/* 		case TFClass_DemoMan:
-		{
-			
-		} */
-/* 		case TFClass_Heavy:
-		{
-			
-		} */
-		case TFClass_Engineer:
-		{
-			p_iBotAttrib[client] += BotAttrib_CannotCarryBomb;
-		}
-		case TFClass_Medic:
-		{
-			p_iBotAttrib[client] += (BotAttrib_FullCharge + BotAttrib_CannotCarryBomb);
-		}
-		case TFClass_Sniper:
-		{
-			p_iBotAttrib[client] += BotAttrib_CannotCarryBomb;
-		}
-		case TFClass_Spy:
-		{
-			p_iBotAttrib[client] += (BotAttrib_AutoDisguise + BotAttrib_CannotCarryBomb); // global to all spies
-		}
+		p_iBotAttrib[client] = 0;
+		p_iBotType[client] = Bot_Giant;
+		return;
 	}
+
+	p_iBotAttrib[client] = RT_GetAttributesBits(TFClass, iVariant, 1);
 }
 
 // sets the player scale based on robot type
