@@ -3091,7 +3091,6 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 		return;
 	}
 
-
 	int iRobotType = RT_GetType(TFClass, iVariant, 0);
 	p_iBotAttrib[client] = RT_GetAttributesBits(TFClass, iVariant, 0);
 	
