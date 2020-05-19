@@ -51,4 +51,8 @@
 	{
 		"pt"	"Apenas jogadores da equipe BLU pode usar esse comando."
 	}
+	"EngyTeleSpaceError"
+	{
+		"pt"	"Não tem espaço suficiente para construir um teletransportador."
+	}
 }

@@ -51,4 +51,8 @@
 	{
 		"en"	"This command can only be used by BLU team."
 	}
+	"EngyTeleSpaceError"
+	{
+		"en"	"Not enough space to build a teleporter."
+	}
 }

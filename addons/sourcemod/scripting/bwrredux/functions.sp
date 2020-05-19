@@ -417,380 +417,65 @@ void OnDestroyedTeleporter(const char[] output, int caller, int activator, float
 // Fires a bunch of tracers to check if there is enough space for robots (and giants) to spawn.
 // The player size can be found here: https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper's_Reference
 // Remember that giant's size is multiplied by 1.75 (some bosses uses 1.9).
-bool CheckTeleportClamping(int telepoter)
+bool CheckTeleportClamping(int teleporter, int client)
 {
-	float VecTeleporter[3], RayAngles[3], RayEndPos[3];
+	float VecTeleporter[3], RayEndPos[3];
+	// Array of angles to check, remember to change array size when adding/removing angles
+	float RayAngles[13][3] = { {270.0,0.0,0.0}, {225.0,0.0,0.0}, {225.0,90.0,0.0}, {225.0,180.0,0.0}, {225.0,270.0,0.0}, {0.0,0.0,0.0}, {0.0,90.0,0.0}, {0.0,180.0,0.0}, {0.0,270.0,0.0}, 
+	{0.0,45.0,0.0}, {0.0,135.0,0.0}, {0.0,225.0,0.0}, {0.0,315.0,0.0},};
 	float fldistance;
-	GetEntPropVector(telepoter, Prop_Send, "m_vecOrigin", VecTeleporter);
+	GetEntPropVector(teleporter, Prop_Send, "m_vecOrigin", VecTeleporter);
 	VecTeleporter[2] += 5;
 	
 	bool bSmallMap = IsSmallMap();
 	Handle Tracer = null;
 	
-	RayAngles[0] = 270.0; // up
-	RayAngles[1] = 0.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
+	for(int i = 0;i < sizeof(RayAngles);i++)
 	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
+		Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles[i], MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, teleporter);
+		if( Tracer != null && TR_DidHit(Tracer) ) // tracer hit something
 		{
-			if(fldistance < 120)
+			TR_GetEndPosition(RayEndPos, Tracer);
+			fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
+			if( bSmallMap ) // Small map mode?
 			{
-				CloseHandle(Tracer);
-				return true;
+				if(fldistance < 120)
+				{
+					TE_SetupBeamPoints(VecTeleporter, RayEndPos, GetLaserSprite(), GetHaloSprite(), 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0); // show a red beam to help with teleporter placement
+					TE_SendToClient(client, 0.1);
+					CloseHandle(Tracer);
+					return true;
+				}
+			}
+			else
+			{
+				if(fldistance < 185)
+				{
+					TE_SetupBeamPoints(VecTeleporter, RayEndPos, GetLaserSprite(), GetHaloSprite(), 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0); // show a red beam to help with teleporter placement
+					TE_SendToClient(client, 0.1);
+					CloseHandle(Tracer);
+					return true;
+				}			
+			}
+			if(IsDebugging())
+			{
+				TE_SetupBeamPoints(VecTeleporter, RayEndPos, GetLaserSprite(), GetHaloSprite(), 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 255, 255, 255}, 0); // if debug is enabled, create a white beam to visualize the rays
+				TE_SendToClient(client, 0.1);				
 			}
 		}
 		else
 		{
-			if(fldistance < 185)
+			if(IsDebugging())
 			{
-				CloseHandle(Tracer);
-				return true;
-			}			
+				PrintToConsole(client, "Ray ID: %i was null or did not hit something", i);
+				PrintToConsole(client, "Ray Angles for ray %d: %f %f %f", i, RayAngles[i][0], RayAngles[i][1], RayAngles[i][2]);
+			}
 		}
+		CloseHandle( Tracer );
+		Tracer = null;
 	}
 
-	CloseHandle(Tracer);
-	Tracer = null;	
-	RayAngles[0] = 225.0; // angled roof check
-	RayAngles[1] = 0.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 70)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 110)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;	
-	RayAngles[0] = 225.0; // angled roof check
-	RayAngles[1] = 90.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 70)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 110)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;	
-	RayAngles[0] = 225.0; // angled roof check
-	RayAngles[1] = 180.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 70)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 110)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;	
-	RayAngles[0] = 225.0; // angled roof check
-	RayAngles[1] = 270.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 70)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 110)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;
-	RayAngles[0] = 0.0;
-	RayAngles[1] = 0.0; // front
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 36)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 68)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;
-	RayAngles[0] = 0.0;
-	RayAngles[1] = 90.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 36)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 68)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;
-	RayAngles[0] = 0.0;
-	RayAngles[1] = 180.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 36)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 68)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;
-	RayAngles[0] = 0.0;
-	RayAngles[1] = 270.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 36)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 68)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;
-	RayAngles[0] = 0.0;
-	RayAngles[1] = 45.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 60)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 96)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;
-	RayAngles[0] = 0.0;
-	RayAngles[1] = 135.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 60)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 96)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;
-	RayAngles[0] = 0.0;
-	RayAngles[1] = 225.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 60)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 96)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	Tracer = null;
-	RayAngles[0] = 0.0;
-	RayAngles[1] = 315.0;
-	RayAngles[2] = 0.0;
-	Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles, MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, telepoter)
-	if( Tracer != null && TR_DidHit(Tracer) )
-	{
-		TR_GetEndPosition(RayEndPos, Tracer);
-		fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-		if( bSmallMap )
-		{
-			if(fldistance < 60)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}
-		}
-		else
-		{
-			if(fldistance < 96)
-			{
-				CloseHandle(Tracer);
-				return true;
-			}			
-		}
-	}
-	
-	CloseHandle(Tracer);
-	return false
+	return false;
 }
 
 bool TraceFilterIgnorePlayers(int entity, int contentsMask)

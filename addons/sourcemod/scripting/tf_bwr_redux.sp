@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.1.0"
+#define PLUGIN_VERSION "0.1.1"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -50,6 +50,9 @@ float g_flNextBusterTime;
 float g_flLastForceBot[MAXPLAYERS + 1]; // Last time a player forced a bot
 bool g_bBotMenuIsGiant[MAXPLAYERS + 1];
 TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1];
+
+int g_iLaserSprite;
+int g_iHaloSprite;
 
 // convars
 ConVar c_iMinRed;
@@ -300,6 +303,10 @@ public void OnPluginStart()
 	array_spawns = new ArrayList();
 }
 
+bool IsDebugging() { return c_bDebug.BoolValue; }
+
+bool IsSmallMap() { return c_bSmallMap.BoolValue; }
+
 public void OnLibraryAdded(const char[] name)
 {
 	if(StrEqual(name, "SteamWorks", false))
@@ -370,7 +377,12 @@ public void OnMapStart()
 	PrecacheSound("vo/mvm_sentry_buster_alerts05.mp3");
 	PrecacheSound("vo/mvm_sentry_buster_alerts06.mp3");
 	PrecacheSound("vo/mvm_sentry_buster_alerts07.mp3");
+	g_iLaserSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
+	g_iHaloSprite = PrecacheModel("materials/sprites/halo01.vmt");
 }
+
+int GetLaserSprite() { return g_iLaserSprite; }
+int GetHaloSprite() { return g_iHaloSprite; }
 
 /* public void OnClientConnected(client)
 {
@@ -2268,9 +2280,10 @@ public Action Timer_BuildObject(Handle timer, any index)
 			}
 			else
 			{
-				if( CheckTeleportClamping(index) )
+				if( CheckTeleportClamping(index, iBuilder) )
 				{
 					PrintCenterText(iBuilder, "NOT ENOUGH SPACE TO BUILD A TELEPORTER");
+					PrintToChat(iBuilder, "%t", "EngyTeleSpaceError");
 					SetVariantInt(9999);
 					AcceptEntityInput(index, "RemoveHealth");
 				}
@@ -2587,10 +2600,7 @@ int GetHumanRobotCount()
 	return count;
 }
 
-bool IsSmallMap()
-{
-	return c_bSmallMap.BoolValue;
-}
+
 
 // updates array_avclass
 // uses the data from tf_objective_resource to determine which classes should be available.
