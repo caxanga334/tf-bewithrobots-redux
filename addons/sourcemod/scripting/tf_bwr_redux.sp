@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.1.1"
+#define PLUGIN_VERSION "0.1.2"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -2025,6 +2025,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			strBotName = RT_GetTemplateName(TFClass, p_iBotVariant[client], 1);
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) ); // has nothing to do with variant name but same condition
 			ApplyRobotLoopSound(client);
+			RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 1);
 		}
 		else if( p_iBotType[client] == Bot_Boss )
 		{
@@ -2043,6 +2044,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			strBotName = RT_GetTemplateName(TFClass, p_iBotVariant[client], 0);
 			StopRobotLoopSound(client);
+			RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 0);
 		}
 		PrintToChat(client, "%t", "Bot Spawn", strBotName);
 		SetRobotScale(client,TFClass);
@@ -2538,6 +2540,8 @@ void MovePlayerToRED(int client)
 	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
 	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 	p_iBotTeam[client] = TFTeam_Red;
+	TF2Attrib_RemoveAll(client);
+	TF2Attrib_ClearCache(client);
 	
 	if( TF2_GetPlayerClass(client) == TFClass_Unknown )
 		ShowVGUIPanel(client, "class_red");

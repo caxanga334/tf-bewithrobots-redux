@@ -227,29 +227,23 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 	int iWeapon;
 	char buffer[255];
 	
+	TF2Attrib_RemoveAll(client);
+	
 	if(type == 0) // Normal
 	{
 		if(templateindex <= g_nBotTemplate[TemplateType_Normal].numtemplates[iClass]) // This is a stock robot
 		{
-			// Set Health
-			int iHealth = (g_BNHealth[templateindex][iClass] - GetClassBaseHealth(TFClass));
-			if(iHealth <= 0)
-			{
-				iHealth = GetClassBaseHealth(TFClass);
-				if(iHealth < 0)
-					LogError("Error: Robot \"%s\" with negative health!", g_BNTemplateName[templateindex][iClass]);
-			}
-			TF2Attrib_SetByName(client, "hidden maxhealth non buffed", view_as<float>(iHealth));
-			
 			// Set Player Attributes
 			if(g_BNCharAttrib[templateindex][iClass].Length > 0)
 			{
 				for(int i = 0;i < g_BNCharAttrib[templateindex][iClass].Length;i++)
 				{
 					g_BNCharAttrib[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
-					TF2Attrib_SetByName(client, buffer, g_BNCharAttrib[templateindex][iClass].Get(i));
+					TF2Attrib_SetByName(client, buffer, g_BNCharAttribValue[templateindex][iClass].Get(i));
 				}
 			}
+			
+			TF2Attrib_ClearCache(client);
 
 			// Spawn Weapons
 			for(int i = 0;i < MAX_ROBOTS_WEAPONS;i++)
@@ -266,6 +260,7 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 							TF2Attrib_SetByName(iWeapon, buffer, g_BNWeapAttribValue[templateindex][iClass][i].Get(y));
 						}
 					}
+					TF2Attrib_ClearCache(iWeapon);
 				}
 			}
 		}
@@ -273,23 +268,14 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 	else // Giants
 	{
 		if(templateindex <= g_nBotTemplate[TemplateType_Giant].numtemplates[iClass]) // This is a stock robot
-		{
-			// Set Health
-			int iHealth = (g_BGHealth[templateindex][iClass] - GetClassBaseHealth(TFClass));
-			if(iHealth <= 0)
-			{
-				iHealth = GetClassBaseHealth(TFClass);
-				LogError("Error: Robot \"%s\" with negative health!", g_BGTemplateName[templateindex][iClass]);
-			}
-			TF2Attrib_SetByName(client, "hidden maxhealth non buffed", view_as<float>(iHealth));
-			
+		{	
 			// Set Player Attributes
 			if(g_BGCharAttrib[templateindex][iClass].Length > 0)
 			{
 				for(int i = 0;i < g_BGCharAttrib[templateindex][iClass].Length;i++)
 				{
 					g_BGCharAttrib[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
-					TF2Attrib_SetByName(client, buffer, g_BGCharAttrib[templateindex][iClass].Get(i));
+					TF2Attrib_SetByName(client, buffer, g_BGCharAttribValue[templateindex][iClass].Get(i));
 				}
 			}
 
@@ -312,6 +298,43 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 			}
 		}
 	}
+}
+
+// Sets the robot health
+void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type = 0)
+{
+	int iClass = view_as<int>(TFClass);
+	int iHealth;
+	float flHealth;
+	switch( type )
+	{
+		case 0: // Normal
+		{
+			if(g_BNHealth[templateindex][iClass] > 0)
+			{
+				iHealth = (g_BNHealth[templateindex][iClass] - GetClassBaseHealth(TFClass));
+				flHealth = float(iHealth);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", flHealth);
+				TF2Attrib_ClearCache(client);
+				SetEntProp(client, Prop_Send, "m_iHealth", g_BNHealth[templateindex][iClass]);
+				SetEntProp(client, Prop_Data, "m_iHealth", g_BNHealth[templateindex][iClass]);
+				if(IsDebugging()) { PrintToConsole(client, "Setting Robot Health: %i (%i)", g_BNHealth[templateindex][iClass], iHealth); }
+			}
+		}
+		case 1: // Giant
+		{
+			if(g_BGHealth[templateindex][iClass] > 0)
+			{
+				iHealth = (g_BGHealth[templateindex][iClass] - GetClassBaseHealth(TFClass));
+				flHealth = float(iHealth);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", flHealth);
+				TF2Attrib_ClearCache(client);
+				SetEntProp(client, Prop_Send, "m_iHealth", g_BGHealth[templateindex][iClass]);
+				SetEntProp(client, Prop_Data, "m_iHealth", g_BGHealth[templateindex][iClass]);
+				if(IsDebugging()) { PrintToConsole(client, "Setting Robot Health: %i (%i)", g_BGHealth[templateindex][iClass], iHealth); }
+			}
+		}
+	}	
 }
 
 // Returns the robot name
