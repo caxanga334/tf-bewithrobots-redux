@@ -19,10 +19,12 @@ char g_strConfigFile[PLATFORM_MAX_PATH];
 // == STOCK NORMAL ROBOTS ==
 char g_BNTemplateName[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STRING];
 char g_BNRobotAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STRING];
+char g_BNDescription[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STRING];
 int g_BNWeaponIndex[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
 int g_BNBitsAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BNHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BNType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+float g_BNScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BNWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BNCharAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BNCharAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
@@ -31,10 +33,12 @@ ArrayList g_BNWeapAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBO
 // == STOCK GIANT ROBOTS ==
 char g_BGTemplateName[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STRING];
 char g_BGRobotAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STRING];
+char g_BGDescription[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STRING];
 int g_BGWeaponIndex[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
 int g_BGBitsAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+float g_BGScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BGWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BGCharAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BGCharAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
@@ -370,6 +374,35 @@ char RT_GetTemplateName(TFClassType TFClass, int templateindex, int type = 0)
 	return buffer;
 }
 
+// Returns the robot description
+char RT_GetDescription(TFClassType TFClass, int templateindex, int type = 0)
+{
+	char buffer[255];
+	int iClass = view_as<int>(TFClass);
+	
+	if(templateindex < 0) { return buffer; }
+	
+	switch( type )
+	{
+		case 0: // Normal
+		{
+			if(templateindex <= g_nBotTemplate[TemplateType_Normal].numtemplates[iClass]) // stock
+			{
+				strcopy(buffer, 255, g_BNDescription[templateindex][iClass]);
+			}
+		}
+		case 1: // Giant
+		{
+			if(templateindex <= g_nBotTemplate[TemplateType_Giant].numtemplates[iClass]) // stock
+			{
+				strcopy(buffer, 255, g_BGDescription[templateindex][iClass]);
+			}	
+		}
+	}
+	
+	return buffer;
+}
+
 // Returns the robot attributes
 int RT_GetAttributesBits(TFClassType TFClass, int templateindex, int type = 0)
 {
@@ -422,6 +455,32 @@ int RT_GetType(TFClassType TFClass, int templateindex, int type = 0)
 	}
 	
 	return iRobotType;
+}
+
+// returns the robot scale
+float RT_GetScale(TFClassType TFClass, int templateindex, int type = 0)
+{
+	int iClass = view_as<int>(TFClass);
+	
+	switch( type )
+	{
+		case 0: // Normal
+		{
+			if(templateindex <= g_nBotTemplate[TemplateType_Normal].numtemplates[iClass]) // stock
+			{
+				return g_BNScale[templateindex][iClass];
+			}
+		}
+		case 1: // Giant
+		{
+			if(templateindex <= g_nBotTemplate[TemplateType_Giant].numtemplates[iClass]) // stock
+			{
+				return g_BGScale[templateindex][iClass];
+			}			
+		}
+	}
+	
+	return 0.0;
 }
 
 // add attributes to own variants
@@ -754,6 +813,8 @@ void RT_LoadCfgNormal()
 						KvGetString(kv, "robotattributes", g_BNRobotAttribs[iCounter][j], MAXLEN_CONFIG_STRING);
 						g_BNHealth[iCounter][j] = kv.GetNum("health", 0);
 						g_BNType[iCounter][j] = kv.GetNum("type", 0);
+						g_BNScale[iCounter][j] = kv.GetFloat("scale", 0.0);
+						KvGetString(kv, "description", g_BNDescription[iCounter][j], MAXLEN_CONFIG_STRING);
 						
 						if(kv.JumpToKey("playerattributes"))
 						{
@@ -856,6 +917,8 @@ void RT_LoadCfgGiant()
 						KvGetString(kv, "robotattributes", g_BGRobotAttribs[iCounter][j], MAXLEN_CONFIG_STRING);
 						g_BGHealth[iCounter][j] = kv.GetNum("health", 0);
 						g_BGType[iCounter][j] = kv.GetNum("type", 0);
+						g_BGScale[iCounter][j] = kv.GetFloat("scale", 0.0);
+						KvGetString(kv, "description", g_BGDescription[iCounter][j], MAXLEN_CONFIG_STRING);
 						
 						if(kv.JumpToKey("playerattributes"))
 						{

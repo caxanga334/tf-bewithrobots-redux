@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.1.2"
+#define PLUGIN_VERSION "0.1.3"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -1973,7 +1973,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		return Plugin_Stop;
 		
 	TFClassType TFClass = TF2_GetPlayerClass(client);
-	char strBotName[255];
+	char strBotName[255], strBotDesc[255];
 	int iTeleTarget = -1;
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
@@ -2023,6 +2023,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		if( p_iBotType[client] == Bot_Giant )
 		{
 			strBotName = RT_GetTemplateName(TFClass, p_iBotVariant[client], 1);
+			strBotDesc = RT_GetDescription(TFClass, p_iBotVariant[client], 1);
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) ); // has nothing to do with variant name but same condition
 			ApplyRobotLoopSound(client);
 			RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 1);
@@ -2043,10 +2044,12 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		else
 		{
 			strBotName = RT_GetTemplateName(TFClass, p_iBotVariant[client], 0);
+			strBotDesc = RT_GetDescription(TFClass, p_iBotVariant[client], 0);
 			StopRobotLoopSound(client);
 			RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 0);
 		}
 		PrintToChat(client, "%t", "Bot Spawn", strBotName);
+		if( strlen(strBotDesc) > 3 ) { PrintToChat(client, "%s", strBotDesc); }
 		SetRobotScale(client,TFClass);
 		SetRobotModel(client,TFClass);
 		
@@ -3135,6 +3138,46 @@ void SetRobotScale(int client, TFClassType TFClass)
 		return;
 
 	bool bSmallMap = IsSmallMap();
+	
+	// Check if a custom scale is set in the template files
+	if( !bSmallMap ) // not a small map
+	{
+		switch( p_iBotType[client] )
+		{
+			case Bot_Giant:
+			{
+				if( RT_GetScale(TFClass, p_iBotVariant[client], 1) > 0.3 && RT_GetScale(TFClass, p_iBotVariant[client], 1) < 2.0) // limit custom scale between 0.3 and 2.0
+				{
+					ScalePlayerModel(client, RT_GetScale(TFClass, p_iBotVariant[client], 1));
+					return;
+				}
+			}
+			case Bot_Big:
+			{
+				if( RT_GetScale(TFClass, p_iBotVariant[client], 0) > 0.3 && RT_GetScale(TFClass, p_iBotVariant[client], 0) < 2.0) // limit custom scale between 0.3 and 2.0
+				{
+					ScalePlayerModel(client, RT_GetScale(TFClass, p_iBotVariant[client], 0));
+					return;
+				}
+			}
+			case Bot_Small:
+			{
+				if( RT_GetScale(TFClass, p_iBotVariant[client], 0) > 0.3 && RT_GetScale(TFClass, p_iBotVariant[client], 0) < 2.0) // limit custom scale between 0.3 and 2.0
+				{
+					ScalePlayerModel(client, RT_GetScale(TFClass, p_iBotVariant[client], 0));
+					return;
+				}
+			}
+			case Bot_Normal:
+			{
+				if( RT_GetScale(TFClass, p_iBotVariant[client], 0) > 0.3 && RT_GetScale(TFClass, p_iBotVariant[client], 0) < 2.0) // limit custom scale between 0.3 and 2.0
+				{
+					ScalePlayerModel(client, RT_GetScale(TFClass, p_iBotVariant[client], 0));
+					return;
+				}
+			}
+		}
+	}
 	
 	if( bSmallMap )
 	{

@@ -71,6 +71,8 @@ void TeleportSpyRobot(int client)
 		}
 	}
 	
+	if(!IsValidClient(target)) { return; }
+	
 	float TargetPos[3], CenterPos[3];
 	char targetname[MAX_NAME_LENGTH];
 	
