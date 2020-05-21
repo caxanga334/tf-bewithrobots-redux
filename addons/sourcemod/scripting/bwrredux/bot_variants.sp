@@ -310,6 +310,9 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 	int iClass = view_as<int>(TFClass);
 	int iHealth;
 	float flHealth;
+	
+	if( templateindex < 0 ) { return; }
+	
 	switch( type )
 	{
 		case 0: // Normal
