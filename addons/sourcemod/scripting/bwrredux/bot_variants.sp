@@ -463,6 +463,8 @@ int RT_GetType(TFClassType TFClass, int templateindex, int type = 0)
 // returns the robot scale
 float RT_GetScale(TFClassType TFClass, int templateindex, int type = 0)
 {
+	if( templateindex < 0 ) { return; }
+	
 	int iClass = view_as<int>(TFClass);
 	
 	switch( type )

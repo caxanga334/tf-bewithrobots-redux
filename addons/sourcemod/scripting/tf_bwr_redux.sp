@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.1.3"
+#define PLUGIN_VERSION "0.1.4"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -3140,7 +3140,7 @@ void SetRobotScale(int client, TFClassType TFClass)
 	bool bSmallMap = IsSmallMap();
 	
 	// Check if a custom scale is set in the template files
-	if( !bSmallMap ) // not a small map
+	if( !bSmallMap && p_iBotVariant[client] >= 0 ) // not a small map
 	{
 		switch( p_iBotType[client] )
 		{
