@@ -594,11 +594,7 @@ bool CanSeeTarget(int iEntity,int iOther, float flMaxDistance = 0.0 )
 	if( iEntity <= 0 || iOther <= 0 || !IsValidEntity(iEntity) || !IsValidEntity(iOther) )
 		return false;
 	
-	float vecStart[3];
-	float vecStartMaxs[3];
-	float vecTarget[3];
-	float vecTargetMaxs[3];
-	float vecEnd[3];
+	float vecStart[3], vecStartMaxs[3], vecTarget[3], vecTargetMaxs[3], vecEnd[3];
 	
 	GetEntPropVector( iEntity, Prop_Data, "m_vecOrigin", vecStart );
 	GetEntPropVector( iEntity, Prop_Send, "m_vecMaxs", vecStartMaxs );
@@ -617,7 +613,7 @@ bool CanSeeTarget(int iEntity,int iOther, float flMaxDistance = 0.0 )
 		}
 	}
 	
-	Handle hTrace = TR_TraceRayFilterEx( vecStart, vecTarget, MASK_VISIBLE, RayType_EndPoint, TraceFilterSentryBuster, iEntity );
+	Handle hTrace = TR_TraceRayFilterEx( vecStart, vecTarget, MASK_VISIBLE, RayType_EndPoint, TraceFilterSentryBuster, iOther );
 	if( !TR_DidHit( hTrace ) )
 	{
 		CloseHandle( hTrace );
@@ -641,17 +637,17 @@ float GetVectorDistanceMeter( const float vec1[3], const float vec2[3], bool squ
 	return ( GetVectorDistance( vec1, vec2, squared ) / 50.00 );
 }
 
-bool TraceFilterSentryBuster(int iEntity,int iContentsMask, any buster )
+bool TraceFilterSentryBuster(int iEntity,int iContentsMask, any iOther )
 {
 	if( iEntity < 0 || !IsValidEntity(iEntity) )
 		return false;
 		
-	if( iEntity == buster )
-		return false;
+	if( iEntity == iOther )
+		return true;
 		
 	if( IsValidClient(iEntity) )
 	{
-		if( IsClientInGame(iEntity) && IsPlayerAlive(iEntity) )
+		if( IsClientInGame(iEntity) && IsPlayerAlive(iEntity) && TF2_GetClientTeam(iEntity) == TFTeam_Red )
 		{
 			return true;
 		}

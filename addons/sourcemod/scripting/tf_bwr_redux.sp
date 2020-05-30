@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.1.4"
+#define PLUGIN_VERSION "0.1.5"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -2724,12 +2724,11 @@ void PickRandomRobot(int client)
 	if(!IsClientInGame(client) || IsFakeClient(client))
 		return;
 	
-	int iABots = OR_GetAvailableClasses();
 	int iSize, iRandom, iClass;
 	bool bGiants = false;
 	
 	// First, check if we can spawn a buster.
-	if(iABots & 512 && GameRules_GetRoundState() == RoundState_RoundRunning)
+	if(GameRules_GetRoundState() == RoundState_RoundRunning)
 	{
 		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() )
 		{
