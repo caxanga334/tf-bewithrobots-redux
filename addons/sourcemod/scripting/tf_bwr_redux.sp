@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.1.5"
+#define PLUGIN_VERSION "0.1.6"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -2538,8 +2538,7 @@ void MovePlayerToRED(int client)
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
 	LogMessage("Player \"%L\" joined RED team.", client);
-	ChangeClientTeam(client, view_as<int>(TFTeam_Red));
-	SetEntProp( client, Prop_Send, "m_iTeamNum", view_as<int>(TFTeam_Red));
+	TF2_ChangeClientTeam( client, TFTeam_Red );
 	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
 	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
 	p_iBotTeam[client] = TFTeam_Red;
