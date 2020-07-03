@@ -4,6 +4,7 @@
 ![GitHub Releases](https://img.shields.io/github/downloads/caxanga334/tf-bewithrobots-redux/latest/total?style=flat-square)
 ![GitHub issues](https://img.shields.io/github/issues-raw/caxanga334/tf-bewithrobots-redux?style=flat-square)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr-raw/caxanga334/tf-bewithrobots-redux?style=flat-square)
+![Discord](https://img.shields.io/discord/680494591585026113?label=discord&style=flat-square)
 
 # Be With Robots: Redux
 Allows players to play as a robot in MvM
@@ -20,7 +21,5 @@ Plugin made to replace Be With Robots 2
 * [NavMesh](https://github.com/caxanga334/sm-plugins/blob/master/source/navmesh.sp)
 * [MvM Visible Max Players](https://forums.alliedmods.net/showpost.php?p=1819270) (Optional,Recommended)
 
-# Contact
-* [Discord](https://discord.gg/cSdu8Uf)
 
 [Compile Instructions](https://github.com/caxanga334/tf-bewithrobots-redux/blob/master/COMPILE.md)
