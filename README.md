@@ -4,7 +4,7 @@
 ![GitHub Releases](https://img.shields.io/github/downloads/caxanga334/tf-bewithrobots-redux/latest/total?style=flat-square)
 ![GitHub issues](https://img.shields.io/github/issues-raw/caxanga334/tf-bewithrobots-redux?style=flat-square)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr-raw/caxanga334/tf-bewithrobots-redux?style=flat-square)
-![Discord](https://img.shields.io/discord/680494591585026113?label=discord&style=flat-square)
+[![Discord](https://img.shields.io/discord/680494591585026113?label=discord&style=flat-square)](https://discord.gg/cSdu8Uf)
 
 # Be With Robots: Redux
 Allows players to play as a robot in MvM
