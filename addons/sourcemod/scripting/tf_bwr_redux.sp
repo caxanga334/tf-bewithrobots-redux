@@ -18,7 +18,7 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.1.6"
+#define PLUGIN_VERSION "0.1.7"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -165,10 +165,6 @@ methodmap RoboPlayer
 	public void BotSkill(int value)
 	{
 		SetEntProp( this.index, Prop_Send, "m_nBotSkill", value );
-	}
-	public void IsABot(bool value)
-	{
-		SetEntProp( this.index, Prop_Send, "m_bIsABot", view_as<int>(value) );
 	}
 }
  
@@ -2024,20 +2020,20 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			strBotName = RT_GetTemplateName(TFClass, p_iBotVariant[client], 1);
 			strBotDesc = RT_GetDescription(TFClass, p_iBotVariant[client], 1);
-			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) ); // has nothing to do with variant name but same condition
+			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 ); // has nothing to do with variant name but same condition
 			ApplyRobotLoopSound(client);
 			RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 1);
 		}
 		else if( p_iBotType[client] == Bot_Boss )
 		{
 			strBotName = "Boss";
-			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) );
+			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 );
 			ApplyRobotLoopSound(client);
 		}
 		else if( p_iBotType[client] == Bot_Buster )
 		{
 			strBotName = "Sentry Buster";
-			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(true) );
+			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 );
 			EmitGSToRed("Announcer.MVM_Sentry_Buster_Alert");
 			ApplyRobotLoopSound(client);
 		}
@@ -2539,8 +2535,7 @@ void MovePlayerToRED(int client)
 	AcceptEntityInput( client, "SetCustomModel" );
 	LogMessage("Player \"%L\" joined RED team.", client);
 	TF2_ChangeClientTeam( client, TFTeam_Red );
-	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
-	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
+	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
 	p_iBotTeam[client] = TFTeam_Red;
 	TF2Attrib_RemoveAll(client);
 	TF2Attrib_ClearCache(client);
@@ -2561,8 +2556,7 @@ void MovePlayerToSpec(int client)
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
 	SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
-	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
-	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(false) );
+	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
 	LogMessage("Player \"%L\" joined SPECTATOR team.", client);
 	TF2_ChangeClientTeam(client, TFTeam_Spectator);
 }
@@ -2576,8 +2570,7 @@ void MovePlayerToBLU(int client)
 	StopRobotLoopSound(client);
 	ForcePlayerSuicide(client);
 	SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
-	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", view_as<int>(false) );
-	SetEntProp( client, Prop_Send, "m_bIsABot", view_as<int>(true) );
+	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
 	
 	int iEntFlags = GetEntityFlags( client );
 	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
