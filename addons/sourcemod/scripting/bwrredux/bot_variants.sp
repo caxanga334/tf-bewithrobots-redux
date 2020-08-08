@@ -776,7 +776,13 @@ void RT_PostLoad()
 // Stock Normal Robots
 void RT_LoadCfgNormal()
 {
-	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/robots_normal.cfg");
+	char filename[32];
+	
+	Format(filename, sizeof(filename), "%s", NormalBotsFile());
+
+	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/");
+	
+	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s", g_strConfigFile, filename);
 	
 	if(!FileExists(g_strConfigFile))
 	{
@@ -880,7 +886,13 @@ void RT_LoadCfgNormal()
 // Stock Giant Robots
 void RT_LoadCfgGiant()
 {
-	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/robots_giant.cfg");
+	char filename[32];
+	
+	Format(filename, sizeof(filename), "%s", GiantBotsFile());
+
+	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/");
+	
+	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s", g_strConfigFile, filename);
 	
 	if(!FileExists(g_strConfigFile))
 	{

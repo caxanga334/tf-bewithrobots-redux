@@ -18,7 +18,9 @@
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/functions.sp"
 
-#define PLUGIN_VERSION "0.1.7"
+#pragma semicolon 1
+
+#define PLUGIN_VERSION "0.1.8"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -34,7 +36,6 @@ int p_iBotVariant[MAXPLAYERS + 1];
 int p_iBotAttrib[MAXPLAYERS + 1];
 TFClassType p_BotClass[MAXPLAYERS + 1];
 bool p_bSpawned[MAXPLAYERS + 1]; // store if a player has recently spawned.
-TFTeam p_iBotTeam[MAXPLAYERS + 1]; // player's team.
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
@@ -68,7 +69,9 @@ ConVar c_iBusterMinKills; // minimum amount of kills a sentry needs to have befo
 ConVar c_svTag; // server tags
 ConVar c_bDebug; // Enable debug mode
 ConVar c_flForceDelay; // Delay between force bot command usage
-ConVar c_flFDGiant // Extra delay added when the forced bot is a giant
+ConVar c_flFDGiant; // Extra delay added when the forced bot is a giant
+ConVar c_strNBFile; // Normal bot template file
+ConVar c_strGBFile; // Giant bot template file
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -81,7 +84,7 @@ enum SpawnType
 	Spawn_Spy = 3,
 	Spawn_Buster = 4,
 	Spawn_Boss = 5
-}
+};
 
 enum
 {
@@ -153,11 +156,6 @@ methodmap RoboPlayer
 		public get()	{ return p_bSpawned[this.index]; }
 		public set( bool value ) { p_bSpawned[this.index] = value; }
 	}
-	property TFTeam Team
-	{
-		public get()	{ return p_iBotTeam[this.index]; }
-		public set( TFTeam value ) { p_iBotTeam[this.index] = value; }
-	}
 	public void MiniBoss(bool value)
 	{
 		SetEntProp( this.index, Prop_Send, "m_bIsMiniBoss", view_as<int>(value) );
@@ -213,6 +211,8 @@ public void OnPluginStart()
 	c_bDebug = AutoExecConfig_CreateConVar("sm_bwrr_debug_enabled", "0.0", "Enable/Disable the debug mode.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_flForceDelay = AutoExecConfig_CreateConVar("sm_bwrr_force_delay", "100.0", "Delay between force bot command usage.", FCVAR_NONE, true, 0.0, true, 600.0);
 	c_flFDGiant = AutoExecConfig_CreateConVar("sm_bwrr_force_giant_delay", "50.0", "Extra delay that will be added to sm_setrobot if the spawned robot is a giant", FCVAR_NONE, true, 0.0, true, 300.0);
+	c_strNBFile = AutoExecConfig_CreateConVar("sm_bwrr_botnormal_file", "robots_normal.cfg", "The file to load normal robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
+	c_strGBFile = AutoExecConfig_CreateConVar("sm_bwrr_botgiant_file", "robots_giant.cfg", "The file to load giant robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
@@ -289,10 +289,6 @@ public void OnPluginStart()
 	HookUserMessage(ID_MVMResetUpgrade, MsgHook_MVMRespec);
 	
 	RT_InitArrays();
-	RT_ClearArrays();
-	RT_LoadCfgNormal();
-	RT_LoadCfgGiant();
-	RT_PostLoad();
 	
 	array_avclass = new ArrayList(10);
 	array_avgiants = new ArrayList(10);
@@ -303,6 +299,21 @@ bool IsDebugging() { return c_bDebug.BoolValue; }
 
 bool IsSmallMap() { return c_bSmallMap.BoolValue; }
 
+char NormalBotsFile()
+{
+	char buffer[32];
+	c_strNBFile.GetString(buffer, sizeof(buffer));
+	return buffer;
+}
+
+char GiantBotsFile()
+{
+	char buffer[32];
+	c_strGBFile.GetString(buffer, sizeof(buffer));
+	return buffer;
+}
+
+
 public void OnLibraryAdded(const char[] name)
 {
 	if(StrEqual(name, "SteamWorks", false))
@@ -311,11 +322,19 @@ public void OnLibraryAdded(const char[] name)
 	}
 }
 
+public void OnConfigsExecuted()
+{
+	RT_ClearArrays(); // load config calls needed to be moved here in order to properly load a custom file set in the convars
+	RT_LoadCfgNormal();
+	RT_LoadCfgGiant();
+	RT_PostLoad();
+}
+
 public void OnMapStart()
 {
 	if(!IsMvM(true))
 	{
-		SetFailState("This plugin is for Mann vs Machine Only.") // probably easier than add IsMvM everywhere
+		SetFailState("This plugin is for Mann vs Machine Only."); // probably easier than add IsMvM everywhere
 	}
 	
 	if(LibraryExists("SteamWorks"))
@@ -387,7 +406,6 @@ int GetHaloSprite() { return g_iHaloSprite; }
 
 public void OnClientDisconnect(client)
 {
-	p_iBotTeam[client] = TFTeam_Unassigned;
 	ResetRobotData(client);
 	StopRobotLoopSound(client);
 }
@@ -625,11 +643,17 @@ public Action Command_JoinBLU( int client, int nArgs )
 	if( !IsClientInGame(client) || IsFakeClient(client) )
 		return Plugin_Handled;
 		
-	if( TF2_GetClientTeam(client) == TFTeam_Blue || p_iBotTeam[client] == TFTeam_Blue )
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 		return Plugin_Handled;
 		
 	if( GameRules_GetRoundState() == RoundState_TeamWin )
 		return Plugin_Handled;
+		
+	if( !CheckCommandAccess(client, "bwrr_joinblue", 0) )
+	{
+		PrintToChat(client,"%t", "No BLU Access");
+		return Plugin_Handled;
+	}
 		
 	if( array_avclass.Length < 1 ) // Block join BLU to avoid errors
 	{
@@ -680,7 +704,6 @@ public Action Command_JoinBLU( int client, int nArgs )
 	}
 	
 	MovePlayerToBLU(client);
-	p_iBotTeam[client] = TFTeam_Blue;
 	return Plugin_Handled;
 }
 
@@ -918,7 +941,6 @@ public Action Command_MoveTeam( int client, int nArgs )
 			}
 			else
 			{
-				p_iBotTeam[i] = TFTeam_Blue;
 				MovePlayerToBLU(target_list[i]);
 			}
 		}
@@ -928,7 +950,6 @@ public Action Command_MoveTeam( int client, int nArgs )
 		}
 		else
 		{
-			p_iBotTeam[i] = TFTeam_Spectator;
 			MovePlayerToSpec(target_list[i]);
 		}
 		LogAction(client, target_list[i], "\"%L\" changed \"%L\"'s team to %s", client, target_list[i], strLogTeam);
@@ -1381,7 +1402,6 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 	}
 	else if( StrEqual( strTeam, "spectate", false ) || StrEqual( strTeam, "spectator", false ) )
 	{
-		p_iBotTeam[client] = TFTeam_Spectator;
 		MovePlayerToSpec(client);
 		return Plugin_Handled;
 	}
@@ -1676,7 +1696,7 @@ void MenuFunc_ShowVariantMenu(int client, TFClassType variantclass)
 		for(int i = 0; i < RT_NumTemplates(g_bBotMenuIsGiant[client], variantclass);i++)
 		{
 			Format(variantid, sizeof(variantid), "%i", i);
-			variantname = RT_GetTemplateName(variantclass, i, 0)
+			variantname = RT_GetTemplateName(variantclass, i, 0);
 			menu.AddItem(variantid, variantname);
 		}
 	}
@@ -1817,9 +1837,6 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 		CreateTimer(1.0, Timer_OnFakePlayerSpawn, client);
 	else
 		CreateTimer(0.3, Timer_OnPlayerSpawn, client);
-		
-	if( TF2_GetClientTeam(client) == TFTeam_Red )
-		p_iBotTeam[client] = TFTeam_Red;
 	
 	if( array_avclass.Length < 1 )
 	{
@@ -1898,7 +1915,7 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 				
 				if( p_iBotType[client] == Bot_Giant )
 				{
-					RT_GiveInventory(client, 1, p_iBotVariant[client])
+					RT_GiveInventory(client, 1, p_iBotVariant[client]);
 				}
 				else if( p_iBotType[client] == Bot_Buster )
 				{
@@ -1906,7 +1923,7 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 				}
 				else
 				{
-					RT_GiveInventory(client, 0, p_iBotVariant[client])
+					RT_GiveInventory(client, 0, p_iBotVariant[client]);
 				}
 			}
 			else
@@ -2244,7 +2261,7 @@ public Action Timer_BuildObject(Handle timer, any index)
 	
 	if( IsValidEdict(index) )
 	{
-		GetEdictClassname(index, classname, sizeof(classname))
+		GetEdictClassname(index, classname, sizeof(classname));
 		
 		if( strcmp(classname, "obj_sentrygun", false) == 0 )
 		{
@@ -2536,7 +2553,6 @@ void MovePlayerToRED(int client)
 	LogMessage("Player \"%L\" joined RED team.", client);
 	TF2_ChangeClientTeam( client, TFTeam_Red );
 	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
-	p_iBotTeam[client] = TFTeam_Red;
 	TF2Attrib_RemoveAll(client);
 	TF2Attrib_ClearCache(client);
 	
@@ -2722,7 +2738,8 @@ void PickRandomRobot(int client)
 	// First, check if we can spawn a buster.
 	if(GameRules_GetRoundState() == RoundState_RoundRunning)
 	{
-		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() )
+		// Check cooldown, spawn conditions and permission
+		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() && CheckCommandAccess(client, "bwrr_sentrybuster", 0) )
 		{
 			p_BotClass[client] = TFClass_DemoMan;
 			p_iBotVariant[client] = 0;

@@ -55,4 +55,8 @@
 	{
 		"pt"	"Não tem espaço suficiente para construir um teletransportador."
 	}
+	"No BLU Access"
+	{
+		"pt"	"Você não tem permissão para entrar na equipe BLU."
+	}
 }

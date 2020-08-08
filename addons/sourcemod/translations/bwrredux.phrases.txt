@@ -55,4 +55,8 @@
 	{
 		"en"	"Not enough space to build a teleporter."
 	}
+	"No BLU Access"
+	{
+		"en"	"You don't have permission to join BLU."
+	}
 }
