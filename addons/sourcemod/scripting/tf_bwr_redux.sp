@@ -20,7 +20,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "0.1.8"
+#define PLUGIN_VERSION "0.1.9"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -72,6 +72,7 @@ ConVar c_flForceDelay; // Delay between force bot command usage
 ConVar c_flFDGiant; // Extra delay added when the forced bot is a giant
 ConVar c_strNBFile; // Normal bot template file
 ConVar c_strGBFile; // Giant bot template file
+ConVar c_bLimitClasses; // Limit playable classes to the ones used in the current wave
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -213,6 +214,7 @@ public void OnPluginStart()
 	c_flFDGiant = AutoExecConfig_CreateConVar("sm_bwrr_force_giant_delay", "50.0", "Extra delay that will be added to sm_setrobot if the spawned robot is a giant", FCVAR_NONE, true, 0.0, true, 300.0);
 	c_strNBFile = AutoExecConfig_CreateConVar("sm_bwrr_botnormal_file", "robots_normal.cfg", "The file to load normal robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
 	c_strGBFile = AutoExecConfig_CreateConVar("sm_bwrr_botgiant_file", "robots_giant.cfg", "The file to load giant robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
+	c_bLimitClasses = AutoExecConfig_CreateConVar("sm_bwrr_limit_classes", "1", "Limit playable classes on the BLU team to classes that are used in the current wave", FCVAR_NONE, true, 0.0, true, 1.0);
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
@@ -2709,6 +2711,10 @@ bool IsClassAvailable(TFClassType TFClass, bool bGiants = false)
 	if( array_avclass.Length < 1 )
 		return false;
 		
+	// Class limit disabled
+	if( !c_bLimitClasses.BoolValue )
+		return true;
+		
 	int iClass = view_as<int>(TFClass);
 	
 	if(bGiants)
@@ -2760,17 +2766,21 @@ void PickRandomRobot(int client)
 	if( array_avgiants.Length >= 1 && array_avclass.Length < 1 ) // Normal robots not available for the current wave.
 		bGiants = true;
 	
-	if( bGiants ) // Spawn the player as a giant robot.
+	if( bGiants && c_bLimitClasses.BoolValue ) // Spawn the player as a giant robot.
 	{
 		iSize = GetArraySize(array_avgiants) - 1;
 		iRandom = GetRandomInt(0, iSize);
 		iClass = array_avgiants.Get(iRandom);
 	}
-	else // Spawn the player as a normal robot.
+	else if( c_bLimitClasses.BoolValue ) // Spawn the player as a normal robot.
 	{
 		iSize = GetArraySize(array_avclass) - 1;
 		iRandom = GetRandomInt(0, iSize);
 		iClass = array_avclass.Get(iRandom);
+	}
+	else
+	{
+		iClass = GetRandomInt(1,9); // class limit disabled, pick a random one
 	}
 	
 	
