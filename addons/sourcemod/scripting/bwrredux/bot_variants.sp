@@ -352,7 +352,49 @@ char RT_GetTemplateName(TFClassType TFClass, int templateindex, int type = 0)
 	
 	if(templateindex < 0)
 	{
-		strcopy(buffer, sizeof(buffer), "Your Own Loadout");
+		switch( TFClass )
+		{
+			case TFClass_Scout:
+			{
+				strcopy(buffer, sizeof(buffer), "Your Own Scout");
+			}
+			case TFClass_Soldier:
+			{
+				strcopy(buffer, sizeof(buffer), "Your Own Soldier");
+			}
+			case TFClass_Pyro:
+			{
+				strcopy(buffer, sizeof(buffer), "Your Own Pyro");
+			}
+			case TFClass_DemoMan:
+			{
+				strcopy(buffer, sizeof(buffer), "Your Own Demoman");
+			}
+			case TFClass_Heavy:
+			{
+				strcopy(buffer, sizeof(buffer), "Your Own Heavy");
+			}
+			case TFClass_Engineer:
+			{
+				strcopy(buffer, sizeof(buffer), "Your Own Engineer");
+			}
+			case TFClass_Medic:
+			{
+				strcopy(buffer, sizeof(buffer), "Your Own Medic");
+			}
+			case TFClass_Sniper:
+			{
+				strcopy(buffer, sizeof(buffer), "Your Own Sniper");
+			}
+			case TFClass_Spy:
+			{
+				strcopy(buffer, sizeof(buffer), "Your Own Spy");
+			}
+			default:
+			{
+				strcopy(buffer, sizeof(buffer), "Your Own Loadout");
+			}
+		}
 		return buffer;
 	}
 	

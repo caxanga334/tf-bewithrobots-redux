@@ -236,7 +236,7 @@ public void OnPluginStart()
 	LoadTranslations("common.phrases");
 	
 	// timers
-	CreateTimer(180.0, Timer_Announce, _, TIMER_REPEAT);
+	//CreateTimer(180.0, Timer_Announce, _, TIMER_REPEAT);
 	
 	// commands
 	RegConsoleCmd( "sm_joinred", Command_JoinRED, "Joins RED team." );
@@ -2389,11 +2389,11 @@ public Action Timer_DeployBomb(Handle timer, any client)
 	return Plugin_Stop;
 }
 
-public Action Timer_Announce(Handle timer)
+/**public Action Timer_Announce(Handle timer)
 {
 	PrintToChatAll("Be With Robots Redux By Anonymous Player.");
 	PrintToChatAll("https://github.com/caxanga334/tf-bewithrobots-redux");
-}
+}**/
 
 public Action Timer_SentryBuster_Explode(Handle timer, any client)
 {
