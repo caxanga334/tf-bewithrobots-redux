@@ -535,6 +535,8 @@ void SetOwnAttributes(int client , bool bGiant)
 {
 	if( IsFakeClient(client) )
 		return;
+		
+	TF2Attrib_RemoveAll(client); // bug fix
 
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	int iWeapon;

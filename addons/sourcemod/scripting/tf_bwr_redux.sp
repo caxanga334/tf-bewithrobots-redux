@@ -20,7 +20,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "0.1.9"
+#define PLUGIN_VERSION "0.1.10"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -2553,7 +2553,10 @@ void MovePlayerToRED(int client)
 	SetVariantString( "" );
 	AcceptEntityInput( client, "SetCustomModel" );
 	LogMessage("Player \"%L\" joined RED team.", client);
+	int iEntFlags = GetEntityFlags( client );
+	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
 	TF2_ChangeClientTeam( client, TFTeam_Red );
+	SetEntityFlags( client, iEntFlags );
 	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
 	TF2Attrib_RemoveAll(client);
 	TF2Attrib_ClearCache(client);
