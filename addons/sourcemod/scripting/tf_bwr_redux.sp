@@ -210,8 +210,8 @@ public void OnPluginStart()
 	c_iBusterMinKills = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
 	c_flBluRespawnTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Respawn Time for BLU Players.", FCVAR_NONE, true, 5.0, true, 30.0);
 	c_bDebug = AutoExecConfig_CreateConVar("sm_bwrr_debug_enabled", "0.0", "Enable/Disable the debug mode.", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_flForceDelay = AutoExecConfig_CreateConVar("sm_bwrr_force_delay", "100.0", "Delay between force bot command usage.", FCVAR_NONE, true, 0.0, true, 600.0);
-	c_flFDGiant = AutoExecConfig_CreateConVar("sm_bwrr_force_giant_delay", "50.0", "Extra delay that will be added to sm_setrobot if the spawned robot is a giant", FCVAR_NONE, true, 0.0, true, 300.0);
+	c_flForceDelay = AutoExecConfig_CreateConVar("sm_bwrr_force_delay", "30.0", "Base delay for sm_robotmenu usage (Normal Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
+	c_flFDGiant = AutoExecConfig_CreateConVar("sm_bwrr_force_giant_delay", "60.0", "Base delay for sm_robotmenu usage (Giant Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
 	c_strNBFile = AutoExecConfig_CreateConVar("sm_bwrr_botnormal_file", "robots_normal.cfg", "The file to load normal robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
 	c_strGBFile = AutoExecConfig_CreateConVar("sm_bwrr_botgiant_file", "robots_giant.cfg", "The file to load giant robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
 	c_bLimitClasses = AutoExecConfig_CreateConVar("sm_bwrr_limit_classes", "1", "Limit playable classes on the BLU team to classes that are used in the current wave", FCVAR_NONE, true, 0.0, true, 1.0);
@@ -839,10 +839,7 @@ public Action Command_ForceBot( int client, int nArgs )
 	}
 	
 	char strBotName[255];
-	if(iArg3 == 1)
-		strBotName = RT_GetTemplateName(TargetClass, iArg4, 1);
-	else
-		strBotName = RT_GetTemplateName(TargetClass, iArg4, 0);
+	RT_GetTemplateName(strBotName, sizeof(strBotName), TargetClass, iArg4, iArg3);
 	
 	for(int i = 0; i < target_count; i++)
 	{
@@ -1104,9 +1101,9 @@ public Action Command_RobotInfo( int client, int nArgs )
 	if(IsValidVariant(bGiants, TargetClass, iArg3))
 	{
 		if(bGiants)
-			strVariantName = RT_GetTemplateName(TargetClass, iArg3, 1);
+			RT_GetTemplateName(strVariantName, sizeof(strVariantName), TargetClass, iArg3, 1);
 		else
-			strVariantName = RT_GetTemplateName(TargetClass, iArg3, 0);
+			RT_GetTemplateName(strVariantName, sizeof(strVariantName), TargetClass, iArg3, 0);
 			
 		ReplyToCommand(client, "ID: %d", iArg3);
 		ReplyToCommand(client, "Name: %s", strVariantName);
@@ -1238,12 +1235,12 @@ public Action Command_SetRobot( int client, int nArgs )
 			if(bGiants)
 			{
 				SetRobotOnPlayer(client, iArg3, Bot_Giant, TargetClass);
-				strVariantName = RT_GetTemplateName(TargetClass, iArg3, 0);
+				RT_GetTemplateName(strVariantName, sizeof(strVariantName), TargetClass, iArg3, 0);
 			}
 			else
 			{
 				SetRobotOnPlayer(client, iArg3, Bot_Normal, TargetClass);
-				strVariantName = RT_GetTemplateName(TargetClass, iArg3, 1);
+				RT_GetTemplateName(strVariantName, sizeof(strVariantName), TargetClass, iArg3, 1);
 			}
 			LogAction(client, -1, "\"%L\" selected a robot (%s)", client, strVariantName);
 		}
@@ -1688,7 +1685,7 @@ void MenuFunc_ShowVariantMenu(int client, TFClassType variantclass)
 		for(int i = 0; i < RT_NumTemplates(g_bBotMenuIsGiant[client], variantclass);i++)
 		{
 			Format(variantid, sizeof(variantid), "%i", i);
-			variantname = RT_GetTemplateName(variantclass, i, 1);
+			RT_GetTemplateName(variantname, sizeof(variantname), variantclass, i, 1);
 			menu.AddItem(variantid, variantname);
 		}
 	}
@@ -1698,7 +1695,7 @@ void MenuFunc_ShowVariantMenu(int client, TFClassType variantclass)
 		for(int i = 0; i < RT_NumTemplates(g_bBotMenuIsGiant[client], variantclass);i++)
 		{
 			Format(variantid, sizeof(variantid), "%i", i);
-			variantname = RT_GetTemplateName(variantclass, i, 0);
+			RT_GetTemplateName(variantname, sizeof(variantname), variantclass, i, 0);
 			menu.AddItem(variantid, variantname);
 		}
 	}
@@ -1723,13 +1720,13 @@ public int MenuHandler_SelectVariant(Menu menu, MenuAction action, int param1, i
 				SetRobotOnPlayer(param1, id, type, g_BotMenuSelectedClass[param1]);
 				if( type == Bot_Normal ) 
 				{ 
-					botname = RT_GetTemplateName(g_BotMenuSelectedClass[param1], id, 0);
-					g_flLastForceBot[param1] = GetEngineTime() + c_flForceDelay.FloatValue;
+					RT_GetTemplateName(botname, sizeof(botname), g_BotMenuSelectedClass[param1], id, 0);
+					g_flLastForceBot[param1] = GetEngineTime() + c_flForceDelay.FloatValue + RT_GetCooldown(g_BotMenuSelectedClass[param1], id, 0);
 				} 
 				else 
 				{ 
-					botname = RT_GetTemplateName(g_BotMenuSelectedClass[param1], id, 1);
-					g_flLastForceBot[param1] = GetEngineTime() + c_flForceDelay.FloatValue + c_flFDGiant.FloatValue;
+					RT_GetTemplateName(botname, sizeof(botname), g_BotMenuSelectedClass[param1], id, 1);
+					g_flLastForceBot[param1] = GetEngineTime() + c_flFDGiant.FloatValue + RT_GetCooldown(g_BotMenuSelectedClass[param1], id, 1);
 				}
 				if(GameRules_GetRoundState() == RoundState_BetweenRounds)
 				{
@@ -1757,10 +1754,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	UpdateClassArray();
 	CheckTeams();
 	g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		g_flLastForceBot[i] = GetEngineTime();
-	}
+	ResetRobotMenuCooldown();
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
@@ -1773,12 +1767,14 @@ public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 			CreateTimer(3.0, Timer_UpdateRobotClasses, i);
 		}
 	}
+	ResetRobotMenuCooldown();
 }
 
 public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 {
 	OR_Update();
 	UpdateClassArray();
+	ResetRobotMenuCooldown();
 	CreateTimer(2.0, Timer_RemoveFromSpec);
 }
 
@@ -2037,8 +2033,8 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		// prints the robot variant name to the player.
 		if( p_iBotType[client] == Bot_Giant )
 		{
-			strBotName = RT_GetTemplateName(TFClass, p_iBotVariant[client], 1);
-			strBotDesc = RT_GetDescription(TFClass, p_iBotVariant[client], 1);
+			RT_GetTemplateName(strBotName, sizeof(strBotName), TFClass, p_iBotVariant[client], 1);
+			RT_GetDescription(strBotDesc, sizeof(strBotDesc), TFClass, p_iBotVariant[client], 1);
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 ); // has nothing to do with variant name but same condition
 			ApplyRobotLoopSound(client);
 			RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 1);
@@ -2058,8 +2054,8 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 		else
 		{
-			strBotName = RT_GetTemplateName(TFClass, p_iBotVariant[client], 0);
-			strBotDesc = RT_GetDescription(TFClass, p_iBotVariant[client], 0);
+			RT_GetTemplateName(strBotName, sizeof(strBotName), TFClass, p_iBotVariant[client], 0);
+			RT_GetDescription(strBotDesc, sizeof(strBotDesc), TFClass, p_iBotVariant[client], 1);
 			StopRobotLoopSound(client);
 			RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 0);
 		}
@@ -3691,4 +3687,13 @@ int GetRandomBLUPlayer()
 	int iRandom = GetRandomInt(0,iRandomMax); // get a random number between 0 and counted players
 	// now we get the user id from the array cell selected via iRandom
 	return players_available[iRandom];
+}
+
+// Allows all players to use sm_robotmenu again
+void ResetRobotMenuCooldown()
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		g_flLastForceBot[i] = 0.0;
+	}
 }

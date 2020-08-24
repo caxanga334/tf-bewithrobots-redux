@@ -25,6 +25,7 @@ int g_BNBitsAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BNHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BNType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BNScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+float g_BNCooldown[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BNWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BNCharAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BNCharAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
@@ -39,6 +40,7 @@ int g_BGBitsAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BGScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+float g_BGCooldown[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BGWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BGCharAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BGCharAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
@@ -345,7 +347,7 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 }
 
 // Returns the robot name
-char RT_GetTemplateName(TFClassType TFClass, int templateindex, int type = 0)
+void RT_GetTemplateName(char[] tpltname, int size, TFClassType TFClass, int templateindex, int type = 0)
 {
 	char buffer[255];
 	int iClass = view_as<int>(TFClass);
@@ -395,7 +397,8 @@ char RT_GetTemplateName(TFClassType TFClass, int templateindex, int type = 0)
 				strcopy(buffer, sizeof(buffer), "Your Own Loadout");
 			}
 		}
-		return buffer;
+		Format(tpltname, size, "%s", buffer);
+		return;
 	}
 	
 	switch( type )
@@ -414,18 +417,23 @@ char RT_GetTemplateName(TFClassType TFClass, int templateindex, int type = 0)
 				strcopy(buffer, 255, g_BGTemplateName[templateindex][iClass]);
 			}	
 		}
+		default:
+		{
+			LogError("RT_GetTemplateName received invalid type!");
+		}
 	}
 	
-	return buffer;
+	Format(tpltname, size, "%s", buffer);
+	return;
 }
 
 // Returns the robot description
-char RT_GetDescription(TFClassType TFClass, int templateindex, int type = 0)
+void RT_GetDescription(char[] desc, int size, TFClassType TFClass, int templateindex, int type = 0)
 {
 	char buffer[255];
 	int iClass = view_as<int>(TFClass);
 	
-	if(templateindex < 0) { return buffer; }
+	if(templateindex < 0) { return; }
 	
 	switch( type )
 	{
@@ -445,7 +453,7 @@ char RT_GetDescription(TFClassType TFClass, int templateindex, int type = 0)
 		}
 	}
 	
-	return buffer;
+	Format(desc, size, "%s", buffer);
 }
 
 // Returns the robot attributes
@@ -523,6 +531,34 @@ float RT_GetScale(TFClassType TFClass, int templateindex, int type = 0)
 			if(templateindex <= g_nBotTemplate[TemplateType_Giant].numtemplates[iClass]) // stock
 			{
 				return g_BGScale[templateindex][iClass];
+			}			
+		}
+	}
+	
+	return 1.0;
+}
+
+// returns the robot cooldown for the sm_robotmenu command
+float RT_GetCooldown(TFClassType TFClass, int templateindex, int type = 0)
+{
+	if( templateindex < 0 ) { return 30.0; } // fixed 30 seconds cooldown for own loadouts
+	
+	int iClass = view_as<int>(TFClass);
+	
+	switch( type )
+	{
+		case 0: // Normal
+		{
+			if(templateindex <= g_nBotTemplate[TemplateType_Normal].numtemplates[iClass]) // stock
+			{
+				return g_BNCooldown[templateindex][iClass];
+			}
+		}
+		case 1: // Giant
+		{
+			if(templateindex <= g_nBotTemplate[TemplateType_Giant].numtemplates[iClass]) // stock
+			{
+				return g_BGCooldown[templateindex][iClass];
 			}			
 		}
 	}
@@ -869,6 +905,7 @@ void RT_LoadCfgNormal()
 						g_BNHealth[iCounter][j] = kv.GetNum("health", 0);
 						g_BNType[iCounter][j] = kv.GetNum("type", 0);
 						g_BNScale[iCounter][j] = kv.GetFloat("scale", 0.0);
+						g_BNCooldown[iCounter][j] = kv.GetFloat("cooldown", 0.0);
 						KvGetString(kv, "description", g_BNDescription[iCounter][j], MAXLEN_CONFIG_STRING);
 						
 						if(kv.JumpToKey("playerattributes"))
@@ -979,6 +1016,7 @@ void RT_LoadCfgGiant()
 						g_BGHealth[iCounter][j] = kv.GetNum("health", 0);
 						g_BGType[iCounter][j] = kv.GetNum("type", 0);
 						g_BGScale[iCounter][j] = kv.GetFloat("scale", 0.0);
+						g_BGCooldown[iCounter][j] = kv.GetFloat("cooldown", 0.0);
 						KvGetString(kv, "description", g_BGDescription[iCounter][j], MAXLEN_CONFIG_STRING);
 						
 						if(kv.JumpToKey("playerattributes"))
