@@ -59,4 +59,50 @@
 	{
 		"en"	"You don't have permission to join BLU."
 	}
+	"Wait Secs to Use"
+	{
+		"#format"	"{1:d}"
+		"en"	"You must wait {1} seconds before using this command again."
+	}
+	"Menu_Help"
+	{
+		"en"	"Help Menu"
+	}
+	"Help_JoinBLU"
+	{
+		"en"	"To join BLU, type !joinblu in chat."
+	}
+	"Help_SelectRobot"
+	{
+		"en"	"To change your robot, type !robotmenu or !rm"
+	}
+	"Help_SentryBusterP1"
+	{
+		"en"	"Players spawns as a sentry buster automatically when a sentry gun is present and the following conditions are met."
+	}
+	"Help_SentryBusterP2"
+	{
+		"#format"	"{1:d},{2:d}" // delay between busters, sentry kills
+		"en"	"More than {1} seconds have passed since the last (human controlled) buster spawned. Any sentry gun on RED have {2} or more kills."
+	}
+	"Help_Spies"
+	{
+		"en"	"Spies are announced when they spawn and when all of them are killed. They are also teleported near a random RED player."
+	}
+	"Help_EngineersP1"
+	{
+		"en"	"Engineers are announced when they spawn and when they are killed. RED players will know if an engineer's teleporter is present."
+	}
+	"Help_EngineersP2"
+	{
+		"en"	"RED players will also receive an announcement when a teleporter is active."
+	}
+	"Help_EngineersP3"
+	{
+		"en"	"Some engineers spawns by teleporting near the bomb current location."
+	}
+	"Welcome_Msg"
+	{
+		"en"	"This server is running Be With Robot Redux. Type !bwrrhelp for more information."
+	}
 }

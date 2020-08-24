@@ -59,4 +59,50 @@
 	{
 		"pt"	"Você não tem permissão para entrar na equipe BLU."
 	}
+	"Wait Secs to Use"
+	{
+		"#format" "{1:d}"
+		"pt" "Você deve esperar {1} segundos para usar esse comando novamente."
+	}
+	"Menu_Help"
+	{
+		"pt" "Menu de Ajuda"
+	}
+	"Help_JoinBLU"
+	{
+		"pt"	"Para entrar na equipe BLU, digite !joinblu no chat."
+	}
+	"Help_SelectRobot"
+	{
+		"pt"	"Para alterar seu robo, digite !robotmenu ou !rm"
+	}
+	"Help_SentryBusterP1"
+	{
+		"pt"	"Jogadores dão spawn como sentry buster automaticamente quando uma arma sentinela da equipe RED está presente e as seguintes condições são atendidas."
+	}
+	"Help_SentryBusterP2"
+	{
+		"#format"	"{1:d},{2:d}" // delay between busters, sentry kills
+		"pt"	"Mais de {1} segundos se passaram desde o ultimo sentry buster deu spawn. Qualquer arma sentinela no RED tem mais de {2} vítimas."
+	}
+	"Help_Spies"
+	{
+		"pt"	"Espiões são anunciados quando eles dão spawn e quando todos morrem. Eles também são teletransportado para um jogador aleatorio da equipe RED."
+	}
+	"Help_EngineersP1"
+	{
+		"pt"	"Engenheiros são anunciado quando eles dão spawn e quando morrem. Jogadores da RED saberão quando um teletransportador de um engenheiro está presente."
+	}
+	"Help_EngineersP2"
+	{
+		"pt"	"Jogadores do RED receberão um anuncio quando um teletransportador ficar ativo."
+	}
+	"Help_EngineersP3"
+	{
+		"pt"	"Alguns engenheiros dão spawn teletransportando perto da localização atual da bomba."
+	}
+	"Welcome_Msg"
+	{
+		"pt"	"Este servidor está rodando Be With Robot Redux. Digite !bwrrhelp para mais informações."
+	}
 }

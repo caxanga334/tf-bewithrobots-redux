@@ -2,7 +2,6 @@
 #include <tf2>
 #include <tf2_stocks>
 #include <autoexecconfig>
-#include <caxanga334>
 #define REQUIRE_PLUGIN
 #include <tf2attributes>
 #include <tf2_isPlayerInSpawn>
@@ -14,9 +13,9 @@
 #include <tf2items>
 #undef REQUIRE_EXTENSIONS
 #include <SteamWorks>
+#include "bwrredux/functions.sp"
 #include "bwrredux/objectiveres.sp"
 #include "bwrredux/bot_variants.sp"
-#include "bwrredux/functions.sp"
 
 #pragma semicolon 1
 
@@ -51,6 +50,7 @@ float g_flNextBusterTime;
 float g_flLastForceBot[MAXPLAYERS + 1]; // Last time a player forced a bot
 bool g_bBotMenuIsGiant[MAXPLAYERS + 1];
 TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1];
+bool g_bWelcomeMsg[MAXPLAYERS + 1]; // Did we show the welcome message?
 
 int g_iLaserSprite;
 int g_iHaloSprite;
@@ -248,10 +248,10 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_rc", Command_BotClass, "Changes your robot variant." );
 	RegConsoleCmd( "sm_bwrr_players", Command_ShowPlayers, "Shows the players in each team" );
 	RegConsoleCmd( "sm_robotinfo", Command_RobotInfo, "Prints information about a specific robot" );
-	RegConsoleCmd( "sm_setrobot", Command_SetRobot, "Forces a specific robot variant on you." );
 	RegConsoleCmd( "sm_waveinfo", Command_WaveInfo, "Prints information about the current wave." );
 	RegConsoleCmd( "sm_robotmenu", Command_RobotMenu, "Opens the robot selection menu." );
 	RegConsoleCmd( "sm_rm", Command_RobotMenu, "Opens the robot selection menu." );
+	RegConsoleCmd( "sm_bwrrhelp", Command_BWRRHelpMenu, "Opens the Be With Robots Redux help menu." );
 	RegAdminCmd( "sm_bwrr_debug", Command_Debug, ADMFLAG_ROOT, "Prints some debug messages." );
 	RegAdminCmd( "sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
 	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
@@ -410,6 +410,7 @@ public void OnClientDisconnect(client)
 {
 	ResetRobotData(client);
 	StopRobotLoopSound(client);
+	g_bWelcomeMsg[client] = false;
 }
 
 public void OnGameFrame()
@@ -1119,163 +1120,6 @@ public Action Command_RobotInfo( int client, int nArgs )
 	return Plugin_Handled;
 }
 
-public Action Command_SetRobot( int client, int nArgs )
-{
-	if(!IsValidClient(client))
-		return Plugin_Handled;
-			
-	if(!IsPlayerAlive(client))
-	{
-		ReplyToCommand(client, "Only living players can use this command.");
-		return Plugin_Handled;
-	}
-		
-	if(TF2_GetClientTeam(client) != TFTeam_Blue)
-	{
-		ReplyToCommand(client, "This command an only be used by BLU players");
-		return Plugin_Handled;
-	}
-		
-	if(!TF2Spawn_IsClientInSpawn(client))
-	{
-		ReplyToCommand(client, "This command can only be used inside spawn.");
-		return Plugin_Handled;
-	}
-
-	if( GetEngineTime() < g_flLastForceBot[client] )
-	{
-		int iWaitTime = RoundToNearest(g_flLastForceBot[client] - GetEngineTime());
-		ReplyToCommand(client, "You must wait %d seconds before using this command again.", iWaitTime);
-		return Plugin_Handled;
-	}
-
-	if( nArgs < 3 )
-	{
-		ReplyToCommand(client, "Usage: sm_setrobot <class> <type: 0 - normal | 1 - giant> <variant>");
-		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy");
-		return Plugin_Handled;
-	}
-
-	char arg1[16], arg2[16], arg3[16], strVariantName[255];
-	int iArg2, iArg3;
-	TFClassType TargetClass = TFClass_Unknown;
-	bool bGiants = false;
-	
-	GetCmdArg(1, arg1, sizeof(arg1));
-	GetCmdArg(2, arg2, sizeof(arg2));
-	GetCmdArg(3, arg3, sizeof(arg3));
-	iArg2 = StringToInt(arg2);
-	iArg3 = StringToInt(arg3);
-	
-	if( iArg2 < 0 || iArg2 > 1 )
-	{
-		ReplyToCommand(client, "ERROR: Invalid robot type. Use 0 for Normal Bot and 1 for Giant Bot");
-		return Plugin_Handled;
-	}
-	
-	if(iArg2 != 0)
-	{
-		bGiants = true;
-		
-		if( !OR_IsGiantAvaiable() && GetTeamClientCount(2) < c_iGiantMinRed.IntValue )
-		{
-			ReplyToCommand(client, "Giant robots are not available.");
-			return Plugin_Handled;
-		}
-	}
-
-	if( StrEqual(arg1, "scout", false) )
-	{
-		TargetClass = TFClass_Scout;
-	}
-	else if( StrEqual(arg1, "soldier", false) )
-	{
-		TargetClass = TFClass_Soldier;
-	}
-	else if( StrEqual(arg1, "pyro", false) )
-	{
-		TargetClass = TFClass_Pyro;
-	}
-	else if( StrEqual(arg1, "demoman", false) )
-	{
-		TargetClass = TFClass_DemoMan;
-	}
-	else if( StrEqual(arg1, "heavy", false) )
-	{
-		TargetClass = TFClass_Heavy;
-	}
-	else if( StrEqual(arg1, "engineer", false) )
-	{
-		TargetClass = TFClass_Engineer;
-	}
-	else if( StrEqual(arg1, "medic", false) )
-	{
-		TargetClass = TFClass_Medic;
-	}
-	else if( StrEqual(arg1, "sniper", false) )
-	{
-		TargetClass = TFClass_Sniper;
-	}
-	else if( StrEqual(arg1, "spy", false) )
-	{
-		TargetClass = TFClass_Spy;
-	}
-	
-	if( TargetClass == TFClass_Unknown )
-	{
-		ReplyToCommand(client, "ERROR: Invalid class.");
-		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy.");
-		return Plugin_Handled;
-	}
-	
-	if(IsValidVariant(bGiants, TargetClass, iArg3))
-	{
-		if(IsClassAvailable(TargetClass, bGiants))
-		{
-			if(bGiants)
-			{
-				SetRobotOnPlayer(client, iArg3, Bot_Giant, TargetClass);
-				RT_GetTemplateName(strVariantName, sizeof(strVariantName), TargetClass, iArg3, 0);
-			}
-			else
-			{
-				SetRobotOnPlayer(client, iArg3, Bot_Normal, TargetClass);
-				RT_GetTemplateName(strVariantName, sizeof(strVariantName), TargetClass, iArg3, 1);
-			}
-			LogAction(client, -1, "\"%L\" selected a robot (%s)", client, strVariantName);
-		}
-		else
-		{
-			ReplyToCommand(client, "This robot is not available for this wave");
-			g_flLastForceBot[client] = GetEngineTime() + 5.0; // small cooldown
-			return Plugin_Handled;
-		}
-	}
-	else
-	{
-		ReplyToCommand(client, "ERROR: Invalid Variant.");
-		g_flLastForceBot[client] = GetEngineTime() + 5.0; // small cooldown
-		return Plugin_Handled;
-	}
-	
-	if(GameRules_GetRoundState() == RoundState_BetweenRounds)
-	{
-		g_flLastForceBot[client] = GetEngineTime() + 5.0; // small cooldown when the wave is not in progress
-		return Plugin_Handled;
-	}
-	
-	if(bGiants)
-	{
-		g_flLastForceBot[client] = GetEngineTime() + c_flForceDelay.FloatValue + c_flFDGiant.FloatValue;
-	}
-	else
-	{
-		g_flLastForceBot[client] = GetEngineTime() + c_flForceDelay.FloatValue;
-	}
-	
-	
-	return Plugin_Handled;
-}
 // Prints information about the current wave.
 public Action Command_WaveInfo( int client, int nArgs )
 {		
@@ -1523,7 +1367,7 @@ public Action Command_RobotMenu( int client, int nArgs )
 	if( GetEngineTime() < g_flLastForceBot[client] )
 	{
 		int iWaitTime = RoundToNearest(g_flLastForceBot[client] - GetEngineTime());
-		ReplyToCommand(client, "You must wait %d seconds before using this command again.", iWaitTime);
+		ReplyToCommand(client, "%t", "Wait Secs to Use", iWaitTime);
 		return Plugin_Handled;
 	}
 		
@@ -1744,6 +1588,113 @@ public int MenuHandler_SelectVariant(Menu menu, MenuAction action, int param1, i
 	return 0;
 }
 
+public Action Command_BWRRHelpMenu( int client, int nArgs )
+{		
+	if(!IsValidClient(client))
+		return Plugin_Handled;
+		
+	if(IsFakeClient(client))
+		return Plugin_Handled;
+		
+	Menu menu = new Menu(MenuHandler_HelpMenu, MENU_ACTIONS_ALL);
+	
+	menu.SetTitle("%T", "Menu_Help", LANG_SERVER);
+	menu.AddItem("helpm1", "Joining BLU");
+	menu.AddItem("helpm2", "Selecting a Robot");
+	menu.AddItem("helpm3", "Sentry Busters");
+	menu.AddItem("helpm4", "Spies");
+	menu.AddItem("helpm5", "Engineers");
+	menu.AddItem("helpm6", "About");
+	menu.ExitButton = true;
+	menu.Display(client, 30);
+ 
+	return Plugin_Handled;
+}
+
+public int MenuHandler_HelpMenu(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			char info[32];
+			bool bFound = menu.GetItem(param2, info, sizeof(info));
+			if(bFound)
+			{
+				if(StrEqual(info, "helpm1"))
+				{
+					MenuFunc_PrintHelp(1, param1);
+				}
+				else if(StrEqual(info, "helpm2"))
+				{
+					MenuFunc_PrintHelp(2, param1);
+				}
+				else if(StrEqual(info, "helpm3"))
+				{
+					MenuFunc_PrintHelp(3, param1);
+				}
+				else if(StrEqual(info, "helpm4"))
+				{
+					MenuFunc_PrintHelp(4, param1);
+				}
+				else if(StrEqual(info, "helpm5"))
+				{
+					MenuFunc_PrintHelp(5, param1);
+				}
+				else if(StrEqual(info, "helpm6"))
+				{
+					MenuFunc_PrintHelp(6, param1);
+				}
+			}			
+		}
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}
+}
+
+void MenuFunc_PrintHelp(int fid, int client)
+{
+	switch( fid )
+	{
+		case 1:
+		{
+			PrintToChat(client, "%t", "Help_JoinBLU");
+		}
+		case 2:
+		{
+			PrintToChat(client, "%t", "Help_SelectRobot");
+		}
+		case 3:
+		{
+			int i = c_iBusterMinKills.IntValue;
+			int x = RoundToNearest(c_flBusterDelay.FloatValue);
+			PrintToChat(client, "%t", "Help_SentryBusterP1");
+			PrintToChat(client, "%t", "Help_SentryBusterP2", x, i);
+		}
+		case 4:
+		{
+			PrintToChat(client, "%t", "Help_Spies");
+		}
+		case 5:
+		{
+			PrintToChat(client, "%t", "Help_EngineersP1");
+			PrintToChat(client, "%t", "Help_EngineersP2");
+			PrintToChat(client, "%t", "Help_EngineersP3");
+		}
+		case 6:
+		{
+			PrintToChat(client, "Be With Robots Redux version %s by Anonymous Player", PLUGIN_VERSION);
+			PrintToChat(client, "https://github.com/caxanga334/tf-bewithrobots-redux");
+		}
+		default:
+		{
+			LogError("How did we get here???");
+		}
+	}
+}
+
 /****************************************************
 					EVENTS
 *****************************************************/
@@ -1840,6 +1791,12 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 	{
 		OR_Update();
 		UpdateClassArray();
+	}
+	
+	if( !IsFakeClient(client) && !g_bWelcomeMsg[client] && TF2_GetClientTeam(client) == TFTeam_Red )
+	{
+		CreateTimer(5.0, Timer_ShowWelcMsg, client);
+		g_bWelcomeMsg[client] = true;
 	}
 }
 
@@ -2504,36 +2461,18 @@ public Action Timer_ApplyRobotSound(Handle timer, any client)
 	
 	return Plugin_Stop;
 }
-// No longer needed
-/*public Action Timer_FixBuildings(Handle timer, any client) 
+
+// Prints the welcome message
+public Action Timer_ShowWelcMsg(Handle timer, any client)
 {
-	char class[64];
+	if( !IsValidClient(client) || IsFakeClient(client) )
+		return Plugin_Stop;
+		
+	PrintToChat(client, "%t", "Welcome_Msg");
 	
-	for(int i = MaxClients+1; i < 2048; i++)
-	{
-		if(!IsValidEntity(i))
-			continue;
-			
-		GetEntityClassname(i, class, sizeof(class))
-		
-		if( StrEqual(class, "obj_sentrygun", false) || StrEqual(class, "obj_dispenser", false) || StrEqual(class, "obj_teleporter", false) )
-		{
-			if(GetEntPropEnt(i, Prop_Send, "m_hBuilder") != client)
-				continue;
-		
-			if( GetEntProp(i, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Spectator) )
-			{
-				SetEntProp(i, Prop_Send, "m_iTeamNum", view_as<int>(TFTeam_Blue))
-				SetEntPropEnt(i, Prop_Send, "m_hBuilder", -1);
-				SetEntProp(i, Prop_Send, "m_bWasMapPlaced", 1);
-			}
-		}
-		else
-			continue;
-	}
 	return Plugin_Stop;
 }
-*/
+
 /****************************************************
 					FUNCTIONS
 *****************************************************/
