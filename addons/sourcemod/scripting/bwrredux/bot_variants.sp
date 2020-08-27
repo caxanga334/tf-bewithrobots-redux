@@ -174,6 +174,8 @@ bool IsWeaponWearable(char[] classname)
 	
 	return false;
 }
+
+// Returns the class base health
 int GetClassBaseHealth(TFClassType Class)
 {
 	switch( Class )
@@ -187,6 +189,25 @@ int GetClassBaseHealth(TFClassType Class)
 		case TFClass_Engineer: return 125;
 		case TFClass_Medic: return 150;
 		case TFClass_Spy: return 125;
+	}
+	
+	return 300;
+}
+
+// Health for own loadout giants
+int GetOwnGiantHealth(TFClassType Class)
+{
+	switch( Class )
+	{
+		case TFClass_Scout: return 1200;
+		case TFClass_Sniper: return 1200;
+		case TFClass_Soldier: return 3800;
+		case TFClass_DemoMan: return 3300;
+		case TFClass_Heavy: return 5000;
+		case TFClass_Pyro: return 3300;
+		case TFClass_Engineer: return 1200;
+		case TFClass_Medic: return 4500;
+		case TFClass_Spy: return 1200;
 	}
 	
 	return 300;
@@ -313,7 +334,24 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 	int iHealth;
 	float flHealth;
 	
-	if( templateindex < 0 ) { return; }
+	if( templateindex < 0 )
+	{
+		switch( type )
+		{
+			case 0: // Normal
+			{
+				SetEntProp(client, Prop_Send, "m_iHealth", GetClassBaseHealth(TFClass));
+				SetEntProp(client, Prop_Data, "m_iHealth", GetClassBaseHealth(TFClass));	
+			}
+			case 1: // Giant
+			{
+				SetEntProp(client, Prop_Send, "m_iHealth", GetOwnGiantHealth(TFClass));
+				SetEntProp(client, Prop_Data, "m_iHealth", GetOwnGiantHealth(TFClass));					
+			}
+		}
+		
+		return; 
+	}
 	
 	switch( type )
 	{
@@ -329,6 +367,11 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 				SetEntProp(client, Prop_Data, "m_iHealth", g_BNHealth[templateindex][iClass]);
 				if(IsDebugging()) { PrintToConsole(client, "Setting Robot Health: %i (%i)", g_BNHealth[templateindex][iClass], iHealth); }
 			}
+			else
+			{
+				SetEntProp(client, Prop_Send, "m_iHealth", GetClassBaseHealth(TFClass));
+				SetEntProp(client, Prop_Data, "m_iHealth", GetClassBaseHealth(TFClass));					
+			}
 		}
 		case 1: // Giant
 		{
@@ -341,6 +384,11 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 				SetEntProp(client, Prop_Send, "m_iHealth", g_BGHealth[templateindex][iClass]);
 				SetEntProp(client, Prop_Data, "m_iHealth", g_BGHealth[templateindex][iClass]);
 				if(IsDebugging()) { PrintToConsole(client, "Setting Robot Health: %i (%i)", g_BGHealth[templateindex][iClass], iHealth); }
+			}
+			else
+			{
+				SetEntProp(client, Prop_Send, "m_iHealth", GetClassBaseHealth(TFClass));
+				SetEntProp(client, Prop_Data, "m_iHealth", GetClassBaseHealth(TFClass));					
 			}
 		}
 	}	
@@ -918,7 +966,7 @@ void RT_LoadCfgNormal()
 									kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
 									g_BNCharAttrib[iCounter][j].PushString(buffer); // Attribute Name
 									g_BNCharAttribValue[iCounter][j].Push(kv.GetFloat("")); // Attribute Value
-								} while(kv.GotoNextKey(false))
+								} while(kv.GotoNextKey(false));
 								kv.GoBack();
 							}
 							kv.GoBack();
@@ -943,7 +991,7 @@ void RT_LoadCfgNormal()
 											kv.GetSectionName(buffer, sizeof(buffer));
 											g_BNWeapAttrib[iCounter][j][i].PushString(buffer); // Store Attribute Name
 											g_BNWeapAttribValue[iCounter][j][i].Push(kv.GetFloat("")); // Store Attribute Value
-										} while(kv.GotoNextKey(false))
+										} while(kv.GotoNextKey(false));
 										kv.GoBack();
 									}
 									kv.GoBack();
@@ -952,7 +1000,7 @@ void RT_LoadCfgNormal()
 							}			
 						}
 						iCounter++;
-					} while(kv.GotoNextKey())
+					} while(kv.GotoNextKey());
 					g_nBotTemplate[TemplateType_Normal].numtemplates[j] = iCounter;
 					kv.GoBack();
 				}
@@ -1029,7 +1077,7 @@ void RT_LoadCfgGiant()
 									kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
 									g_BGCharAttrib[iCounter][j].PushString(buffer); // Attribute Name
 									g_BGCharAttribValue[iCounter][j].Push(kv.GetFloat("")); // Attribute Value
-								} while(kv.GotoNextKey(false))
+								} while(kv.GotoNextKey(false));
 								kv.GoBack();
 							}
 							kv.GoBack();
@@ -1054,7 +1102,7 @@ void RT_LoadCfgGiant()
 											kv.GetSectionName(buffer, sizeof(buffer));
 											g_BGWeapAttrib[iCounter][j][i].PushString(buffer); // Store Attribute Name
 											g_BGWeapAttribValue[iCounter][j][i].Push(kv.GetFloat("")); // Store Attribute Value
-										} while(kv.GotoNextKey(false))
+										} while(kv.GotoNextKey(false));
 										kv.GoBack();
 									}
 									kv.GoBack();
@@ -1063,7 +1111,7 @@ void RT_LoadCfgGiant()
 							}			
 						}
 						iCounter++;
-					} while(kv.GotoNextKey())
+					} while(kv.GotoNextKey());
 					g_nBotTemplate[TemplateType_Giant].numtemplates[j] = iCounter;
 					kv.GoBack();
 				}

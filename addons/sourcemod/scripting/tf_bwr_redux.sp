@@ -13,9 +13,6 @@
 #include <tf2items>
 #undef REQUIRE_EXTENSIONS
 #include <SteamWorks>
-#include "bwrredux/functions.sp"
-#include "bwrredux/objectiveres.sp"
-#include "bwrredux/bot_variants.sp"
 
 #pragma semicolon 1
 
@@ -166,6 +163,10 @@ methodmap RoboPlayer
 		SetEntProp( this.index, Prop_Send, "m_nBotSkill", value );
 	}
 }
+
+#include "bwrredux/bot_variants.sp"
+#include "bwrredux/objectiveres.sp"
+#include "bwrredux/functions.sp"
  
 public Plugin myinfo =
 {
@@ -2008,6 +2009,8 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 );
 			EmitGSToRed("Announcer.MVM_Sentry_Buster_Alert");
 			ApplyRobotLoopSound(client);
+			SetEntProp(client, Prop_Send, "m_iHealth", 2500);
+			SetEntProp(client, Prop_Data, "m_iHealth", 2500);
 		}
 		else
 		{
