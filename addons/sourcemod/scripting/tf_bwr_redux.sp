@@ -360,6 +360,9 @@ public void OnMapStart()
 	RT_LoadCfgNormal();
 	RT_LoadCfgGiant();
 	RT_PostLoad();
+	Config_LoadSpyTelePos();
+	Config_LoadEngyTelePos();
+	Config_LoadMap();
 	
 	array_avclass.Clear();
 	array_avgiants.Clear();
@@ -2053,7 +2056,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			{
 				case TFClass_Spy: // spies should always spawn on their hints
 				{
-					TF2_AddCondition(client, TFCond_Stealthed, 5.0);
+					TF2_AddCondition(client, TFCond_Stealthed, 15.0);
 					TeleportSpyRobot(client);
 					EmitGSToRed("Announcer.MVM_Spy_Alert");
 				}
@@ -3393,10 +3396,6 @@ int FindRandomSpawnPoint( SpawnType iType )
 {
 	int iEnt = -1;
 	char strSpawnName[64];
-	char strNormalSpawns[15][64] = { {"spawnbot"},{"spawnbot_bwr"},{"spawnbot_invasion"},{"spawnbot_lower"},{"spawnbot_left"},{"spawnbot_right"},{"spawnbot_flank"},{"spawnbot_single_flag"},
-	{"spawnbot_main0"},{"spawnbot_main0_squad"},{"spawnbot_main1"},{"spawnbot_main2"},{"spawnbot_upper0"},{"spawnbot_upper1"},{"spawnbot_upper2"} };
-	char strGiantSpawns[4][64] = { {"spawnbot_giant"},{"spawnbot_main0_squad"},{"spawnbot_main1"},{"spawnbot_main2_giants"} };
-	char strSniperSpawns[5][64] = { {"spawnbot_mission_sniper"},{"spawnbot_mission_sniper0"},{"spawnbot_mission_sniper1"},{"spawnbot_mission_sniper2"},{"spawnbot_mission_sniper3"} };
 	
 	array_spawns.Clear();
 	
@@ -3410,9 +3409,9 @@ int FindRandomSpawnPoint( SpawnType iType )
 			{
 				case Spawn_Normal:
 				{
-					for(int i = 0;i < sizeof(strNormalSpawns);i++)
+					for(int i = 0;i < g_iSplitSize[0];i++)
 					{
-						if( StrEqual( strSpawnName, strNormalSpawns[i] ) )
+						if( StrEqual( strSpawnName, g_strNormalSplit[i] ) )
 						{
 							array_spawns.Push( iEnt );
 						}
@@ -3420,30 +3419,33 @@ int FindRandomSpawnPoint( SpawnType iType )
 				}
 				case Spawn_Giant, Spawn_Buster, Spawn_Boss:
 				{
-					for(int i = 0;i < sizeof(strGiantSpawns);i++)
+					for(int i = 0;i < g_iSplitSize[1];i++)
 					{
-						if( StrEqual( strSpawnName, strGiantSpawns[i] ) )
+						if( StrEqual( strSpawnName, g_strGiantSplit[i] ) )
 						{
 							array_spawns.Push( iEnt );
 						}
-					}					
+					}
 				}
 				case Spawn_Sniper:
 				{
-					for(int i = 0;i < sizeof(strSniperSpawns);i++)
+					for(int i = 0;i < g_iSplitSize[2];i++)
 					{
-						if( StrEqual( strSpawnName, strSniperSpawns[i] ) )
+						if( StrEqual( strSpawnName, g_strSniperSplit[i] ) )
 						{
 							array_spawns.Push( iEnt );
 						}
-					}					
+					}
 				}
 				case Spawn_Spy:
 				{
-					if( StrEqual( strSpawnName, "spawnbot_mission_spy" ) )
+					for(int i = 0;i < g_iSplitSize[3];i++)
 					{
-						array_spawns.Push( iEnt );
-					}					
+						if( StrEqual( strSpawnName, g_strSpySplit[i] ) )
+						{
+							array_spawns.Push( iEnt );
+						}
+					}				
 				}
 			}
 		}

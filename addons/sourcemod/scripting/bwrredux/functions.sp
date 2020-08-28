@@ -4,6 +4,16 @@
 ArrayList g_aSpyTeleport;
 ArrayList g_aEngyTeleport;
 
+char g_strNormalSpawns[512];
+char g_strGiantSpawns[512];
+char g_strSniperSpawns[512];
+char g_strSpySpawns[512];
+char g_strNormalSplit[16][64];
+char g_strGiantSplit[16][64];
+char g_strSniperSplit[16][64];
+char g_strSpySplit[16][64];
+int g_iSplitSize[4];
+
 /**
  * Checks if the given client index is valid.
  *
@@ -129,16 +139,18 @@ void TeleportSpyRobot(int client)
 	
 	if(!IsValidClient(target))
 	{
-		GetSpyTeleportFromConfig(TargetPos);
-		TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
+		if( GetSpyTeleportFromConfig(TargetPos) )
+			TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
 	}
 	else
 	{
-		GetSpyTeleportFromConfig(TargetPos, target);
-		TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
-		char name[MAX_NAME_LENGTH];
-		GetClientName(target, name, sizeof(name));
-		PrintToChat(client, "%t", "Spy_Teleported", name);
+		if( GetSpyTeleportFromConfig(TargetPos, target) )
+		{
+			TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
+			char name[MAX_NAME_LENGTH];
+			GetClientName(target, name, sizeof(name));
+			PrintToChat(client, "%t", "Spy_Teleported", name);
+		}
 	}
 }
 
@@ -151,7 +163,7 @@ void FindEngineerNestNearBomb(int client)
 	int iTargetNest = -1; // the closest nest found.
 	int i = -1;
 	int iBomb = -1; // the bomb we're going to use to check distance.
-	int iBombOwner = -1; // bomb carrier9
+	int iBombOwner = -1; // bomb carrier
 	
 	// find the bomb current position
 	while( (i = FindEntityByClassname(i, "item_teamflag" )) != -1 )
@@ -886,6 +898,9 @@ void Config_LoadEngyTelePos()
 	} while (kv.GotoNextKey());
 	
 	delete kv;
+	
+	if( IsDebugging() )
+		LogMessage("Loaded %i engineer teleport positions.", g_aEngyTeleport.Length);
 }
 
 // Gets an origin to teleport a spy
@@ -964,4 +979,56 @@ bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
 	}
 	else
 		return false;
+}
+
+// map specific config
+void Config_LoadMap()
+{
+	char mapname[64], buffer[256];
+	
+	GetCurrentMap(buffer, sizeof(buffer));
+	
+	// Some servers might use workshop
+	if( !GetMapDisplayName(buffer, mapname, sizeof(mapname)) )
+	{
+		strcopy(mapname, sizeof(mapname), buffer); // use the result from GetCurrentMap if this fails.
+	}
+
+	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/map/");
+	
+	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s.cfg", g_strConfigFile, mapname);
+	
+	if(!FileExists(g_strConfigFile))
+	{
+		SetFailState("Map \"%s\" configuration not found.", mapname);
+	}
+	
+	KeyValues kv = new KeyValues("MapConfig");
+	kv.ImportFromFile(g_strConfigFile);
+	
+	// Jump into the first subsection
+	if (!kv.GotoFirstSubKey())
+	{
+		delete kv;
+		return;
+	}
+	
+	do
+	{
+		kv.GetSectionName(buffer, sizeof(buffer));
+		if( StrEqual(buffer, "SpawnPoints", false) )
+		{
+			kv.GetString("normal", g_strNormalSpawns, sizeof(g_strNormalSpawns));
+			kv.GetString("giant", g_strGiantSpawns, sizeof(g_strGiantSpawns));
+			kv.GetString("sniper", g_strSniperSpawns, sizeof(g_strSniperSpawns));
+			kv.GetString("spy", g_strSpySpawns, sizeof(g_strSpySpawns));
+		}
+	} while (kv.GotoNextKey());
+	
+	delete kv;
+	
+	g_iSplitSize[0] = ExplodeString(g_strNormalSpawns, ",", g_strNormalSplit, sizeof(g_strNormalSplit), sizeof(g_strNormalSplit[]));
+	g_iSplitSize[1] = ExplodeString(g_strGiantSpawns, ",", g_strGiantSplit, sizeof(g_strGiantSplit), sizeof(g_strGiantSplit[]));
+	g_iSplitSize[2] = ExplodeString(g_strSniperSpawns, ",", g_strSniperSplit, sizeof(g_strSniperSplit), sizeof(g_strSniperSplit[]));
+	g_iSplitSize[3] = ExplodeString(g_strSpySpawns, ",", g_strSpySplit, sizeof(g_strSpySplit), sizeof(g_strSpySplit[]));
 }
