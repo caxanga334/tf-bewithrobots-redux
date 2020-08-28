@@ -1,5 +1,9 @@
 // functions that can be removed from the main file
 
+// Globals
+ArrayList g_aSpyTeleport;
+ArrayList g_aEngyTeleport;
+
 /**
  * Checks if the given client index is valid.
  *
@@ -102,7 +106,7 @@ bool IsMvM(bool forceRecalc = false)
 	return ismvm;
 }
 
-// V2: New code uses navmesh to find a position near a random RED player.
+// Teleports a spy near a RED player
 void TeleportSpyRobot(int client)
 {
 	int target = GetRandomClientFromTeam( view_as<int>(TFTeam_Red), false);
@@ -121,36 +125,35 @@ void TeleportSpyRobot(int client)
 		}
 	}
 	
-	if(!IsValidClient(target)) { return; }
+	float TargetPos[3];
 	
-	float TargetPos[3], CenterPos[3];
-	char targetname[MAX_NAME_LENGTH];
-	
-	GetClientName(target, targetname, sizeof(targetname));
-	GetClientAbsOrigin(target, TargetPos);
-	TargetPos[0] += GetRandomFloat(-1000.0, 1000.0);
-	TargetPos[1] += GetRandomFloat(-1000.0, 1000.0);
-	TargetPos[2] += GetRandomFloat(-300.0, 300.0);
-	
-	CNavArea NavArea = NavMesh_GetNearestArea(TargetPos, false, 2000.0, false, true);
-	NavArea.GetCenter(CenterPos);
-	CenterPos[2] += 25.0;
-	TeleportEntity(client, CenterPos, NULL_VECTOR, NULL_VECTOR);
-	PrintToChat(client, "You spawned near %s", targetname);
+	if(!IsValidClient(target))
+	{
+		GetSpyTeleportFromConfig(TargetPos);
+		TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
+	}
+	else
+	{
+		GetSpyTeleportFromConfig(TargetPos, target);
+		TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
+		char name[MAX_NAME_LENGTH];
+		GetClientName(target, name, sizeof(name));
+		PrintToChat(client, "%t", "Spy_Teleported", name);
+	}
 }
 
 // searches for an engineer nest close to the bomb
-int FindEngineerNestNearBomb()
+void FindEngineerNestNearBomb(int client)
 {
-	float nVec[3]; // nest pos
-	float bVec[3]; // bomb pos
-	float current_dist;
+	float nVec[3], bVec[3], tVec[3]; // nest pos, bomb pos, tele pos
+	float current_dist, min_dist = 750.0;
 	float smallest_dist = 15000.0;
 	int iTargetNest = -1; // the closest nest found.
 	int i = -1;
 	int iBomb = -1; // the bomb we're going to use to check distance.
-	int iBombOwner = -1; // bomb carrier
+	int iBombOwner = -1; // bomb carrier9
 	
+	// find the bomb current position
 	while( (i = FindEntityByClassname(i, "item_teamflag" )) != -1 )
 	{
 		if( IsValidEntity(i) && GetEntProp( i, Prop_Send, "m_bDisabled" ) == 0 ) // ignore disabled bombs
@@ -162,8 +165,9 @@ int FindEngineerNestNearBomb()
 	}
 	
 	if( iBomb == -1 )
-		return -1; // no bomb found
+		return; // no bomb found
 	
+	// search for bot hints
 	i = -1;
 	while( (i = FindEntityByClassname(i, "bot_hint_engineer_nest" )) != -1 )
 	{
@@ -181,7 +185,7 @@ int FindEngineerNestNearBomb()
 			
 			current_dist = GetVectorDistance(bVec, nVec);
 			
-			if( current_dist < smallest_dist )
+			if( current_dist < smallest_dist && current_dist > min_dist )
 			{
 				iTargetNest = i;
 				smallest_dist = current_dist;
@@ -189,23 +193,38 @@ int FindEngineerNestNearBomb()
 		}
 	}
 	
-	return iTargetNest;
+	if( iTargetNest == -1 ) // no bot_hint_engineer_nest found
+	{
+		if( iBombOwner == -1 || iBombOwner > MaxClients)
+		{
+			GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
+		}
+		else // if the bomb is carried by a player, use the eye position of the carrier instead
+		{
+			GetClientEyePosition(iBombOwner, bVec);
+		}
+		if( GetEngyTeleportFromConfig(tVec, bVec) )
+		{
+			TeleportEngineerToPosition(tVec, client);
+		}
+	}
+	else
+	{
+		GetEntPropVector(iTargetNest, Prop_Send, "m_vecOrigin", tVec);
+		TeleportEngineerToPosition(tVec, client);
+	}
 }
 
 // teleports a client to the entity origin.
 // also adds engineer spawn particle
-void TeleportEngineerToEntity(int iEntity, int client, float OffsetVec[3] = {0.0,0.0,0.0})
+void TeleportEngineerToPosition(float origin[3], int client, float OffsetVec[3] = {0.0,0.0,0.0})
 {
-	float EntVec[3];
 	float FinalVec[3];
-	if( IsValidEntity(iEntity) )
-	{
-		GetEntPropVector(iEntity, Prop_Send, "m_vecOrigin", EntVec);
-		AddVectors(EntVec, OffsetVec, FinalVec);
-		TeleportEntity(client, FinalVec, NULL_VECTOR, NULL_VECTOR);
-		CreateTEParticle("teleported_blue",FinalVec, _, _,3.0,iEntity,1,0);
-		CreateTEParticle("teleported_mvm_bot",FinalVec, _, _,3.0,iEntity,1,0);
-	}
+	
+	AddVectors(origin, OffsetVec, FinalVec);
+	TeleportEntity(client, FinalVec, NULL_VECTOR, NULL_VECTOR);
+	CreateTEParticle("teleported_blue",FinalVec, _, _,3.0,-1,-1,-1);
+	CreateTEParticle("teleported_mvm_bot",FinalVec, _, _,3.0,-1,-1,-1);
 }
 
 // searches for a teleporter exit 
@@ -493,7 +512,7 @@ bool CheckTeleportClamping(int teleporter, int client)
 			{
 				if(fldistance < 120)
 				{
-					TE_SetupBeamPoints(VecTeleporter, RayEndPos, GetLaserSprite(), GetHaloSprite(), 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0); // show a red beam to help with teleporter placement
+					TE_SetupBeamPoints(VecTeleporter, RayEndPos, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0); // show a red beam to help with teleporter placement
 					TE_SendToClient(client, 0.1);
 					CloseHandle(Tracer);
 					return true;
@@ -503,7 +522,7 @@ bool CheckTeleportClamping(int teleporter, int client)
 			{
 				if(fldistance < 185)
 				{
-					TE_SetupBeamPoints(VecTeleporter, RayEndPos, GetLaserSprite(), GetHaloSprite(), 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0); // show a red beam to help with teleporter placement
+					TE_SetupBeamPoints(VecTeleporter, RayEndPos, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0); // show a red beam to help with teleporter placement
 					TE_SendToClient(client, 0.1);
 					CloseHandle(Tracer);
 					return true;
@@ -511,7 +530,7 @@ bool CheckTeleportClamping(int teleporter, int client)
 			}
 			if(IsDebugging())
 			{
-				TE_SetupBeamPoints(VecTeleporter, RayEndPos, GetLaserSprite(), GetHaloSprite(), 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 255, 255, 255}, 0); // if debug is enabled, create a white beam to visualize the rays
+				TE_SetupBeamPoints(VecTeleporter, RayEndPos, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 255, 255, 255}, 0); // if debug is enabled, create a white beam to visualize the rays
 				TE_SendToClient(client, 0.1);				
 			}
 		}
@@ -767,4 +786,182 @@ void Robot_GibGiant(int client, float OriginVec[3])
 	//Remove Body:
 	CreateTimer(0.05, Timer_RemoveBody, client, TIMER_FLAG_NO_MAPCHANGE);
 	CreateTimer(8.0, Timer_RemoveGibs, Ent, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+// Initialze config
+void Config_Init()
+{
+	g_aSpyTeleport = new ArrayList(3);
+	g_aEngyTeleport = new ArrayList(3);
+}
+
+// load spies teleport position
+void Config_LoadSpyTelePos()
+{
+	char mapname[64], buffer[256];
+	float OriginVec[3];
+	
+	g_aSpyTeleport.Clear();
+	
+	GetCurrentMap(buffer, sizeof(buffer));
+	
+	// Some servers might use workshop
+	if( !GetMapDisplayName(buffer, mapname, sizeof(mapname)) )
+	{
+		strcopy(mapname, sizeof(mapname), buffer); // use the result from GetCurrentMap if this fails.
+	}
+
+	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/spy/");
+	
+	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s.cfg", g_strConfigFile, mapname);
+	
+	if(!FileExists(g_strConfigFile))
+	{
+		LogMessage("Spy teleport config file not found for map \"%s\"", mapname);
+		return;
+	}
+	
+	KeyValues kv = new KeyValues("SpyTeleport");
+	kv.ImportFromFile(g_strConfigFile);
+	
+	// Jump into the first subsection
+	if (!kv.GotoFirstSubKey())
+	{
+		delete kv;
+		return;
+	}
+	
+	do
+	{
+		kv.GetVector("origin", OriginVec, NULL_VECTOR);
+		g_aSpyTeleport.PushArray(OriginVec);
+	} while (kv.GotoNextKey());
+	
+	if( IsDebugging() )
+		LogMessage("Loaded %i spy teleport positions.", g_aSpyTeleport.Length);
+	
+	delete kv;
+}
+
+// load engineer teleport position
+void Config_LoadEngyTelePos()
+{
+	char mapname[64], buffer[256];
+	float OriginVec[3];
+	
+	g_aEngyTeleport.Clear();
+	
+	GetCurrentMap(buffer, sizeof(buffer));
+	
+	// Some servers might use workshop
+	if( !GetMapDisplayName(buffer, mapname, sizeof(mapname)) )
+	{
+		strcopy(mapname, sizeof(mapname), buffer); // use the result from GetCurrentMap if this fails.
+	}
+
+	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/engy/");
+	
+	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s.cfg", g_strConfigFile, mapname);
+	
+	if(!FileExists(g_strConfigFile))
+	{
+		//LogMessage("Engineer teleport config file not found for map \"%s\"", mapname);
+		return;
+	}
+	
+	KeyValues kv = new KeyValues("EngyTeleport");
+	kv.ImportFromFile(g_strConfigFile);
+	
+	// Jump into the first subsection
+	if (!kv.GotoFirstSubKey())
+	{
+		delete kv;
+		return;
+	}
+	
+	do
+	{
+		kv.GetVector("origin", OriginVec, NULL_VECTOR);
+		g_aEngyTeleport.PushArray(OriginVec);
+	} while (kv.GotoNextKey());
+	
+	delete kv;
+}
+
+// Gets an origin to teleport a spy
+// If target_player is set, try to find one near the target
+// returns true if a spot is found
+bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
+{
+	float tVec[3], rVec[3]; // target_player's vector, return vector
+	int iBestCell = -1, iCellMax = (g_aSpyTeleport.Length - 1);
+	float current_dist, smallest_dist = 999999.0;
+	
+	if( g_aSpyTeleport.Length < 1 )
+		return false;
+	
+	if( IsValidClient(target_player) )
+	{
+		GetClientAbsOrigin(target_player, tVec);
+		
+		for(int i = 0;i < iCellMax;i++)
+		{
+		
+			g_aSpyTeleport.GetArray(i, rVec);
+			
+			current_dist = GetVectorDistance(rVec, tVec);
+			
+			if( current_dist < smallest_dist && current_dist > 256.0 ) 
+			{
+				iBestCell = i;
+			}
+		}
+		
+		if( iBestCell != -1 )
+		{
+			g_aSpyTeleport.GetArray(iBestCell, origin);
+			return true;
+		}
+		else
+			return false;
+	}
+	else
+	{
+		g_aSpyTeleport.GetArray(GetRandomInt(0, (g_aSpyTeleport.Length - 1)), origin);
+		return true;
+	}
+}
+
+// Gets an origin to teleport an engineer
+// returns true if a spot is found
+bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
+{
+	float rVec[3];
+	int iBestCell = -1, iCellMax = (g_aEngyTeleport.Length - 1);
+	float current_dist, min_dist = 750.0, smallest_dist = 999999.0;
+	
+	
+	if( g_aEngyTeleport.Length < 1 )
+		return false;
+	
+	for(int i = 0;i < iCellMax;i++)
+	{
+	
+		g_aEngyTeleport.GetArray(i, rVec);
+		
+		current_dist = GetVectorDistance(rVec, bombpos);
+		
+		if( current_dist < smallest_dist && current_dist > min_dist ) 
+		{
+			iBestCell = i;
+		}
+	}
+	
+	if( iBestCell != -1 )
+	{
+		g_aEngyTeleport.GetArray(iBestCell, origin);
+		return true;
+	}
+	else
+		return false;
 }

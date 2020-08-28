@@ -105,4 +105,9 @@
 	{
 		"pt"	"Este servidor está rodando Be With Robot Redux. Digite !bwrrhelp para mais informações."
 	}
+	"Spy_Teleported"
+	{
+		"#format"	"{1:s}"
+		"pt"	"Você deu spawn perto de {1}"
+	}
 }
