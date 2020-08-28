@@ -11,5 +11,3 @@ Use SM 1.10
 * [TF2 Is Player In Spawn?](https://forums.alliedmods.net/showthread.php?p=2196313)
 * [TF2Wearables](https://github.com/nosoop/sourcemod-tf2wearables/blob/master/addons/sourcemod/scripting/include/tf2wearables.inc)
 * [AutoExecConfig](https://github.com/Impact123/AutoExecConfig/blob/development/autoexecconfig.inc)
-* [NavMesh](https://github.com/caxanga334/sm-plugins/blob/master/include/navmesh.inc)
-* [caxanga334](https://github.com/caxanga334/sm-plugins/blob/master/include/caxanga334.inc)
