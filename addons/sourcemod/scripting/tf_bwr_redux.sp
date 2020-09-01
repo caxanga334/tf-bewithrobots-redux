@@ -291,7 +291,7 @@ public void OnPluginStart()
 		
 	HookUserMessage(ID_MVMResetUpgrade, MsgHook_MVMRespec);
 	
-	// RT_InitArrays();
+	RT_InitArrays();
 	Config_Init();
 	
 	array_avclass = new ArrayList(10);

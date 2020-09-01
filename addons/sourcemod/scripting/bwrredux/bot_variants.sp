@@ -2,9 +2,8 @@
 
 // defines
 #define MAX_TEMPLATE_TYPE 2
-#define MAX_ROBOTS_TEMPLATE 128
+#define MAX_ROBOTS_TEMPLATE 50
 #define MAX_ROBOTS_WEAPONS 6
-#define MAX_ROBOTS_ATTRIBUTES 64
 #define CONST_ROBOT_CLASSES 10
 #define MAXLEN_CONFIG_STRING 128
 
@@ -27,27 +26,11 @@ int g_BNHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BNType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BNScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BNCooldown[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
-char g_BNWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS][MAXLEN_CONFIG_STRING];
-char g_BNCharAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BNCharAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 1
-char g_BNWeap1Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BNWeap1AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 2
-char g_BNWeap2Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BNWeap2AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 3
-char g_BNWeap3Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BNWeap3AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 4
-char g_BNWeap4Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BNWeap4AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 5
-char g_BNWeap5Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BNWeap5AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 6
-char g_BNWeap6Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BNWeap6AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
+ArrayList g_BNWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+ArrayList g_BNCharAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+ArrayList g_BNCharAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+ArrayList g_BNWeapAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
+ArrayList g_BNWeapAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
 // == STOCK GIANT ROBOTS ==
 char g_BGTemplateName[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STRING];
 char g_BGRobotAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STRING];
@@ -58,27 +41,11 @@ int g_BGHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BGScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BGCooldown[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
-char g_BGWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS][MAXLEN_CONFIG_STRING];
-char g_BGCharAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BGCharAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 1
-char g_BGWeap1Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BGWeap1AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 2
-char g_BGWeap2Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BGWeap2AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 3
-char g_BGWeap3Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BGWeap3AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 4
-char g_BGWeap4Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BGWeap4AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 5
-char g_BGWeap5Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BGWeap5AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
-// Weapon 6
-char g_BGWeap6Attrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES][MAXLEN_CONFIG_STRING];
-float g_BGWeap6AttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_ATTRIBUTES];
+ArrayList g_BGWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+ArrayList g_BGCharAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+ArrayList g_BGCharAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+ArrayList g_BGWeapAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
+ArrayList g_BGWeapAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
 
 // enum structs for config files
 enum struct eRobotsGlobal
@@ -293,15 +260,14 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 	{
 		if(templateindex <= g_nBotTemplate[TemplateType_Normal].numtemplates[iClass]) // This is a stock robot
 		{
-			for(int i = 0;i < MAX_ROBOTS_ATTRIBUTES;i++)
+			// Set Player Attributes
+			if(g_BNCharAttrib[templateindex][iClass].Length > 0)
 			{
-				if( StrEqual(g_BNCharAttrib[templateindex][iClass][i], "null", true) )
+				for(int i = 0;i < g_BNCharAttrib[templateindex][iClass].Length;i++)
 				{
-					break;
+					g_BNCharAttrib[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
+					TF2Attrib_SetByName(client, buffer, g_BNCharAttribValue[templateindex][iClass].Get(i));
 				}
-				
-				strcopy(buffer, sizeof(buffer), g_BNCharAttrib[templateindex][iClass][i]);
-				TF2Attrib_SetByName(client, buffer, g_BNCharAttribValue[templateindex][iClass][i]);
 			}
 			
 			TF2Attrib_ClearCache(client);
@@ -309,116 +275,19 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 			// Spawn Weapons
 			for(int i = 0;i < MAX_ROBOTS_WEAPONS;i++)
 			{
-				switch( i )
+				g_BNWeaponClass[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
+				if(strlen(buffer) > 3) // check if a weapon exists
 				{
-					case 0:
+					iWeapon = SpawnWeapon(client, buffer, g_BNWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
+					if(g_BNWeapAttrib[templateindex][iClass][i].Length > 0) // Does this weapon have custom attributes?
 					{
-						strcopy(buffer, sizeof(buffer), g_BNWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
+						for(int y = 0;y < g_BNWeapAttrib[templateindex][iClass][i].Length;y++)
 						{
-							iWeapon = SpawnWeapon(client, buffer, g_BNWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BNWeap1Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BNWeap1Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BNWeap1AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
+							g_BNWeapAttrib[templateindex][iClass][i].GetString(y, buffer, sizeof(buffer));
+							TF2Attrib_SetByName(iWeapon, buffer, g_BNWeapAttribValue[templateindex][iClass][i].Get(y));
+						}
 					}
-					case 1:
-					{
-						strcopy(buffer, sizeof(buffer), g_BNWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
-						{
-							iWeapon = SpawnWeapon(client, buffer, g_BNWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BNWeap2Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BNWeap2Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BNWeap2AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
-					}
-					case 2:
-					{
-						strcopy(buffer, sizeof(buffer), g_BNWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
-						{
-							iWeapon = SpawnWeapon(client, buffer, g_BNWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BNWeap3Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BNWeap3Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BNWeap3AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
-					}
-					case 3:
-					{
-						strcopy(buffer, sizeof(buffer), g_BNWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
-						{
-							iWeapon = SpawnWeapon(client, buffer, g_BNWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BNWeap4Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BNWeap4Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BNWeap4AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
-					}
-					case 4:
-					{
-						strcopy(buffer, sizeof(buffer), g_BNWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
-						{
-							iWeapon = SpawnWeapon(client, buffer, g_BNWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BNWeap5Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BNWeap5Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BNWeap5AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
-					}
-					case 5:
-					{
-						strcopy(buffer, sizeof(buffer), g_BNWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
-						{
-							iWeapon = SpawnWeapon(client, buffer, g_BNWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BNWeap6Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BNWeap6Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BNWeap6AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
-					}
+					TF2Attrib_ClearCache(iWeapon);
 				}
 			}
 		}
@@ -427,133 +296,30 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 	{
 		if(templateindex <= g_nBotTemplate[TemplateType_Giant].numtemplates[iClass]) // This is a stock robot
 		{	
-			for(int i = 0;i < MAX_ROBOTS_ATTRIBUTES;i++)
+			// Set Player Attributes
+			if(g_BGCharAttrib[templateindex][iClass].Length > 0)
 			{
-				if( StrEqual(g_BGCharAttrib[templateindex][iClass][i], "null", true) )
+				for(int i = 0;i < g_BGCharAttrib[templateindex][iClass].Length;i++)
 				{
-					break;
+					g_BGCharAttrib[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
+					TF2Attrib_SetByName(client, buffer, g_BGCharAttribValue[templateindex][iClass].Get(i));
 				}
-				
-				strcopy(buffer, sizeof(buffer), g_BGCharAttrib[templateindex][iClass][i]);
-				TF2Attrib_SetByName(client, buffer, g_BGCharAttribValue[templateindex][iClass][i]);
-				LogMessage("Applying client attribute %s (value %f ) on %N", buffer, g_BGCharAttribValue[templateindex][iClass][i], client);
 			}
-			
-			TF2Attrib_ClearCache(client);
 
 			// Spawn Weapons
 			for(int i = 0;i < MAX_ROBOTS_WEAPONS;i++)
 			{
-				switch( i )
+				g_BGWeaponClass[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
+				if(strlen(buffer) > 3) // check if a weapon exists
 				{
-					case 0:
+					iWeapon = SpawnWeapon(client, buffer, g_BGWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
+					if(g_BGWeapAttrib[templateindex][iClass][i].Length > 0) // Does this weapon have custom attributes?
 					{
-						strcopy(buffer, sizeof(buffer), g_BGWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
+						for(int y = 0;y < g_BGWeapAttrib[templateindex][iClass][i].Length;y++)
 						{
-							iWeapon = SpawnWeapon(client, buffer, g_BGWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BGWeap1Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									LogMessage("Found null attribute at index %i for robot %s", y,g_BGTemplateName[templateindex][iClass]);
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BGWeap1Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BGWeap1AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
-					}
-					case 1:
-					{
-						strcopy(buffer, sizeof(buffer), g_BGWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
-						{
-							iWeapon = SpawnWeapon(client, buffer, g_BGWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BGWeap2Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BGWeap2Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BGWeap2AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
-					}
-					case 2:
-					{
-						strcopy(buffer, sizeof(buffer), g_BGWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
-						{
-							iWeapon = SpawnWeapon(client, buffer, g_BGWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BGWeap3Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BGWeap3Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BGWeap3AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
-					}
-					case 3:
-					{
-						strcopy(buffer, sizeof(buffer), g_BGWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
-						{
-							iWeapon = SpawnWeapon(client, buffer, g_BGWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BGWeap4Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BGWeap4Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BGWeap4AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
-					}
-					case 4:
-					{
-						strcopy(buffer, sizeof(buffer), g_BGWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
-						{
-							iWeapon = SpawnWeapon(client, buffer, g_BGWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BGWeap5Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BGWeap5Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BGWeap5AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
-					}
-					case 5:
-					{
-						strcopy(buffer, sizeof(buffer), g_BGWeaponClass[templateindex][iClass][i]);
-						if(!StrEqual(buffer, "null", false)) // check if a weapon exists
-						{
-							iWeapon = SpawnWeapon(client, buffer, g_BGWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-							for(int y = 0;y < MAX_ROBOTS_ATTRIBUTES;y++)
-							{
-								if( StrEqual(g_BGWeap6Attrib[templateindex][iClass][y], "null", true ) )
-								{
-									break;
-								}
-								strcopy(buffer, sizeof(buffer), g_BGWeap6Attrib[templateindex][iClass][y]);
-								TF2Attrib_SetByName(iWeapon, buffer, g_BGWeap6AttribValue[templateindex][iClass][y]);
-							}
-							TF2Attrib_ClearCache(iWeapon);
-						}						
+							g_BGWeapAttrib[templateindex][iClass][i].GetString(y, buffer, sizeof(buffer));
+							TF2Attrib_SetByName(iWeapon, buffer, g_BGWeapAttribValue[templateindex][iClass][i].Get(y));
+						}
 					}
 				}
 			}
@@ -1017,10 +783,28 @@ void GiveBusterInventory(int client)
 }
 
 // ==== ROBOT TEMPLATE CONFIG FILES ====
-/* void RT_InitArrays()
+void RT_InitArrays()
 {
-
-} */
+	for(int i = 0;i < MAX_ROBOTS_TEMPLATE;i++)
+	{
+		for(int y = 1;y < CONST_ROBOT_CLASSES;y++)
+		{
+			g_BNWeaponClass[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
+			g_BNCharAttrib[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
+			g_BNCharAttribValue[i][y] = new ArrayList();
+			g_BGWeaponClass[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
+			g_BGCharAttrib[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
+			g_BGCharAttribValue[i][y] = new ArrayList();
+			for(int x = 0;x < MAX_ROBOTS_WEAPONS;x++)
+			{
+				g_BNWeapAttrib[i][y][x] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
+				g_BNWeapAttribValue[i][y][x] = new ArrayList();
+				g_BGWeapAttrib[i][y][x] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
+				g_BGWeapAttribValue[i][y][x] = new ArrayList();
+			}
+		}
+	}
+}
 
 void RT_ClearArrays()
 {
@@ -1028,46 +812,24 @@ void RT_ClearArrays()
 	{
 		for(int y = 1;y < CONST_ROBOT_CLASSES;y++)
 		{
-			for(int x = 0;x < MAX_ROBOTS_ATTRIBUTES;x++)
-			{
-				// Normal
-				g_BNCharAttrib[i][y][x] = "null";
-				g_BNCharAttribValue[i][y][x] = 0.0;
-				g_BNWeap1Attrib[i][y][x] = "null";
-				g_BNWeap1AttribValue[i][y][x] = 0.0;	
-				g_BNWeap2Attrib[i][y][x] = "null";
-				g_BNWeap2AttribValue[i][y][x] = 0.0;	
-				g_BNWeap3Attrib[i][y][x] = "null";
-				g_BNWeap3AttribValue[i][y][x] = 0.0;
-				g_BNWeap4Attrib[i][y][x] = "null";
-				g_BNWeap4AttribValue[i][y][x] = 0.0;
-				g_BNWeap5Attrib[i][y][x] = "null";
-				g_BNWeap5AttribValue[i][y][x] = 0.0;
-				g_BNWeap6Attrib[i][y][x] = "null";
-				g_BNWeap6AttribValue[i][y][x] = 0.0;
-				// Giants
-				g_BGCharAttrib[i][y][x] = "null";
-				g_BGCharAttribValue[i][y][x] = 0.0;
-				g_BGWeap1Attrib[i][y][x] = "null";
-				g_BGWeap1AttribValue[i][y][x] = 0.0;	
-				g_BGWeap2Attrib[i][y][x] = "null";
-				g_BGWeap2AttribValue[i][y][x] = 0.0;	
-				g_BGWeap3Attrib[i][y][x] = "null";
-				g_BGWeap3AttribValue[i][y][x] = 0.0;
-				g_BGWeap4Attrib[i][y][x] = "null";
-				g_BGWeap4AttribValue[i][y][x] = 0.0;
-				g_BGWeap5Attrib[i][y][x] = "null";
-				g_BGWeap5AttribValue[i][y][x] = 0.0;
-				g_BGWeap6Attrib[i][y][x] = "null";
-				g_BGWeap6AttribValue[i][y][x] = 0.0;
-			}
-			
+			// Normal
+			g_BNWeaponClass[i][y].Clear();
+			g_BNCharAttrib[i][y].Clear();
+			g_BNCharAttribValue[i][y].Clear();
+			// Giant
+			g_BGWeaponClass[i][y].Clear();
+			g_BGCharAttrib[i][y].Clear();
+			g_BGCharAttribValue[i][y].Clear();
 			for(int x = 0;x < MAX_ROBOTS_WEAPONS;x++)
 			{
 				// Normal
-				g_BNWeaponClass[i][y][x] = "null";
+				g_BNWeapAttrib[i][y][x].Clear();
+				g_BNWeapAttribValue[i][y][x].Clear();
+				g_BNWeaponClass[i][y].PushString("");
 				// Giant
-				g_BGWeaponClass[i][y][x] = "null";
+				g_BGWeapAttrib[i][y][x].Clear();
+				g_BGWeapAttribValue[i][y][x].Clear();
+				g_BGWeaponClass[i][y].PushString("");
 			}
 		}
 	}
@@ -1199,12 +961,11 @@ void RT_LoadCfgNormal()
 							kv.GetSectionName(buffer, sizeof(buffer));
 							if(kv.GotoFirstSubKey(false))
 							{
-								int x = 0;
 								do
 								{ // Store Player Attributes
-									kv.GetSectionName(g_BNCharAttrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-									g_BNCharAttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-									x++;
+									kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
+									g_BNCharAttrib[iCounter][j].PushString(buffer); // Attribute Name
+									g_BNCharAttribValue[iCounter][j].Push(kv.GetFloat("")); // Attribute Value
 								} while(kv.GotoNextKey(false));
 								kv.GoBack();
 							}
@@ -1213,14 +974,12 @@ void RT_LoadCfgNormal()
 						
 						char strWeaponsKey[MAX_ROBOTS_WEAPONS][] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
 						
-						int x;
 						for(int i = 0;i < sizeof(strWeaponsKey);i++) // Read Weapons
 						{
-							x = 0;
 							if(kv.JumpToKey(strWeaponsKey[i]))
 							{
-								//kv.GetString("classname", buffer, sizeof(buffer), "");
-								kv.GetString("classname", g_BNWeaponClass[iCounter][j][i], MAXLEN_CONFIG_STRING, "null"); // Store Weapon Classname
+								kv.GetString("classname", buffer, sizeof(buffer), "");
+								g_BNWeaponClass[iCounter][j].SetString(i, buffer); // Store Weapon Classname
 								g_BNWeaponIndex[iCounter][j][i] = kv.GetNum("index"); // Store Weapon Definition Index
 								
 								if(kv.GotoFirstSubKey())
@@ -1229,52 +988,16 @@ void RT_LoadCfgNormal()
 									{
 										do
 										{
-											switch( i )
-											{
-												case 0:
-												{
-													kv.GetSectionName(g_BNWeap1Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BNWeap1AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}
-												case 1:
-												{
-													kv.GetSectionName(g_BNWeap2Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BNWeap2AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}
-												case 2:
-												{
-													kv.GetSectionName(g_BNWeap3Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BNWeap3AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}
-												case 3:
-												{
-													kv.GetSectionName(g_BNWeap4Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BNWeap4AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}
-												case 4:
-												{
-													kv.GetSectionName(g_BNWeap5Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BNWeap5AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}
-												case 5:
-												{
-													kv.GetSectionName(g_BNWeap6Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BNWeap6AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}												
-											}
+											kv.GetSectionName(buffer, sizeof(buffer));
+											g_BNWeapAttrib[iCounter][j][i].PushString(buffer); // Store Attribute Name
+											g_BNWeapAttribValue[iCounter][j][i].Push(kv.GetFloat("")); // Store Attribute Value
 										} while(kv.GotoNextKey(false));
 										kv.GoBack();
 									}
 									kv.GoBack();
 								}
 								kv.GoBack();
-							}
+							}			
 						}
 						iCounter++;
 					} while(kv.GotoNextKey());
@@ -1349,12 +1072,11 @@ void RT_LoadCfgGiant()
 							kv.GetSectionName(buffer, sizeof(buffer));
 							if(kv.GotoFirstSubKey(false))
 							{
-								int x = 0;
 								do
 								{ // Store Player Attributes
-									kv.GetSectionName(g_BGCharAttrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-									g_BGCharAttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-									x++;
+									kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
+									g_BGCharAttrib[iCounter][j].PushString(buffer); // Attribute Name
+									g_BGCharAttribValue[iCounter][j].Push(kv.GetFloat("")); // Attribute Value
 								} while(kv.GotoNextKey(false));
 								kv.GoBack();
 							}
@@ -1363,14 +1085,12 @@ void RT_LoadCfgGiant()
 						
 						char strWeaponsKey[MAX_ROBOTS_WEAPONS][] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
 						
-						int x;
 						for(int i = 0;i < sizeof(strWeaponsKey);i++) // Read Weapons
 						{
-							x = 0;
 							if(kv.JumpToKey(strWeaponsKey[i]))
 							{
-								//kv.GetString("classname", buffer, sizeof(buffer), "");
-								kv.GetString("classname", g_BGWeaponClass[iCounter][j][i], MAXLEN_CONFIG_STRING, "null"); // Store Weapon Classname
+								kv.GetString("classname", buffer, sizeof(buffer), "");
+								g_BGWeaponClass[iCounter][j].SetString(i, buffer); // Store Weapon Classname
 								g_BGWeaponIndex[iCounter][j][i] = kv.GetNum("index"); // Store Weapon Definition Index
 								
 								if(kv.GotoFirstSubKey())
@@ -1379,52 +1099,16 @@ void RT_LoadCfgGiant()
 									{
 										do
 										{
-											switch( i )
-											{
-												case 0:
-												{
-													kv.GetSectionName(g_BGWeap1Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BGWeap1AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}
-												case 1:
-												{
-													kv.GetSectionName(g_BGWeap2Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BGWeap2AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}
-												case 2:
-												{
-													kv.GetSectionName(g_BGWeap3Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BGWeap3AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}
-												case 3:
-												{
-													kv.GetSectionName(g_BGWeap4Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BGWeap4AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}
-												case 4:
-												{
-													kv.GetSectionName(g_BGWeap5Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BGWeap5AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}
-												case 5:
-												{
-													kv.GetSectionName(g_BGWeap6Attrib[iCounter][j][x], MAXLEN_CONFIG_STRING); // Get Attribute Name
-													g_BGWeap6AttribValue[iCounter][j][x] = kv.GetFloat("");// Attribute Value
-													x++;
-												}												
-											}
+											kv.GetSectionName(buffer, sizeof(buffer));
+											g_BGWeapAttrib[iCounter][j][i].PushString(buffer); // Store Attribute Name
+											g_BGWeapAttribValue[iCounter][j][i].Push(kv.GetFloat("")); // Store Attribute Value
 										} while(kv.GotoNextKey(false));
 										kv.GoBack();
 									}
 									kv.GoBack();
 								}
 								kv.GoBack();
-							}
+							}			
 						}
 						iCounter++;
 					} while(kv.GotoNextKey());
