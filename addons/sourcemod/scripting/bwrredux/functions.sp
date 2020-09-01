@@ -4,6 +4,8 @@
 ArrayList g_aSpyTeleport;
 ArrayList g_aEngyTeleport;
 
+char g_strHatchTrigger[64];
+char g_strExploTrigger[64];
 char g_strNormalSpawns[512];
 char g_strGiantSpawns[512];
 char g_strSniperSpawns[512];
@@ -577,21 +579,52 @@ bool TraceFilterIgnorePlayers(int entity, int contentsMask)
 void TriggerHatchExplosion()
 {
 	int i = -1;
+	
+	// Method 1: Trigger round win by exploding the hatch using the tank relay.
+	// At least on official MVM maps, the tank relay will also trigger game_round_win
 	while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
 	{
 		if(IsValidEntity(i))
 		{
 			char strName[50];
 			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
-			if(strcmp(strName, "boss_deploy_relay") == 0)
+			if(strcmp(strName, g_strHatchTrigger, false) == 0)
 			{
 				AcceptEntityInput(i, "Trigger");
-				break;
+				return;
 			}
-			else if(strcmp(strName, "bwr_round_win_relay") == 0)
+		} 
+	}
+	
+	// Method 2: Tank trigger could not be found or can not be used ( eg: doesn't trigger game_round_win for some reason )
+	// So this time the plugin will search for the game_round_win itself and trigger it manually.
+	i = -1;
+	while ((i = FindEntityByClassname(i, "game_round_win")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			char strName[50];
+			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
+			if( GetEntProp(i, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Blue) )
 			{
-				AcceptEntityInput(i, "Trigger");
-				break;
+				AcceptEntityInput(i, "RoundWin");
+			}
+		} 
+	}
+	
+	// Finally we check if we have a relay to trigger the cinematic explosion of the bomb hatch
+	// Make sure the relay used here doesn't trigger game_round_win again.
+	i = -1;
+	while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			char strName[50];
+			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
+			if(strcmp(strName, g_strExploTrigger, false) == 0)
+			{
+				AcceptEntityInput(i, "Trigger"); // 
+				return;
 			}
 		} 
 	}
@@ -1022,6 +1055,11 @@ void Config_LoadMap()
 			kv.GetString("giant", g_strGiantSpawns, sizeof(g_strGiantSpawns));
 			kv.GetString("sniper", g_strSniperSpawns, sizeof(g_strSniperSpawns));
 			kv.GetString("spy", g_strSpySpawns, sizeof(g_strSpySpawns));
+		}
+		else if( StrEqual(buffer, "HatchTrigger", false) )
+		{
+			kv.GetString("tank_relay", g_strHatchTrigger, sizeof(g_strHatchTrigger), "boss_deploy_relay");
+			kv.GetString("cap_relay", g_strExploTrigger, sizeof(g_strExploTrigger), "cap_destroy_relay");
 		}
 	} while (kv.GotoNextKey());
 	
