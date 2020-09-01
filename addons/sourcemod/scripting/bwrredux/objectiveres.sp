@@ -1,6 +1,7 @@
 // reads data from tf_objective_resource
 // special thanks to Pelipoika
 
+char g_strMissionName[128];
 int iCurrentWave; // current wave
 int iMaxWave; // total wave
 int iPopFileType; // Event popfile?
@@ -54,6 +55,10 @@ void OR_Update()
 		iCurrentWave = GetEntProp( iResource, Prop_Send, "m_nMannVsMachineWaveCount" );
 		iMaxWave = GetEntProp( iResource, Prop_Send, "m_nMannVsMachineMaxWaveCount" );
 		iPopFileType = GetEntProp( iResource, Prop_Send, "m_nMvMEventPopfileType" );	
+		GetEntPropString( iResource, Prop_Send, "m_iszMvMPopfileName", g_strMissionName, sizeof(g_strMissionName) );
+		
+		ReplaceString(g_strMissionName, sizeof(g_strMissionName), "scripts/population/", "");
+		ReplaceString(g_strMissionName, sizeof(g_strMissionName), ".pop", "");
 	
 		for(int i = 0; i < 24; i++)
 		{
@@ -228,4 +233,9 @@ bool OR_IsNormalAvaiable()
 	}
 	
 	return false;
+}
+
+void OR_GetMissionName(char[] name, int size)
+{
+	strcopy(name, size, g_strMissionName);
 }

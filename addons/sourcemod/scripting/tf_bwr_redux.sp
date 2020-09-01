@@ -15,7 +15,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "0.1.10"
+#define PLUGIN_VERSION "0.1.11"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -291,7 +291,7 @@ public void OnPluginStart()
 		
 	HookUserMessage(ID_MVMResetUpgrade, MsgHook_MVMRespec);
 	
-	RT_InitArrays();
+	// RT_InitArrays();
 	Config_Init();
 	
 	array_avclass = new ArrayList(10);
@@ -332,8 +332,6 @@ public void OnConfigsExecuted()
 	RT_LoadCfgNormal();
 	RT_LoadCfgGiant();
 	RT_PostLoad();
-	Config_LoadSpyTelePos();
-	Config_LoadEngyTelePos();
 }
 
 public void OnMapStart()
@@ -1150,7 +1148,7 @@ public Action Command_RobotInfo( int client, int nArgs )
 public Action Command_WaveInfo( int client, int nArgs )
 {		
 	int iABots, iCW, iMW;
-	char strNormalBots[256], strGiantBots[256];
+	char strNormalBots[256], strGiantBots[256], buffer[128];
 
 	iABots = OR_GetAvailableClasses();
 	iCW = OR_GetCurrentWave();
@@ -1237,6 +1235,8 @@ public Action Command_WaveInfo( int client, int nArgs )
 	if( !strGiantBots[0] )
 		Format(strGiantBots, sizeof(strGiantBots), "%s", "None");
 	
+	OR_GetMissionName(buffer, sizeof(buffer));
+	ReplyToCommand(client, "Mission: %s", buffer);
 	ReplyToCommand(client, "Wave %d of %d", iCW, iMW);
 	ReplyToCommand(client, "Available Robots:");
 	ReplyToCommand(client, "Normal Robots: %s", strNormalBots);
@@ -2196,7 +2196,7 @@ public Action Timer_KillReviveMarker(Handle timer, any revivemarker)
 			if( StrEqual(classname, "entity_revive_marker", false) )
 			{
 				int client = GetEntPropEnt(revivemarker, Prop_Send, "m_hOwner");
-				if( TF2_GetClientTeam(client) == TFTeam_Blue )
+				if( !IsValidClient(client) || TF2_GetClientTeam(client) == TFTeam_Blue )
 				{
 					AcceptEntityInput(revivemarker,"Kill");
 				}
