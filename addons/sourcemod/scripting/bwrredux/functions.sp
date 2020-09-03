@@ -961,6 +961,7 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 			
 			if( current_dist < smallest_dist && current_dist > 256.0 ) 
 			{
+				smallest_dist = current_dist;
 				iBestCell = i;
 			}
 		}
@@ -1001,6 +1002,7 @@ bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
 		
 		if( current_dist < smallest_dist && current_dist > min_dist ) 
 		{
+			smallest_dist = current_dist;
 			iBestCell = i;
 		}
 	}
