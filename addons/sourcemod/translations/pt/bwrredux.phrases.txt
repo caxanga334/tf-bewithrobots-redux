@@ -110,4 +110,9 @@
 		"#format"	"{1:s}"
 		"pt"	"Você deu spawn perto de {1}"
 	}
+	"Boss_Spawn"
+	{
+		"#format"	"{1:s},{2:s}"
+		"pt"	"[BOSS] Jogador {1} deu spawn como {2}."
+	}
 }

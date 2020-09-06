@@ -1,0 +1,384 @@
+// boss system
+
+// boss wave data
+enum BossState
+{
+	BossState_Unavailable = 0, // Boss is not available for the current wave
+	BossState_Available, // Boss is available for the current wave
+	BossState_InPlay, // Boss is currently in play
+	BossState_Defeated // Boss was defeated
+};
+
+BossState g_BossState; // Current Boss State
+bool g_bBossIsDefault; // Using default or wave specific settings?
+int g_BossClient; // Client index of the current boss
+int g_BossBaseHealth; // Base boss health
+int g_BossPlrHealth; // Health per player
+int g_BossMinRed; // Minimum players on RED team to allow boss spawning
+float g_BossHPRegen; // HP regen per player
+float g_BossTimer; // Timer
+float g_BossRespawnDelay; // Respawn delay for boss
+
+// boss data
+// Prefix - g_TBoss
+char g_TBossName[MAXLEN_CONFIG_STRING];
+int g_TBossWeaponIndex[MAX_ROBOTS_WEAPONS];
+int g_TBossBitsAttribs;
+float g_TBossScale;
+TFClassType g_TBossClass;
+ArrayList g_TBossWeaponClass;
+ArrayList g_TBossCharAttrib;
+ArrayList g_TBossCharAttribValue;
+ArrayList g_TBossWeapAttrib[MAX_ROBOTS_WEAPONS];
+ArrayList g_TBossWeapAttribValue[MAX_ROBOTS_WEAPONS];
+
+// Sets the robot health
+void Boss_SetHealth(int client)
+{
+	int iHealth, iPlrHealth;
+	float flHealth, flregen;
+	int iClassHealth = GetClassBaseHealth(g_TBossClass);
+	int iPlayersinRed = GetTeamClientCount(2);
+	
+	iPlrHealth = (g_BossPlrHealth * iPlayersinRed); // calculate health per player
+	iHealth = (g_BossBaseHealth + iPlrHealth); // sum base health with health per player
+	flHealth = float(iHealth - iClassHealth);
+	flregen = g_BossHPRegen * iPlayersinRed;
+	TF2Attrib_SetByName(client, "hidden maxhealth non buffed", flHealth);
+	
+	if( flregen > 0.5 )
+		TF2Attrib_SetByName(client, "health regen", g_BossHPRegen);
+	
+	SetEntProp(client, Prop_Send, "m_iHealth", iHealth);
+	SetEntProp(client, Prop_Data, "m_iHealth", iHealth);
+}
+
+void Boss_GetName(char[] name, int size)
+{
+	strcopy(name, size, g_TBossName);
+}
+
+int Boss_GetClient()
+{
+	return g_BossClient;
+}
+
+float Boss_GetScale()
+{
+	return g_TBossScale;
+}
+
+void Boss_Death()
+{
+	g_BossClient = -1;
+	g_BossState = BossState_Defeated;
+}
+
+void Boss_SetupPlayer(int client)
+{
+	RoboPlayer rp = RoboPlayer(client);
+	
+	rp.Type = Bot_Boss;
+	rp.Variant = 0;
+	rp.Attributes = g_TBossBitsAttribs;
+	rp.Class = g_TBossClass;
+	
+	g_BossClient = client;
+	g_BossState = BossState_InPlay;
+}
+
+void Boss_GiveInventory(int client)
+{
+	if( IsFakeClient(client) )
+		return;
+
+	int iWeapon;
+	char buffer[255];
+	
+	TF2Attrib_RemoveAll(client);
+	
+	// Set Player Attributes
+	if(g_TBossCharAttrib.Length > 0)
+	{
+		for(int i = 0;i < g_TBossCharAttrib.Length;i++)
+		{
+			g_TBossCharAttrib.GetString(i, buffer, sizeof(buffer));
+			TF2Attrib_SetByName(client, buffer, g_TBossCharAttribValue.Get(i));
+		}
+	}
+
+	// Spawn Weapons
+	for(int i = 0;i < MAX_ROBOTS_WEAPONS;i++)
+	{
+		g_TBossWeaponClass.GetString(i, buffer, sizeof(buffer));
+		if(strlen(buffer) > 3) // check if a weapon exists
+		{
+			iWeapon = SpawnWeapon(client, buffer, g_TBossWeaponIndex[i], 1, 6, IsWeaponWearable(buffer));
+			if(g_TBossWeapAttrib[i].Length > 0) // Does this weapon have custom attributes?
+			{
+				for(int y = 0;y < g_TBossWeapAttrib[i].Length;y++)
+				{
+					g_TBossWeapAttrib[i].GetString(y, buffer, sizeof(buffer));
+					TF2Attrib_SetByName(iWeapon, buffer, g_TBossWeapAttribValue[i].Get(y));
+				}
+			}
+		}
+	}
+}
+
+void Boss_Think()
+{
+	if( g_BossRespawnDelay < 1.0 ) { return; }
+
+	switch( g_BossState )
+	{
+		case BossState_Defeated:
+		{
+			g_BossTimer = GetEngineTime() + g_BossRespawnDelay;
+			g_BossState = BossState_Available;
+		}
+	}
+}
+
+bool Boss_CanSpawn()
+{
+	switch( g_BossState )
+	{
+		case BossState_Unavailable, BossState_InPlay, BossState_Defeated:
+		{
+			return false;
+		}
+		case BossState_Available:
+		{
+			if( GetTeamClientCount(2) >= g_BossMinRed ) // Enough players on RED;
+			{
+				if( GetEngineTime() > g_BossTimer ) // Delay check
+				{
+					if( g_bBossIsDefault )
+					{
+						if( OR_GetCurrentWave() == OR_GetMaxWave() )
+							return true;
+					}
+					else
+						return true;
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+void Boss_InitArrays()
+{
+	g_TBossWeaponClass = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
+	g_TBossCharAttrib = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
+	g_TBossCharAttribValue = new ArrayList();
+	for(int x = 0;x < MAX_ROBOTS_WEAPONS;x++)
+	{
+		g_TBossWeapAttrib[x] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
+		g_TBossWeapAttribValue[x] = new ArrayList();
+	}
+}
+
+void Boss_ClearArrays()
+{
+	g_BossClient = -1;
+
+	g_TBossWeaponClass.Clear();
+	g_TBossCharAttrib.Clear();
+	g_TBossCharAttribValue.Clear();
+	for(int x = 0;x < MAX_ROBOTS_WEAPONS;x++)
+	{
+		g_TBossWeapAttrib[x].Clear();
+		g_TBossWeapAttribValue[x].Clear();
+		g_TBossWeaponClass.PushString("");
+	}	
+}
+
+void Boss_LoadWaveConfig()
+{
+	char mapname[64], buffer[256], wavenum[16], strSelectedBoss[64];
+	char strBossProfile[256]; // Boss template file
+	char splitBossProfile[16][64];
+	int iBossCount;
+	float flDelay;
+	
+	g_BossState = BossState_Unavailable;
+	g_bBossIsDefault = false;
+	Boss_ClearArrays();
+	
+	GetCurrentMap(buffer, sizeof(buffer));
+	
+	// Some servers might use workshop
+	if( !GetMapDisplayName(buffer, mapname, sizeof(mapname)) )
+	{
+		strcopy(mapname, sizeof(mapname), buffer); // use the result from GetCurrentMap if this fails.
+	}
+
+	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/bosswaves/");
+	
+	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s.cfg", g_strConfigFile, mapname);
+	
+	if(!FileExists(g_strConfigFile))
+	{
+		return;
+	}
+	
+	KeyValues kv = new KeyValues("BossWaveConfig");
+	kv.ImportFromFile(g_strConfigFile);
+	
+	// Jump into the first subsection
+	if (!kv.GotoFirstSubKey())
+	{
+		delete kv;
+		return;
+	}
+	kv.GoBack();
+	
+
+	OR_GetMissionName(buffer, sizeof(buffer));
+	if( kv.JumpToKey(buffer, false) ) // go to mission specific settings
+	{
+		int iWave = OR_GetCurrentWave();
+		Format(wavenum, sizeof(wavenum), "wave%i", iWave);
+		if( kv.JumpToKey(wavenum, false) )
+		{
+			g_BossState = BossState_Available;
+			g_BossBaseHealth = kv.GetNum("basehealth", 5000);
+			g_BossPlrHealth = kv.GetNum("plrhealth", 7500);
+			g_BossMinRed = kv.GetNum("minred", 6);
+			flDelay = kv.GetFloat("delay", 60.0);
+			g_BossHPRegen = kv.GetFloat("health_regen", 10.0);
+			g_BossRespawnDelay = kv.GetFloat("respawn_delay", 0.0);
+			kv.GetString("bosses", strBossProfile, sizeof(strBossProfile));
+		}
+		else
+		{
+			delete kv;
+			return;
+		}
+	}
+	else if( kv.JumpToKey("default", false) )
+	{
+		g_bBossIsDefault = true;
+		g_BossState = BossState_Available;
+		g_BossBaseHealth = kv.GetNum("basehealth", 5000);
+		g_BossPlrHealth = kv.GetNum("plrhealth", 7500);
+		g_BossMinRed = kv.GetNum("minred", 6);
+		flDelay = kv.GetFloat("delay", 60.0);
+		g_BossHPRegen = kv.GetFloat("health_regen", 10.0);
+		g_BossRespawnDelay = kv.GetFloat("respawn_delay", 0.0);
+		kv.GetString("bosses", strBossProfile, sizeof(strBossProfile));		
+	}
+	
+	delete kv;
+	
+	iBossCount = ExplodeString(strBossProfile, ",", splitBossProfile, sizeof(splitBossProfile), sizeof(splitBossProfile[]));
+	g_BossTimer = GetEngineTime() + flDelay;
+	
+	strcopy(strSelectedBoss, sizeof(strSelectedBoss), splitBossProfile[GetRandomInt(0, iBossCount - 1)]);
+	Boss_LoadProfile(strSelectedBoss);
+}
+
+// Load the selected boss profile
+void Boss_LoadProfile(char[] bossfile)
+{
+	char filename[64];
+	char strBits[12][MAXLEN_CONFIG_STRING];
+	char strValidAttribs[8][MAXLEN_CONFIG_STRING] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit"};
+	int AttribValue[8] = {1,2,4,8,16,32,64,128};
+	int iNum, iBits = 0;
+	
+	Format(filename, sizeof(filename), "%s.cfg", bossfile);
+
+	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/bosses/");
+	
+	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s", g_strConfigFile, filename);
+	
+	if(!FileExists(g_strConfigFile))
+	{
+		char mission[64];
+		OR_GetMissionName(mission, sizeof(mission));
+		LogError("File for boss \"%s\" at wave %i for mission \"%s\" could not be found. ( %s )", bossfile, OR_GetCurrentWave(), mission, g_strConfigFile);
+		g_BossState = BossState_Unavailable;
+	}
+	
+	KeyValues kv = new KeyValues("BossTemplate");
+	kv.ImportFromFile(g_strConfigFile);
+	
+	// Jump into the first subsection
+	if (!kv.GotoFirstSubKey())
+	{
+		delete kv;
+		return;
+	}
+	kv.GoBack();
+	
+	char buffer[255];
+	kv.GetString("name", g_TBossName, sizeof(g_TBossName), "undefined");
+	kv.GetString("class", buffer, sizeof(buffer));
+	g_TBossClass = TF2_GetClass(buffer);
+	g_TBossScale = kv.GetFloat("scale", 1.9);
+	kv.GetString("robotattributes", buffer, sizeof(buffer));
+	
+	iNum = ExplodeString(buffer, ",", strBits, sizeof(strBits), sizeof(strBits[]));
+	for(int x = 0;x < iNum;x++)
+	{
+		for(int z = 0;z < sizeof(strValidAttribs);z++)
+		{
+			if(StrEqual(strBits[x], strValidAttribs[z], false))
+			{
+				iBits += AttribValue[z];
+				break;
+			}
+		}
+	}
+	g_TBossBitsAttribs = iBits;
+	
+	if(kv.JumpToKey("playerattributes"))
+	{
+		kv.GetSectionName(buffer, sizeof(buffer));
+		if(kv.GotoFirstSubKey(false))
+		{
+			do
+			{ // Store Player Attributes
+				kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
+				g_TBossCharAttrib.PushString(buffer); // Attribute Name
+				g_TBossCharAttribValue.Push(kv.GetFloat("")); // Attribute Value
+			} while(kv.GotoNextKey(false));
+			kv.GoBack();
+		}
+		kv.GoBack();
+	}
+	
+	char strWeaponsKey[MAX_ROBOTS_WEAPONS][] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
+	
+	for(int i = 0;i < sizeof(strWeaponsKey);i++) // Read Weapons
+	{
+		if(kv.JumpToKey(strWeaponsKey[i]))
+		{
+			kv.GetString("classname", buffer, sizeof(buffer), "");
+			g_TBossWeaponClass.SetString(i, buffer); // Store Weapon Classname
+			g_TBossWeaponIndex[i] = kv.GetNum("index"); // Store Weapon Definition Index
+			
+			if(kv.GotoFirstSubKey())
+			{
+				if(kv.GotoFirstSubKey(false)) // Read Weapon's Attributes
+				{
+					do
+					{
+						kv.GetSectionName(buffer, sizeof(buffer));
+						g_TBossWeapAttrib[i].PushString(buffer); // Store Attribute Name
+						g_TBossWeapAttribValue[i].Push(kv.GetFloat("")); // Store Attribute Value
+					} while(kv.GotoNextKey(false));
+					kv.GoBack();
+				}
+				kv.GoBack();
+			}
+			kv.GoBack();
+		}			
+	}
+	
+	delete kv;
+}

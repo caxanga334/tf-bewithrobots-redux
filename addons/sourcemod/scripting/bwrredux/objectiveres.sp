@@ -2,8 +2,8 @@
 // special thanks to Pelipoika
 
 char g_strMissionName[128];
-int iCurrentWave; // current wave
-int iMaxWave; // total wave
+int g_iCurrentWave; // current wave
+int g_iMaxWave; // total wave
 int iPopFileType; // Event popfile?
 int iAvailableClasses = 0; // which classes are available for the current wave // bit
 //bool bClasses[11]; // temporary solution
@@ -52,8 +52,8 @@ void OR_Update()
 	{
 		//PrintToServer("------------------------ Bot Data ------------------------");
 	
-		iCurrentWave = GetEntProp( iResource, Prop_Send, "m_nMannVsMachineWaveCount" );
-		iMaxWave = GetEntProp( iResource, Prop_Send, "m_nMannVsMachineMaxWaveCount" );
+		g_iCurrentWave = GetEntProp( iResource, Prop_Send, "m_nMannVsMachineWaveCount" );
+		g_iMaxWave = GetEntProp( iResource, Prop_Send, "m_nMannVsMachineMaxWaveCount" );
 		iPopFileType = GetEntProp( iResource, Prop_Send, "m_nMvMEventPopfileType" );	
 		GetEntPropString( iResource, Prop_Send, "m_iszMvMPopfileName", g_strMissionName, sizeof(g_strMissionName) );
 		
@@ -203,12 +203,12 @@ bool OR_IsHalloweenMission()
 
 int OR_GetCurrentWave()
 {
-	return iCurrentWave;
+	return g_iCurrentWave;
 }
 
 int OR_GetMaxWave()
 {
-	return iMaxWave;
+	return g_iMaxWave;
 }
 
 bool OR_IsGiantAvaiable()

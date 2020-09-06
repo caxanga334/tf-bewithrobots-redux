@@ -110,4 +110,9 @@
 		"#format"	"{1:s}"
 		"en"	"You spawned near {1}"
 	}
+	"Boss_Spawn"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"	"[BOSS] Player {1} spawned as {2}."
+	}
 }

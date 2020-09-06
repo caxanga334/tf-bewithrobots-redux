@@ -632,7 +632,6 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Scout:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1475.0);
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.7);
 				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.7);
 				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 5.0);
@@ -641,7 +640,6 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Soldier:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 3600.0);
 				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
 				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
@@ -651,7 +649,6 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Pyro:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 2825.0);
 				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.6);
 				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.6);
@@ -661,7 +658,6 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_DemoMan:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 3125.0);
 				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.5);
 				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.5);
@@ -671,7 +667,6 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Heavy:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 4700.0);
 				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.3);
 				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.3);
@@ -681,7 +676,6 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Engineer:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1775.0);
 				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
 				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
@@ -692,7 +686,6 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Medic:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 4350.0);
 				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.6);
 				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.6);
@@ -701,7 +694,6 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Sniper:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1275.0);
 				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
 				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
@@ -711,7 +703,6 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Spy:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1175.0);
 				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
 				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
 				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
@@ -746,7 +737,6 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Engineer:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 375.0);
 				TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
 				return;
 			}

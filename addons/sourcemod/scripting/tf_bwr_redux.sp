@@ -166,6 +166,7 @@ methodmap RoboPlayer
 #include "bwrredux/bot_variants.sp"
 #include "bwrredux/objectiveres.sp"
 #include "bwrredux/functions.sp"
+#include "bwrredux/boss.sp"
  
 public Plugin myinfo =
 {
@@ -293,6 +294,7 @@ public void OnPluginStart()
 	
 	RT_InitArrays();
 	Config_Init();
+	Boss_InitArrays();
 	
 	array_avclass = new ArrayList(10);
 	array_avgiants = new ArrayList(10);
@@ -399,6 +401,7 @@ public void OnMapStart()
 	PrecacheSound("vo/mvm_sentry_buster_alerts05.mp3");
 	PrecacheSound("vo/mvm_sentry_buster_alerts06.mp3");
 	PrecacheSound("vo/mvm_sentry_buster_alerts07.mp3");
+	PrecacheScriptSound("MVM.GiantHeavyEntrance");
 	g_iLaserSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
 	g_iHaloSprite = PrecacheModel("materials/sprites/halo01.vmt");
 }
@@ -408,6 +411,12 @@ public void OnClientDisconnect(client)
 	ResetRobotData(client);
 	StopRobotLoopSound(client);
 	g_bWelcomeMsg[client] = false;
+	
+	if( client == Boss_GetClient() )
+	{
+		Boss_Death();
+		LogMessage("Client \"%L\" disconnected while playing as a boss robot.", client);
+	}
 }
 
 public void OnGameFrame()
@@ -1732,6 +1741,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	CheckTeams();
 	g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
 	ResetRobotMenuCooldown();
+	Boss_LoadWaveConfig();
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
@@ -1851,6 +1861,11 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
+		if( client == Boss_GetClient() )
+		{
+			Boss_Death();
+		}
+	
 		if( TF2_GetPlayerClass(client) == TFClass_Engineer )
 		{
 			AnnounceEngineerDeath(client);
@@ -1861,7 +1876,8 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			if( GetClassCount(TFClass_Spy, TFTeam_Blue, true, false) <= 1 )
 				EmitGSToRed("Announcer.mvm_spybot_death_all");
 		}
-		SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
+		SetEntProp(client, Prop_Send, "m_bIsMiniBoss", 0);
+		SetEntProp(client, Prop_Send, "m_bUseBossHealthBar", 0);
 		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss )
 		{
 			float SndPos[3];
@@ -1893,18 +1909,25 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 			if( p_iBotVariant[client] >= 0 )
 			{
 				StripItems(client, true); // true: remove weapons
-				
-				if( p_iBotType[client] == Bot_Giant )
+
+				switch( p_iBotType[client] )
 				{
-					RT_GiveInventory(client, 1, p_iBotVariant[client]);
-				}
-				else if( p_iBotType[client] == Bot_Buster )
-				{
-					GiveBusterInventory(client);
-				}
-				else
-				{
-					RT_GiveInventory(client, 0, p_iBotVariant[client]);
+					case Bot_Boss:
+					{
+						Boss_GiveInventory(client);
+					}
+					case Bot_Giant:
+					{
+						RT_GiveInventory(client, 1, p_iBotVariant[client]);
+					}
+					case Bot_Buster:
+					{
+						GiveBusterInventory(client);
+					}
+					default:
+					{
+						RT_GiveInventory(client, 0, p_iBotVariant[client]);
+					}
 				}
 			}
 			else
@@ -2024,9 +2047,15 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 		else if( p_iBotType[client] == Bot_Boss )
 		{
-			strBotName = "Boss";
-			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 );
+			Boss_GetName(strBotName, sizeof(strBotName));
+			SetEntProp(client, Prop_Send, "m_bIsMiniBoss", 1);
+			SetEntProp(client, Prop_Send, "m_bUseBossHealthBar", 1);
+			Boss_SetHealth(client);
 			ApplyRobotLoopSound(client);
+			char plrname[MAX_NAME_LENGTH];
+			GetClientName(client, plrname, sizeof(plrname));
+			PrintToChatAll("%t", "Boss_Spawn", plrname, strBotName);
+			EmitGameSoundToAll("MVM.GiantHeavyEntrance", SOUND_FROM_PLAYER);
 		}
 		else if( p_iBotType[client] == Bot_Buster )
 		{
@@ -2056,7 +2085,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			{
 				case TFClass_Spy: // spies should always spawn on their hints
 				{
-					TF2_AddCondition(client, TFCond_Stealthed, 15.0);
+					TF2_AddCondition(client, TFCond_Stealthed, 7.0);
 					TeleportSpyRobot(client);
 					EmitGSToRed("Announcer.MVM_Spy_Alert");
 				}
@@ -2706,9 +2735,19 @@ void PickRandomRobot(int client)
 	int iSize, iRandom, iClass;
 	bool bGiants = false;
 	
-	// First, check if we can spawn a buster.
+	// First, check if we can spawn a buster or a boss robot.
 	if(GameRules_GetRoundState() == RoundState_RoundRunning)
 	{
+		// Boss
+		Boss_Think(); // Boss think function
+		
+		if( Boss_CanSpawn() )
+		{
+			Boss_SetupPlayer(client);
+			CreateTimer(0.1, Timer_SetRobotClass, client);
+			return;
+		}
+	
 		// Check cooldown, spawn conditions and permission
 		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() && CheckCommandAccess(client, "bwrr_sentrybuster", 0) )
 		{
@@ -3088,6 +3127,10 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 	{
 		switch( TFClass )
 		{
+			case TFClass_Soldier:
+			{
+				p_iBotAttrib[client] |= BotAttrib_FullCharge;
+			}
 			case TFClass_Sniper:
 			{
 				p_iBotAttrib[client] |= BotAttrib_CannotCarryBomb;
@@ -3130,6 +3173,10 @@ void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 	{
 		switch( TFClass )
 		{
+			case TFClass_Soldier:
+			{
+				p_iBotAttrib[client] |= BotAttrib_FullCharge;
+			}
 			case TFClass_Sniper:
 			{
 				p_iBotAttrib[client] |= BotAttrib_CannotCarryBomb;
@@ -3165,41 +3212,37 @@ void SetRobotScale(int client, TFClassType TFClass)
 		return;
 
 	bool bSmallMap = IsSmallMap();
+	float flScale;
 	
 	// Check if a custom scale is set in the template files
 	if( !bSmallMap && p_iBotVariant[client] >= 0 ) // not a small map
 	{
 		switch( p_iBotType[client] )
 		{
+			case Bot_Boss:
+			{
+				flScale = Boss_GetScale();
+				if( flScale > 0.3 && flScale < 2.0) // limit custom scale between 0.3 and 2.0
+				{
+					ScalePlayerModel(client, flScale);
+					return;
+				}
+			}
 			case Bot_Giant:
 			{
-				if( RT_GetScale(TFClass, p_iBotVariant[client], 1) > 0.3 && RT_GetScale(TFClass, p_iBotVariant[client], 1) < 2.0) // limit custom scale between 0.3 and 2.0
+				flScale = RT_GetScale(TFClass, p_iBotVariant[client], 1);
+				if( flScale > 0.3 && flScale < 2.0) // limit custom scale between 0.3 and 2.0
 				{
-					ScalePlayerModel(client, RT_GetScale(TFClass, p_iBotVariant[client], 1));
+					ScalePlayerModel(client, flScale);
 					return;
 				}
 			}
-			case Bot_Big:
+			case Bot_Big, Bot_Small, Bot_Normal:
 			{
-				if( RT_GetScale(TFClass, p_iBotVariant[client], 0) > 0.3 && RT_GetScale(TFClass, p_iBotVariant[client], 0) < 2.0) // limit custom scale between 0.3 and 2.0
+				flScale = RT_GetScale(TFClass, p_iBotVariant[client], 0);
+				if( flScale > 0.3 && flScale < 2.0) // limit custom scale between 0.3 and 2.0
 				{
-					ScalePlayerModel(client, RT_GetScale(TFClass, p_iBotVariant[client], 0));
-					return;
-				}
-			}
-			case Bot_Small:
-			{
-				if( RT_GetScale(TFClass, p_iBotVariant[client], 0) > 0.3 && RT_GetScale(TFClass, p_iBotVariant[client], 0) < 2.0) // limit custom scale between 0.3 and 2.0
-				{
-					ScalePlayerModel(client, RT_GetScale(TFClass, p_iBotVariant[client], 0));
-					return;
-				}
-			}
-			case Bot_Normal:
-			{
-				if( RT_GetScale(TFClass, p_iBotVariant[client], 0) > 0.3 && RT_GetScale(TFClass, p_iBotVariant[client], 0) < 2.0) // limit custom scale between 0.3 and 2.0
-				{
-					ScalePlayerModel(client, RT_GetScale(TFClass, p_iBotVariant[client], 0));
+					ScalePlayerModel(client, flScale);
 					return;
 				}
 			}
@@ -3334,7 +3377,7 @@ void SetRobotModel(int client, TFClassType TFClass)
 			Format( strModel, sizeof( strModel ), "models/bots/%s/bot_%s.mdl", strModel, strModel );
 		}
 		
-		if( OR_IsHalloweenMission() )
+		if( OR_IsHalloweenMission() && p_iBotType[client] != Bot_Buster )
 		{
 			SetVariantString( "" );
 			AcceptEntityInput( client, "SetCustomModel" );
