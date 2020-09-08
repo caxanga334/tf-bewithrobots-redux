@@ -370,7 +370,6 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 				iHealth = (g_BNHealth[templateindex][iClass] - GetClassBaseHealth(TFClass));
 				flHealth = float(iHealth);
 				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", flHealth);
-				TF2Attrib_ClearCache(client);
 				SetEntProp(client, Prop_Send, "m_iHealth", g_BNHealth[templateindex][iClass]);
 				SetEntProp(client, Prop_Data, "m_iHealth", g_BNHealth[templateindex][iClass]);
 				if(IsDebugging()) { PrintToConsole(client, "Setting Robot Health: %i (%i)", g_BNHealth[templateindex][iClass], iHealth); }
@@ -388,7 +387,6 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 				iHealth = (g_BGHealth[templateindex][iClass] - GetClassBaseHealth(TFClass));
 				flHealth = float(iHealth);
 				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", flHealth);
-				TF2Attrib_ClearCache(client);
 				SetEntProp(client, Prop_Send, "m_iHealth", g_BGHealth[templateindex][iClass]);
 				SetEntProp(client, Prop_Data, "m_iHealth", g_BGHealth[templateindex][iClass]);
 				if(IsDebugging()) { PrintToConsole(client, "Setting Robot Health: %i (%i)", g_BGHealth[templateindex][iClass], iHealth); }
@@ -453,7 +451,7 @@ void RT_GetTemplateName(char[] tpltname, int size, TFClassType TFClass, int temp
 				strcopy(buffer, sizeof(buffer), "Your Own Loadout");
 			}
 		}
-		Format(tpltname, size, "%s", buffer);
+		strcopy(tpltname, size, buffer);
 		return;
 	}
 	
@@ -479,7 +477,7 @@ void RT_GetTemplateName(char[] tpltname, int size, TFClassType TFClass, int temp
 		}
 	}
 	
-	Format(tpltname, size, "%s", buffer);
+	strcopy(tpltname, size, buffer);
 	return;
 }
 
@@ -509,7 +507,7 @@ void RT_GetDescription(char[] desc, int size, TFClassType TFClass, int templatei
 		}
 	}
 	
-	Format(desc, size, "%s", buffer);
+	strcopy(desc, size, buffer);
 }
 
 // Returns the robot attributes
@@ -914,7 +912,7 @@ void RT_LoadCfgNormal()
 {
 	char filename[32];
 	
-	Format(filename, sizeof(filename), "%s", NormalBotsFile());
+	FormatEx(filename, sizeof(filename), "%s", NormalBotsFile());
 
 	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/");
 	
@@ -1025,7 +1023,7 @@ void RT_LoadCfgGiant()
 {
 	char filename[32];
 	
-	Format(filename, sizeof(filename), "%s", GiantBotsFile());
+	FormatEx(filename, sizeof(filename), "%s", GiantBotsFile());
 
 	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/");
 	

@@ -489,7 +489,7 @@ void AddParticleToTeleporter(int entity)
 	VecOrigin[2] -= 500;
 	TeleportEntity(particle, VecOrigin, NULL_VECTOR, NULL_VECTOR);
 
-	Format(targetname, sizeof(targetname), "tele_target_%i", entity);
+	FormatEx(targetname, sizeof(targetname), "tele_target_%i", entity);
 	DispatchKeyValue(entity, "targetname", targetname);
 
 	DispatchKeyValue(particle, "targetname", "bwrr_tele_particle");

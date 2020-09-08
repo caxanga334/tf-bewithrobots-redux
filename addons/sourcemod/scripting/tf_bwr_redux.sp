@@ -16,7 +16,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "0.1.11"
+#define PLUGIN_VERSION "0.1.12"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -1249,10 +1249,10 @@ public Action Command_WaveInfo( int client, int nArgs )
 	}
 	
 	if( !strNormalBots[0] )
-		Format(strNormalBots, sizeof(strNormalBots), "%s", "None");
+		FormatEx(strNormalBots, sizeof(strNormalBots), "%s", "None");
 		
 	if( !strGiantBots[0] )
-		Format(strGiantBots, sizeof(strGiantBots), "%s", "None");
+		FormatEx(strGiantBots, sizeof(strGiantBots), "%s", "None");
 	
 	OR_GetMissionName(buffer, sizeof(buffer));
 	CReplyToCommand(client, "{cyan}Mission:{green} %s", buffer);
@@ -1633,7 +1633,7 @@ void MenuFunc_ShowVariantMenu(int client, TFClassType variantclass)
 		
 		for(int i = 0; i < RT_NumTemplates(g_bBotMenuIsGiant[client], variantclass);i++)
 		{
-			Format(variantid, sizeof(variantid), "%i", i);
+			FormatEx(variantid, sizeof(variantid), "%i", i);
 			RT_GetTemplateName(variantname, sizeof(variantname), variantclass, i, 1);
 			menu.AddItem(variantid, variantname);
 		}
@@ -1647,7 +1647,7 @@ void MenuFunc_ShowVariantMenu(int client, TFClassType variantclass)
 		
 		for(int i = 0; i < RT_NumTemplates(g_bBotMenuIsGiant[client], variantclass);i++)
 		{
-			Format(variantid, sizeof(variantid), "%i", i);
+			FormatEx(variantid, sizeof(variantid), "%i", i);
 			RT_GetTemplateName(variantname, sizeof(variantname), variantclass, i, 0);
 			menu.AddItem(variantid, variantname);
 		}
@@ -3457,7 +3457,7 @@ void SetRobotModel(int client, TFClassType TFClass)
 		}
 		else if( p_iBotType[client] == Bot_Buster )
 		{
-			Format( strModel, sizeof( strModel ), "models/bots/demo/bot_sentry_buster.mdl" );
+			FormatEx( strModel, sizeof( strModel ), "models/bots/demo/bot_sentry_buster.mdl" );
 		}
 		else
 		{

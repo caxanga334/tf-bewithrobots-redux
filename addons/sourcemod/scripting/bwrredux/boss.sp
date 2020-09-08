@@ -264,7 +264,7 @@ void Boss_LoadWaveConfig()
 	if( kv.JumpToKey(buffer, false) ) // go to mission specific settings
 	{
 		
-		Format(wavenum, sizeof(wavenum), "wave%i", iWave);
+		FormatEx(wavenum, sizeof(wavenum), "wave%i", iWave);
 		if( kv.JumpToKey(wavenum, false) )
 		{
 			g_BossState = BossState_Available;
@@ -317,7 +317,7 @@ void Boss_LoadProfile(char[] bossfile)
 	int AttribValue[8] = {1,2,4,8,16,32,64,128};
 	int iNum, iBits = 0;
 	
-	Format(filename, sizeof(filename), "%s.cfg", bossfile);
+	FormatEx(filename, sizeof(filename), "%s.cfg", bossfile);
 
 	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/bosses/");
 	
