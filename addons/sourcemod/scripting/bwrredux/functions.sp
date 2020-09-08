@@ -157,7 +157,7 @@ void TeleportSpyRobot(int client)
 			TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
 			char name[MAX_NAME_LENGTH];
 			GetClientName(target, name, sizeof(name));
-			PrintToChat(client, "%t", "Spy_Teleported", name);
+			CPrintToChat(client, "%t", "Spy_Teleported", name);
 		}
 	}
 }

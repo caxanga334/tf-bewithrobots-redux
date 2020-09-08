@@ -2,6 +2,7 @@
 #include <tf2>
 #include <tf2_stocks>
 #include <autoexecconfig>
+#include <multicolors>
 #define REQUIRE_PLUGIN
 #include <tf2attributes>
 #include <tf2_isPlayerInSpawn>
@@ -669,7 +670,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 		
 	if( !CheckCommandAccess(client, "bwrr_joinblue", 0) )
 	{
-		PrintToChat(client,"%t", "No BLU Access");
+		CPrintToChat(client,"%t", "No BLU Access");
 		return Plugin_Handled;
 	}
 		
@@ -685,8 +686,8 @@ public Action Command_JoinBLU( int client, int nArgs )
 	int iMinRed = c_iMinRedinProg.IntValue;
 	if( GameRules_GetRoundState() == RoundState_RoundRunning && GetTeamClientCount(2) < iMinRed )
 	{
-		PrintToChat(client,"%t", "Not in Prog");
-		PrintToChat(client,"%t","Num Red",iMinRed);
+		CPrintToChat(client,"%t", "Not in Prog");
+		CPrintToChat(client,"%t","Num Red",iMinRed);
 		return Plugin_Handled;
 	}
 	
@@ -694,15 +695,15 @@ public Action Command_JoinBLU( int client, int nArgs )
 	iMinRed = c_iMinRed.IntValue;
 	if( GetTeamClientCount(2) < iMinRed )
 	{
-		PrintToChat(client,"%t","Need Red");
-		PrintToChat(client,"%t","Num Red",iMinRed);
+		CPrintToChat(client,"%t","Need Red");
+		CPrintToChat(client,"%t","Num Red",iMinRed);
 		return Plugin_Handled;
 	}
 	
 	// Denied: BLU is at full capacity.
 	if( GetHumanRobotCount() >= c_iMaxBlu.IntValue )
 	{
-		PrintToChat(client, "%t", "Blu Full");
+		CPrintToChat(client, "%t", "Blu Full");
 		return Plugin_Handled;
 	}
 	
@@ -710,14 +711,14 @@ public Action Command_JoinBLU( int client, int nArgs )
 	bool bReady = view_as<bool>(GameRules_GetProp( "m_bPlayerReady", _, client));
 	if( bReady && GameRules_GetRoundState() == RoundState_BetweenRounds )
 	{
-		PrintToChat(client,"%t","Unready");
+		CPrintToChat(client,"%t","Unready");
 		return Plugin_Handled;
 	}
 	
 	// Denied: Player used an upgrade station.
 	if( g_bUpgradeStation[client] )
 	{
-		PrintToChat(client,"%t","Used Upgrade");
+		CPrintToChat(client,"%t","Used Upgrade");
 		return Plugin_Handled;
 	}
 	
@@ -976,7 +977,7 @@ public Action Command_MoveTeam( int client, int nArgs )
 		{
 			if( array_avclass.Length < 1 )
 			{
-				ReplyToCommand(client, "Wave data needs to be built. Building data...");
+				CReplyToCommand(client, "{springgreen}Wave data needs to be built. Building data...");
 				OR_Update();
 				UpdateClassArray();
 				return Plugin_Handled;
@@ -1019,7 +1020,7 @@ public Action Command_BotClass( int client, int nArgs )
 		
 	if( !TF2Spawn_IsClientInSpawn2(client) && GameRules_GetRoundState() == RoundState_RoundRunning )
 	{
-		ReplyToCommand(client, "%t", "BotClassFailMsg");
+		CReplyToCommand(client, "%t", "BotClassFailMsg");
 		return Plugin_Handled;
 	}
 
@@ -1061,9 +1062,9 @@ public Action Command_ShowPlayers( int client, int nArgs )
 		}
 	}
 	
-	ReplyToCommand(client, "%i player(s) in RED: %s", iRedCount, RedNames);
-	ReplyToCommand(client, "%i player(s) in BLU: %s", iBluCount, BluNames);
-	ReplyToCommand(client, "%i player(s) in SPEC: %s", iSpecCount, SpecNames);
+	CReplyToCommand(client, "{green}%i{cyan} player(s) in RED: {red}%s", iRedCount, RedNames);
+	CReplyToCommand(client, "{green}%i{cyan} player(s) in BLU: {blue}%s", iBluCount, BluNames);
+	CReplyToCommand(client, "{green}%i{cyan} player(s) in SPEC: {grey}%s", iSpecCount, SpecNames);
 
 	return Plugin_Handled;
 }
@@ -1254,11 +1255,11 @@ public Action Command_WaveInfo( int client, int nArgs )
 		Format(strGiantBots, sizeof(strGiantBots), "%s", "None");
 	
 	OR_GetMissionName(buffer, sizeof(buffer));
-	ReplyToCommand(client, "Mission: %s", buffer);
-	ReplyToCommand(client, "Wave %d of %d", iCW, iMW);
-	ReplyToCommand(client, "Available Robots:");
-	ReplyToCommand(client, "Normal Robots: %s", strNormalBots);
-	ReplyToCommand(client, "Giant Robots: %s", strGiantBots);
+	CReplyToCommand(client, "{cyan}Mission:{green} %s", buffer);
+	CReplyToCommand(client, "{cyan}Wave{green} %d {cyan}of{green} %d", iCW, iMW);
+	CReplyToCommand(client, "{cyan}Available Robots:");
+	CReplyToCommand(client, "{cyan}Normal Robots:{green} %s", strNormalBots);
+	CReplyToCommand(client, "{cyan}Giant Robots:{green} %s", strGiantBots);
 	
 	return Plugin_Handled;
 }
@@ -1270,7 +1271,7 @@ public Action Command_BossInfo( int client, int nArgs )
 	
 	if( GameRules_GetRoundState() != RoundState_RoundRunning )
 	{
-		ReplyToCommand(client, "No Boss data available.");
+		CReplyToCommand(client, "{red}No Boss data available.");
 		return Plugin_Handled;
 	}
 	
@@ -1295,16 +1296,16 @@ public Action Command_BossInfo( int client, int nArgs )
 	}
 	
 	Boss_GetName(bossname, sizeof(bossname));
-	ReplyToCommand(client, "Boss State: %s", state);
-	ReplyToCommand(client, "Selected Boss: %s", bossname);
+	CReplyToCommand(client, "{cyan}Boss State: {red}%s", state);
+	CReplyToCommand(client, "{cyan}Selected Boss: {green}%s", bossname);
 	if( IsValidClient(iBossPlayer) && IsPlayerAlive(iBossPlayer) )
 	{
-		ReplyToCommand(client, "Active Boss: Controller: %N || Health: %i", iBossPlayer, GetClientHealth(iBossPlayer));
+		CReplyToCommand(client, "{cyan}Active Boss: Controller: {green}%N{cyan} || Health: {green}%i", iBossPlayer, GetClientHealth(iBossPlayer));
 	}
 	
 	if( GetTeamClientCount(2) < g_BossMinRed )
 	{
-		ReplyToCommand(client, "Not enough players in RED to allow bosses to spawn.");
+		CReplyToCommand(client, "{cyan}Not enough players in {red}RED{cyan} to allow bosses to spawn.");
 	}
 	
 	if( g_BossRespawnDelay > 1.0 )
@@ -1312,7 +1313,7 @@ public Action Command_BossInfo( int client, int nArgs )
 		int iSpawnTime = RoundToNearest( g_BossTimer - GetEngineTime() );
 		if( iSpawnTime > 0 )
 		{
-			ReplyToCommand(client, "Boss will be able to spawn in %i seconds", iSpawnTime);
+			CReplyToCommand(client, "{cyan}Boss will be able to spawn in {green}%i{cyan} seconds", iSpawnTime);
 		}
 	}
 	
@@ -1448,26 +1449,26 @@ public Action Command_RobotMenu( int client, int nArgs )
 		
 	if(!IsPlayerAlive(client))
 	{
-		ReplyToCommand(client, "Only living players can use this command.");
+		CReplyToCommand(client, "{cyan}Only living players can use this command.");
 		return Plugin_Handled;
 	}
 		
 	if(TF2_GetClientTeam(client) != TFTeam_Blue)
 	{
-		ReplyToCommand(client, "%t", "CmdErrorBLUOnly");
+		CReplyToCommand(client, "%t", "CmdErrorBLUOnly");
 		return Plugin_Handled;
 	}
 		
 	if(!TF2Spawn_IsClientInSpawn(client))
 	{
-		ReplyToCommand(client, "%t", "BotClassFailMsg");
+		CReplyToCommand(client, "%t", "BotClassFailMsg");
 		return Plugin_Handled;
 	}
 
 	if( GetEngineTime() < g_flLastForceBot[client] )
 	{
 		int iWaitTime = RoundToNearest(g_flLastForceBot[client] - GetEngineTime());
-		ReplyToCommand(client, "%t", "Wait Secs to Use", iWaitTime);
+		CReplyToCommand(client, "%t", "Wait Secs to Use", iWaitTime);
 		return Plugin_Handled;
 	}
 		
@@ -1768,33 +1769,33 @@ void MenuFunc_PrintHelp(int fid, int client)
 	{
 		case 1:
 		{
-			PrintToChat(client, "%t", "Help_JoinBLU");
+			CPrintToChat(client, "%t", "Help_JoinBLU");
 		}
 		case 2:
 		{
-			PrintToChat(client, "%t", "Help_SelectRobot");
+			CPrintToChat(client, "%t", "Help_SelectRobot");
 		}
 		case 3:
 		{
 			int i = c_iBusterMinKills.IntValue;
 			int x = RoundToNearest(c_flBusterDelay.FloatValue);
-			PrintToChat(client, "%t", "Help_SentryBusterP1");
-			PrintToChat(client, "%t", "Help_SentryBusterP2", x, i);
+			CPrintToChat(client, "%t", "Help_SentryBusterP1");
+			CPrintToChat(client, "%t", "Help_SentryBusterP2", x, i);
 		}
 		case 4:
 		{
-			PrintToChat(client, "%t", "Help_Spies");
+			CPrintToChat(client, "%t", "Help_Spies");
 		}
 		case 5:
 		{
-			PrintToChat(client, "%t", "Help_EngineersP1");
-			PrintToChat(client, "%t", "Help_EngineersP2");
-			PrintToChat(client, "%t", "Help_EngineersP3");
+			CPrintToChat(client, "%t", "Help_EngineersP1");
+			CPrintToChat(client, "%t", "Help_EngineersP2");
+			CPrintToChat(client, "%t", "Help_EngineersP3");
 		}
 		case 6:
 		{
-			PrintToChat(client, "Be With Robots Redux version %s by Anonymous Player", PLUGIN_VERSION);
-			PrintToChat(client, "https://github.com/caxanga334/tf-bewithrobots-redux");
+			CPrintToChat(client, "{cyan}Be With Robots Redux version {green}%s{cyan} by {deepskyblue}Anonymous Player", PLUGIN_VERSION);
+			CPrintToChat(client, "{cyan}https://github.com/caxanga334/tf-bewithrobots-redux");
 		}
 		default:
 		{
@@ -2128,7 +2129,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				ApplyRobotLoopSound(client);
 				char plrname[MAX_NAME_LENGTH];
 				GetClientName(client, plrname, sizeof(plrname));
-				PrintToChatAll("%t", "Boss_Spawn", plrname, strBotName, Boss_ComputeHealth());
+				CPrintToChatAll("%t", "Boss_Spawn", plrname, strBotName, Boss_ComputeHealth());
 				LogAction(client, -1, "Player \"%L\" spawned as a boss robot ( %s ).", client, strBotName);
 				EmitGameSoundToAll("MVM.GiantHeavyEntrance", SOUND_FROM_PLAYER);
 			}
@@ -2150,7 +2151,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}
 		}
 
-		PrintToChat(client, "%t", "Bot Spawn", strBotName);
+		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
 		if( strlen(strBotDesc) > 3 ) { PrintToChat(client, "%s", strBotDesc); }
 		SetRobotScale(client,TFClass);
 		SetRobotModel(client,TFClass);
@@ -2389,7 +2390,7 @@ public Action Timer_BuildObject(Handle timer, any index)
 				if( CheckTeleportClamping(index, iBuilder) )
 				{
 					PrintCenterText(iBuilder, "NOT ENOUGH SPACE TO BUILD A TELEPORTER");
-					PrintToChat(iBuilder, "%t", "EngyTeleSpaceError");
+					CPrintToChat(iBuilder, "%t", "EngyTeleSpaceError");
 					SetVariantInt(9999);
 					AcceptEntityInput(index, "RemoveHealth");
 				}
@@ -2466,7 +2467,7 @@ public Action Timer_DeployBomb(Handle timer, any client)
 	
 	char strPlrName[MAX_NAME_LENGTH];
 	GetClientName(client, strPlrName, sizeof(strPlrName));
-	PrintToChatAll("%t", "Bomb Deploy", strPlrName);
+	CPrintToChatAll("%t", "Bomb Deploy", strPlrName);
 	LogAction(client, -1, "Player \"%L\" deployed the bomb.", client);
 	TriggerHatchExplosion();
 	
@@ -2601,7 +2602,7 @@ public Action Timer_ShowWelcMsg(Handle timer, any client)
 	if( !IsValidClient(client) || IsFakeClient(client) )
 		return Plugin_Stop;
 		
-	PrintToChat(client, "%t", "Welcome_Msg");
+	CPrintToChat(client, "%t", "Welcome_Msg");
 	
 	return Plugin_Stop;
 }
@@ -3643,7 +3644,7 @@ void CheckTeams()
 			if( iTarget > 0 )
 			{
 				MovePlayerToRED(iTarget);
-				PrintToChat(iTarget, "%t", "Moved Blu Full");
+				CPrintToChat(iTarget, "%t", "Moved Blu Full");
 				LogAction(iTarget, -1, "\"%L\" was moved to RED (full)", iTarget);
 			}
 		}
@@ -3663,7 +3664,7 @@ void CheckTeams()
 				if( iTarget > 0 )
 				{
 					MovePlayerToRED(iTarget);
-					PrintToChat(iTarget, "%t", "Moved Blu Balance");
+					CPrintToChat(iTarget, "%t", "Moved Blu Balance");
 					LogAction(iTarget, -1, "\"%L\" was moved to RED (auto team balance)", iTarget);
 				}
 			}

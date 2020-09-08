@@ -11,3 +11,4 @@ Use SM 1.10
 * [TF2 Is Player In Spawn?](https://forums.alliedmods.net/showthread.php?p=2196313)
 * [TF2Wearables](https://github.com/nosoop/sourcemod-tf2wearables/blob/master/addons/sourcemod/scripting/include/tf2wearables.inc)
 * [AutoExecConfig](https://github.com/Impact123/AutoExecConfig/blob/development/autoexecconfig.inc)
+* [MultiColors](https://github.com/Bara/Multi-Colors/)

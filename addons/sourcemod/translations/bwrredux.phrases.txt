@@ -2,117 +2,117 @@
 {
 	"Used Upgrade"
 	{
-		"en"	"[BWRR] You need to refund your upgrades in order to join BLU."
+		"en"	"{yellow}[BWRR]{cyan} You need to refund your upgrades in order to join BLU."
 	}
 	"Need Red"
 	{
-		"en"	"[BWRR] You can't join BLU. There aren't enough players in RED team."
+		"en"	"{yellow}[BWRR]{cyan} You can't join BLU. There aren't enough players in RED team."
 	}
 	"Not in Prog"
 	{
-		"en"	"[BWRR] You can't join BLU while the wave is in progress. There aren't enough players in RED team."
+		"en"	"{yellow}[BWRR]{cyan} You can't join BLU while the wave is in progress. There aren't enough players in RED team."
 	}
 	"Blu Full"
 	{
-		"en"	"[BWRR] You can't join BLU BLU team is full."
+		"en"	"{yellow}[BWRR]{cyan} You can't join BLU BLU team is full."
 	}
 	"Num Red"
 	{
 		"#format"	"{1:d}"
-		"en"	"There must be at least {1} players on RED."
+		"en"	"{cyan}There must be at least {yellow}{1}{cyan} players on {red}RED{cyan}."
 	}
 	"Bot Spawn"
 	{
 		"#format"	"{1:s}"
-		"en"	"[BWRR] You've spawned as {1}."
+		"en"	"{yellow}[BWRR]{cyan} You've spawned as {springgreen}{1}{cyan}."
 	}
 	"Unready"
 	{
-		"en"	"[BWRR] You cannot join BLU while ready."
+		"en"	"{yellow}[BWRR]{cyan} You cannot join BLU while ready."
 	}
 	"Moved Blu Full"
 	{
-		"en"	"[BWRR] You were moved to RED because BLU team is full."
+		"en"	"{yellow}[BWRR]{cyan} You were moved to RED because BLU team is full."
 	}
 	"Moved Blu Balance"
 	{
-		"en"	"[BWRR] You were moved to RED to balance teams."
+		"en"	"{yellow}[BWRR]{cyan} You were moved to RED to balance teams."
 	}
 	"Bomb Deploy"
 	{
 		"#format"	"{1:s}"
-		"en"	"[BWRR] {1} deployed the bomb."
+		"en"	"{yellow}[BWRR]{blue} {1} {cyan}deployed the bomb."
 	}
 	"BotClassFailMsg"
 	{
-		"en"	"This command can only be used inside spawn."
+		"en"	"{red}This command can only be used inside spawn."
 	}
 	"CmdErrorBLUOnly"
 	{
-		"en"	"This command can only be used by BLU team."
+		"en"	"{red}This command can only be used by BLU team."
 	}
 	"EngyTeleSpaceError"
 	{
-		"en"	"Not enough space to build a teleporter."
+		"en"	"{red}Not enough space to build a teleporter."
 	}
 	"No BLU Access"
 	{
-		"en"	"You don't have permission to join BLU."
+		"en"	"{red}You don't have permission to join BLU."
 	}
 	"Wait Secs to Use"
 	{
 		"#format"	"{1:d}"
-		"en"	"You must wait {1} seconds before using this command again."
+		"en"	"{cyan}You must wait {yellow}{1}{cyan} seconds before using this command again."
 	}
-	"Menu_Help"
+	"Menu_Help" // this is not a chat message, don't add color tags
 	{
 		"en"	"Help Menu"
 	}
 	"Help_JoinBLU"
 	{
-		"en"	"To join BLU, type !joinblu in chat."
+		"en"	"{cyan}To join BLU, type {yellow}!joinblu{cyan} in chat."
 	}
 	"Help_SelectRobot"
 	{
-		"en"	"To change your robot, type !robotmenu or !rm"
+		"en"	"{cyan}To change your robot, type {yellow}!robotmenu{cyan} or {yellow}!rm"
 	}
 	"Help_SentryBusterP1"
 	{
-		"en"	"Players spawns as a sentry buster automatically when a sentry gun is present and the following conditions are met."
+		"en"	"{cyan}Players spawns as a sentry buster automatically when a sentry gun is present and the following conditions are met."
 	}
 	"Help_SentryBusterP2"
 	{
 		"#format"	"{1:d},{2:d}" // delay between busters, sentry kills
-		"en"	"More than {1} seconds have passed since the last (human controlled) buster spawned. Any sentry gun on RED have {2} or more kills."
+		"en"	"{cyan}More than {yellow}{1}{cyan} seconds have passed since the last (human controlled) buster spawned. Any sentry gun on RED have {yellow}{2}{cyan} or more kills."
 	}
 	"Help_Spies"
 	{
-		"en"	"Spies are announced when they spawn and when all of them are killed. They are also teleported near a random RED player."
+		"en"	"{cyan}Spies are announced when they spawn and when all of them are killed. They are also teleported near a random RED player."
 	}
 	"Help_EngineersP1"
 	{
-		"en"	"Engineers are announced when they spawn and when they are killed. RED players will know if an engineer's teleporter is present."
+		"en"	"{cyan}Engineers are announced when they spawn and when they are killed. RED players will know if an engineer's teleporter is present."
 	}
 	"Help_EngineersP2"
 	{
-		"en"	"RED players will also receive an announcement when a teleporter is active."
+		"en"	"{cyan}RED players will also receive an announcement when a teleporter is active."
 	}
 	"Help_EngineersP3"
 	{
-		"en"	"Some engineers spawns by teleporting near the bomb current location."
+		"en"	"{cyan}Some engineers spawns by teleporting near the bomb current location."
 	}
 	"Welcome_Msg"
 	{
-		"en"	"This server is running Be With Robot Redux. Type !bwrrhelp for more information."
+		"en"	"{cyan}This server is running Be With Robot Redux. Type {yellow}!bwrrhelp{cyan} for more information."
 	}
 	"Spy_Teleported"
 	{
 		"#format"	"{1:s}"
-		"en"	"You spawned near {1}"
+		"en"	"{cyan}You spawned near {yellow}{1}"
 	}
 	"Boss_Spawn"
 	{
 		"#format"	"{1:s},{2:s},{3:d}"
-		"en"	"[BOSS] Player {1} spawned as {2} with {3} health."
+		"en"	"{red}[BOSS]{cyan} Player {yellow}{1}{cyan} spawned as {yellow}{2}{cyan} with {yellow}{3}{cyan} health."
 	}
 }
