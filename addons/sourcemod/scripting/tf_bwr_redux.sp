@@ -31,6 +31,7 @@ int p_iBotVariant[MAXPLAYERS + 1];
 int p_iBotAttrib[MAXPLAYERS + 1];
 TFClassType p_BotClass[MAXPLAYERS + 1];
 bool p_bSpawned[MAXPLAYERS + 1]; // store if a player has recently spawned.
+bool p_bInSpawn[MAXPLAYERS + 1]; // Local cache to know if a player is in spawn
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
@@ -52,9 +53,9 @@ int g_iLaserSprite;
 int g_iHaloSprite;
 
 // convars
-ConVar c_iMinRed;
+ConVar c_iMinRed; // minimum red players to join BLU
 ConVar c_iMinRedinProg; // minimum red players to join BLU while the wave is in progress.
-ConVar c_iGiantChance;
+ConVar c_iGiantChance; // change to spawn as a giant robot
 ConVar c_iGiantMinRed; // minimum red players to allow giants.
 ConVar c_iMaxBlu; // maximum blu players allowed
 ConVar c_flBluRespawnTime; // blu players respawn time
@@ -153,6 +154,11 @@ methodmap RoboPlayer
 		public get()	{ return p_bSpawned[this.index]; }
 		public set( bool value ) { p_bSpawned[this.index] = value; }
 	}
+	property bool InSpawn
+	{
+		public get() { return p_bInSpawn[this.index]; }
+		public set( bool value ) { p_bInSpawn[this.index] = value; }
+	}
 	public void MiniBoss(bool value)
 	{
 		SetEntProp( this.index, Prop_Send, "m_bIsMiniBoss", view_as<int>(value) );
@@ -250,6 +256,7 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_bwrr_players", Command_ShowPlayers, "Shows the players in each team" );
 	RegConsoleCmd( "sm_robotinfo", Command_RobotInfo, "Prints information about a specific robot" );
 	RegConsoleCmd( "sm_waveinfo", Command_WaveInfo, "Prints information about the current wave." );
+	RegConsoleCmd( "sm_bossinfo", Command_BossInfo, "Prints information about the current boss." );
 	RegConsoleCmd( "sm_robotmenu", Command_RobotMenu, "Opens the robot selection menu." );
 	RegConsoleCmd( "sm_rm", Command_RobotMenu, "Opens the robot selection menu." );
 	RegConsoleCmd( "sm_bwrrhelp", Command_BWRRHelpMenu, "Opens the Be With Robots Redux help menu." );
@@ -450,6 +457,7 @@ public void TF2Spawn_EnterSpawn(int client,int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
+		p_bInSpawn[client] = true;
 		TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
 	}	
 }
@@ -459,6 +467,7 @@ public void TF2Spawn_LeaveSpawn(int client,int entity)
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
 		TF2_RemoveCondition(client, TFCond_UberchargedHidden);
+		p_bInSpawn[client] = false;
 		
 		if( GameRules_GetRoundState() == RoundState_BetweenRounds && !p_bSpawned[client] )
 		{
@@ -499,7 +508,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
-		if( TF2Spawn_IsClientInSpawn2(client) )
+		if( p_bInSpawn[client] )
 		{
 			if( buttons & IN_ATTACK ) // block attack buttons when robot players are inside their spawn room.
 			{
@@ -1254,6 +1263,62 @@ public Action Command_WaveInfo( int client, int nArgs )
 	return Plugin_Handled;
 }
 
+public Action Command_BossInfo( int client, int nArgs )
+{
+	char state[32], bossname[64];
+	int iBossPlayer = Boss_GetClient();
+	
+	if( GameRules_GetRoundState() != RoundState_RoundRunning )
+	{
+		ReplyToCommand(client, "No Boss data available.");
+		return Plugin_Handled;
+	}
+	
+	switch( g_BossState )
+	{
+		case BossState_Unavailable:
+		{
+			strcopy(state, sizeof(state), "Unavailable");
+		}
+		case BossState_Available:
+		{
+			strcopy(state, sizeof(state), "Available");
+		}
+		case BossState_InPlay:
+		{
+			strcopy(state, sizeof(state), "Active");
+		}
+		case BossState_Defeated:
+		{
+			strcopy(state, sizeof(state), "Defeated");
+		}
+	}
+	
+	Boss_GetName(bossname, sizeof(bossname));
+	ReplyToCommand(client, "Boss State: %s", state);
+	ReplyToCommand(client, "Selected Boss: %s", bossname);
+	if( IsValidClient(iBossPlayer) && IsPlayerAlive(iBossPlayer) )
+	{
+		ReplyToCommand(client, "Active Boss: Controller: %N || Health: %i", iBossPlayer, GetClientHealth(iBossPlayer));
+	}
+	
+	if( GetTeamClientCount(2) < g_BossMinRed )
+	{
+		ReplyToCommand(client, "Not enough players in RED to allow bosses to spawn.");
+	}
+	
+	if( g_BossRespawnDelay > 1.0 )
+	{
+		int iSpawnTime = RoundToNearest( g_BossTimer - GetEngineTime() );
+		if( iSpawnTime > 0 )
+		{
+			ReplyToCommand(client, "Boss will be able to spawn in %i seconds", iSpawnTime);
+		}
+	}
+	
+	return Plugin_Handled;
+}
+
 /****************************************************
 					LISTENER
 *****************************************************/
@@ -1560,7 +1625,11 @@ void MenuFunc_ShowVariantMenu(int client, TFClassType variantclass)
 	
 	if(g_bBotMenuIsGiant[client]) // client selected a giant robot
 	{
-		menu.AddItem("-1", "Own Loadout");
+		if( CheckCommandAccess(client, "bwrr_ownloadout", 0) )
+		{
+			menu.AddItem("-1", "Own Loadout");
+		}
+		
 		for(int i = 0; i < RT_NumTemplates(g_bBotMenuIsGiant[client], variantclass);i++)
 		{
 			Format(variantid, sizeof(variantid), "%i", i);
@@ -1570,7 +1639,11 @@ void MenuFunc_ShowVariantMenu(int client, TFClassType variantclass)
 	}
 	else
 	{
-		menu.AddItem("-1", "Own Loadout");
+		if( CheckCommandAccess(client, "bwrr_ownloadout", 0) )
+		{
+			menu.AddItem("-1", "Own Loadout");
+		}
+		
 		for(int i = 0; i < RT_NumTemplates(g_bBotMenuIsGiant[client], variantclass);i++)
 		{
 			Format(variantid, sizeof(variantid), "%i", i);
@@ -2036,43 +2109,47 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 		}
 		
-		// prints the robot variant name to the player.
-		if( p_iBotType[client] == Bot_Giant )
+		switch( p_iBotType[client] )
 		{
-			RT_GetTemplateName(strBotName, sizeof(strBotName), TFClass, p_iBotVariant[client], 1);
-			RT_GetDescription(strBotDesc, sizeof(strBotDesc), TFClass, p_iBotVariant[client], 1);
-			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 ); // has nothing to do with variant name but same condition
-			ApplyRobotLoopSound(client);
-			RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 1);
+			case Bot_Giant:
+			{
+				RT_GetTemplateName(strBotName, sizeof(strBotName), TFClass, p_iBotVariant[client], 1);
+				RT_GetDescription(strBotDesc, sizeof(strBotDesc), TFClass, p_iBotVariant[client], 1);
+				SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 ); // has nothing to do with variant name but same condition
+				ApplyRobotLoopSound(client);
+				RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 1);				
+			}
+			case Bot_Boss:
+			{
+				Boss_GetName(strBotName, sizeof(strBotName));
+				SetEntProp(client, Prop_Send, "m_bIsMiniBoss", 1);
+				SetEntProp(client, Prop_Send, "m_bUseBossHealthBar", 1);
+				Boss_SetHealth(client);
+				ApplyRobotLoopSound(client);
+				char plrname[MAX_NAME_LENGTH];
+				GetClientName(client, plrname, sizeof(plrname));
+				PrintToChatAll("%t", "Boss_Spawn", plrname, strBotName, Boss_ComputeHealth());
+				LogAction(client, -1, "Player \"%L\" spawned as a boss robot ( %s ).", client, strBotName);
+				EmitGameSoundToAll("MVM.GiantHeavyEntrance", SOUND_FROM_PLAYER);
+			}
+			case Bot_Buster:
+			{
+				strBotName = "Sentry Buster";
+				SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 );
+				EmitGSToRed("Announcer.MVM_Sentry_Buster_Alert");
+				ApplyRobotLoopSound(client);
+				SetEntProp(client, Prop_Send, "m_iHealth", 2500);
+				SetEntProp(client, Prop_Data, "m_iHealth", 2500);
+			}
+			default:
+			{
+				RT_GetTemplateName(strBotName, sizeof(strBotName), TFClass, p_iBotVariant[client], 0);
+				RT_GetDescription(strBotDesc, sizeof(strBotDesc), TFClass, p_iBotVariant[client], 1);
+				StopRobotLoopSound(client);
+				RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 0);
+			}
 		}
-		else if( p_iBotType[client] == Bot_Boss )
-		{
-			Boss_GetName(strBotName, sizeof(strBotName));
-			SetEntProp(client, Prop_Send, "m_bIsMiniBoss", 1);
-			SetEntProp(client, Prop_Send, "m_bUseBossHealthBar", 1);
-			Boss_SetHealth(client);
-			ApplyRobotLoopSound(client);
-			char plrname[MAX_NAME_LENGTH];
-			GetClientName(client, plrname, sizeof(plrname));
-			PrintToChatAll("%t", "Boss_Spawn", plrname, strBotName);
-			EmitGameSoundToAll("MVM.GiantHeavyEntrance", SOUND_FROM_PLAYER);
-		}
-		else if( p_iBotType[client] == Bot_Buster )
-		{
-			strBotName = "Sentry Buster";
-			SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 );
-			EmitGSToRed("Announcer.MVM_Sentry_Buster_Alert");
-			ApplyRobotLoopSound(client);
-			SetEntProp(client, Prop_Send, "m_iHealth", 2500);
-			SetEntProp(client, Prop_Data, "m_iHealth", 2500);
-		}
-		else
-		{
-			RT_GetTemplateName(strBotName, sizeof(strBotName), TFClass, p_iBotVariant[client], 0);
-			RT_GetDescription(strBotDesc, sizeof(strBotDesc), TFClass, p_iBotVariant[client], 1);
-			StopRobotLoopSound(client);
-			RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 0);
-		}
+
 		PrintToChat(client, "%t", "Bot Spawn", strBotName);
 		if( strlen(strBotDesc) > 3 ) { PrintToChat(client, "%s", strBotDesc); }
 		SetRobotScale(client,TFClass);
@@ -2741,7 +2818,7 @@ void PickRandomRobot(int client)
 		// Boss
 		Boss_Think(); // Boss think function
 		
-		if( Boss_CanSpawn() )
+		if( CheckCommandAccess(client, "bwrr_boss", 0) && Boss_CanSpawn() )
 		{
 			Boss_SetupPlayer(client);
 			CreateTimer(0.1, Timer_SetRobotClass, client);
@@ -2836,7 +2913,11 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 	if( IsFakeClient(client) )
 		return;
 
-	//TF2_SetPlayerClass(client, TFClass);
+	int iRandomMin = 0;
+	
+	if( CheckCommandAccess(client, "bwrr_ownloadout", 0) )
+		iRandomMin = -1;
+	
 	CreateTimer(0.1, Timer_SetRobotClass, client);
 	if( bGiants )
 	{
@@ -2846,47 +2927,47 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		{
 			case TFClass_Scout:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Scout;
 			}
 			case TFClass_Soldier:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Soldier;
 			}
 			case TFClass_Pyro:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Pyro;
 			}
 			case TFClass_DemoMan:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_DemoMan;
 			}
 			case TFClass_Heavy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Heavy;
 			}
 			case TFClass_Engineer:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Engineer;
 			}
 			case TFClass_Medic:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Medic;
 			}
 			case TFClass_Sniper:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Sniper;
 			}
 			case TFClass_Spy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Spy;
 			}
 		}
@@ -2900,47 +2981,47 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		{
 			case TFClass_Scout:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Scout;
 			}
 			case TFClass_Soldier:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Soldier;
 			}
 			case TFClass_Pyro:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Pyro;
 			}
 			case TFClass_DemoMan:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_DemoMan;
 			}
 			case TFClass_Heavy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Heavy;
 			}
 			case TFClass_Engineer:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Engineer;
 			}
 			case TFClass_Medic:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Medic;
 			}
 			case TFClass_Sniper:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Sniper;
 			}
 			case TFClass_Spy:
 			{
-				p_iBotVariant[client] = GetRandomInt(-1, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Spy;
 			}
 		}
@@ -3123,6 +3204,8 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 // Set attributes on the robots.
 void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
+	p_iBotAttrib[client] = 0;
+	
 	if(iVariant < 0)
 	{
 		switch( TFClass )
@@ -3169,6 +3252,8 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 
 void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
+	p_iBotAttrib[client] = 0;
+
 	if(iVariant < 0)
 	{
 		switch( TFClass )
@@ -3331,6 +3416,7 @@ void ResetRobotData(int client, bool bStrip = false)
 	p_iBotAttrib[client] = 0;
 	p_BotClass[client] = TFClass_Unknown;
 	p_bSpawned[client] = false;
+	p_bInSpawn[client] = false;
 	g_bIsCarrier[client] = false;
 	g_bUpgradeStation[client] = false;
 	g_flLastForceBot[client] = GetEngineTime();

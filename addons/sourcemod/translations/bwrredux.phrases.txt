@@ -112,7 +112,7 @@
 	}
 	"Boss_Spawn"
 	{
-		"#format"	"{1:s},{2:s}"
-		"en"	"[BOSS] Player {1} spawned as {2}."
+		"#format"	"{1:s},{2:s},{3:d}"
+		"en"	"[BOSS] Player {1} spawned as {2} with {3} health."
 	}
 }

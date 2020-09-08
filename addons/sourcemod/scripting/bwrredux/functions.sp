@@ -142,12 +142,18 @@ void TeleportSpyRobot(int client)
 	if(!IsValidClient(target))
 	{
 		if( GetSpyTeleportFromConfig(TargetPos) )
+		{
+			p_bInSpawn[client] = false;
+			TF2_RemoveCondition(client, TFCond_UberchargedHidden);
 			TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
+		}
 	}
 	else
 	{
 		if( GetSpyTeleportFromConfig(TargetPos, target) )
 		{
+			p_bInSpawn[client] = false;
+			TF2_RemoveCondition(client, TFCond_UberchargedHidden);
 			TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
 			char name[MAX_NAME_LENGTH];
 			GetClientName(target, name, sizeof(name));
@@ -235,6 +241,8 @@ void TeleportEngineerToPosition(float origin[3], int client, float OffsetVec[3] 
 {
 	float FinalVec[3];
 	
+	p_bInSpawn[client] = false;
+	TF2_RemoveCondition(client, TFCond_UberchargedHidden);
 	AddVectors(origin, OffsetVec, FinalVec);
 	TeleportEntity(client, FinalVec, NULL_VECTOR, NULL_VECTOR);
 	CreateTEParticle("teleported_blue",FinalVec, _, _,3.0,-1,-1,-1);

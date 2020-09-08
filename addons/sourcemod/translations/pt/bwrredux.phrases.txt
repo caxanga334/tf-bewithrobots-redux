@@ -112,7 +112,7 @@
 	}
 	"Boss_Spawn"
 	{
-		"#format"	"{1:s},{2:s}"
-		"pt"	"[BOSS] Jogador {1} deu spawn como {2}."
+		"#format"	"{1:s},{2:s},{3:d}"
+		"pt"	"[BOSS] Jogador {1} deu spawn como {2} com {3} de vida."
 	}
 }

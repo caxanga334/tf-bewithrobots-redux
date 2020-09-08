@@ -6,16 +6,15 @@ enum BossState
 	BossState_Unavailable = 0, // Boss is not available for the current wave
 	BossState_Available, // Boss is available for the current wave
 	BossState_InPlay, // Boss is currently in play
-	BossState_Defeated // Boss was defeated
+	BossState_Defeated, // Boss was defeated
 };
 
 BossState g_BossState; // Current Boss State
-bool g_bBossIsDefault; // Using default or wave specific settings?
+char g_strBossList[512]; // List of bosses to use
 int g_BossClient; // Client index of the current boss
-int g_BossBaseHealth; // Base boss health
-int g_BossPlrHealth; // Health per player
+int g_BossHealthCap; // Base boss health
 int g_BossMinRed; // Minimum players on RED team to allow boss spawning
-float g_BossHPRegen; // HP regen per player
+int g_BossHPCapMinRed; // Minimum players on RED to bypass health cap
 float g_BossTimer; // Timer
 float g_BossRespawnDelay; // Respawn delay for boss
 
@@ -24,7 +23,10 @@ float g_BossRespawnDelay; // Respawn delay for boss
 char g_TBossName[MAXLEN_CONFIG_STRING];
 int g_TBossWeaponIndex[MAX_ROBOTS_WEAPONS];
 int g_TBossBitsAttribs;
+int g_TBossBaseHealth;
+int g_TBossPlrHealth;
 float g_TBossScale;
+float g_TBossHPRegen; // HP regen per player
 TFClassType g_TBossClass;
 ArrayList g_TBossWeaponClass;
 ArrayList g_TBossCharAttrib;
@@ -32,22 +34,36 @@ ArrayList g_TBossCharAttribValue;
 ArrayList g_TBossWeapAttrib[MAX_ROBOTS_WEAPONS];
 ArrayList g_TBossWeapAttribValue[MAX_ROBOTS_WEAPONS];
 
+int Boss_ComputeHealth()
+{
+	int iInRed = GetTeamClientCount(2);
+	int iHealth = g_TBossBaseHealth + (g_TBossPlrHealth * iInRed);
+	
+	if( iInRed < g_BossHPCapMinRed ) // Not enough players in RED to bypass health cap
+	{
+		if( iHealth > g_BossHealthCap ) // Check if the boss health is greater than the cap
+		{
+			iHealth = g_BossHealthCap;
+		}
+	}
+	
+	return iHealth;
+}
+
 // Sets the robot health
 void Boss_SetHealth(int client)
 {
-	int iHealth, iPlrHealth;
+	int iHealth = Boss_ComputeHealth();
 	float flHealth, flregen;
 	int iClassHealth = GetClassBaseHealth(g_TBossClass);
-	int iPlayersinRed = GetTeamClientCount(2);
 	
-	iPlrHealth = (g_BossPlrHealth * iPlayersinRed); // calculate health per player
-	iHealth = (g_BossBaseHealth + iPlrHealth); // sum base health with health per player
+	
 	flHealth = float(iHealth - iClassHealth);
-	flregen = g_BossHPRegen * iPlayersinRed;
+	flregen = g_TBossHPRegen * GetTeamClientCount(2);
 	TF2Attrib_SetByName(client, "hidden maxhealth non buffed", flHealth);
 	
 	if( flregen > 0.5 )
-		TF2Attrib_SetByName(client, "health regen", g_BossHPRegen);
+		TF2Attrib_SetByName(client, "health regen", flregen);
 	
 	SetEntProp(client, Prop_Send, "m_iHealth", iHealth);
 	SetEntProp(client, Prop_Data, "m_iHealth", iHealth);
@@ -134,7 +150,7 @@ void Boss_Think()
 	{
 		case BossState_Defeated:
 		{
-			g_BossTimer = GetEngineTime() + g_BossRespawnDelay;
+			Boss_SelectRandom(g_BossRespawnDelay);
 			g_BossState = BossState_Available;
 		}
 	}
@@ -154,19 +170,26 @@ bool Boss_CanSpawn()
 			{
 				if( GetEngineTime() > g_BossTimer ) // Delay check
 				{
-					if( g_bBossIsDefault )
-					{
-						if( OR_GetCurrentWave() == OR_GetMaxWave() )
-							return true;
-					}
-					else
-						return true;
+					return true;
 				}
 			}
 		}
 	}
 	
 	return false;
+}
+
+void Boss_SelectRandom(float flDelay = 0.0)
+{
+	char strSelectedBoss[64];
+	char splitBossProfile[32][64];
+	int iBossCount;
+	
+	iBossCount = ExplodeString(g_strBossList, ",", splitBossProfile, sizeof(splitBossProfile), sizeof(splitBossProfile[]));
+	g_BossTimer = GetEngineTime() + flDelay;
+	
+	strcopy(strSelectedBoss, sizeof(strSelectedBoss), splitBossProfile[GetRandomInt(0, iBossCount - 1)]);
+	Boss_LoadProfile(strSelectedBoss);
 }
 
 void Boss_InitArrays()
@@ -198,14 +221,11 @@ void Boss_ClearArrays()
 
 void Boss_LoadWaveConfig()
 {
-	char mapname[64], buffer[256], wavenum[16], strSelectedBoss[64];
-	char strBossProfile[256]; // Boss template file
-	char splitBossProfile[16][64];
-	int iBossCount;
+	char mapname[64], buffer[256], wavenum[16];
 	float flDelay;
+	bool bDebug = IsDebugging();
 	
 	g_BossState = BossState_Unavailable;
-	g_bBossIsDefault = false;
 	Boss_ClearArrays();
 	
 	GetCurrentMap(buffer, sizeof(buffer));
@@ -222,6 +242,7 @@ void Boss_LoadWaveConfig()
 	
 	if(!FileExists(g_strConfigFile))
 	{
+		if( bDebug ) { LogMessage("Boss Wave Config file not found for map %s ( %s )", mapname, g_strConfigFile); }
 		return;
 	}
 	
@@ -236,22 +257,44 @@ void Boss_LoadWaveConfig()
 	}
 	kv.GoBack();
 	
+	int iWave = OR_GetCurrentWave();
+	int iWaveMax = OR_GetMaxWave();
 
 	OR_GetMissionName(buffer, sizeof(buffer));
 	if( kv.JumpToKey(buffer, false) ) // go to mission specific settings
 	{
-		int iWave = OR_GetCurrentWave();
+		
 		Format(wavenum, sizeof(wavenum), "wave%i", iWave);
 		if( kv.JumpToKey(wavenum, false) )
 		{
 			g_BossState = BossState_Available;
-			g_BossBaseHealth = kv.GetNum("basehealth", 5000);
-			g_BossPlrHealth = kv.GetNum("plrhealth", 7500);
-			g_BossMinRed = kv.GetNum("minred", 6);
+			g_BossHealthCap = kv.GetNum("health_cap", 25000);
+			g_BossHPCapMinRed = kv.GetNum("minred_nocap", 6);
+			g_BossMinRed = kv.GetNum("minred", 4);
 			flDelay = kv.GetFloat("delay", 60.0);
-			g_BossHPRegen = kv.GetFloat("health_regen", 10.0);
 			g_BossRespawnDelay = kv.GetFloat("respawn_delay", 0.0);
-			kv.GetString("bosses", strBossProfile, sizeof(strBossProfile));
+			kv.GetString("bosses", g_strBossList, sizeof(g_strBossList));
+			if( bDebug ) { LogMessage("Found config for wave %i. Mission: %s", iWave, buffer); }
+		}
+		else
+		{
+			if( bDebug ) { LogMessage("Couldn't find config for wave %i. Mission: %s", iWave, buffer); }
+			delete kv;
+			return;
+		}
+	}
+	else if( kv.JumpToKey("default", false) )
+	{
+		if( iWave == iWaveMax ) // If using 'default', only enable bosses on the last wave
+		{
+			g_BossState = BossState_Available;
+			g_BossHealthCap = kv.GetNum("health_cap", 25000);
+			g_BossHPCapMinRed = kv.GetNum("minred_nocap", 6);
+			g_BossMinRed = kv.GetNum("minred", 4);
+			flDelay = kv.GetFloat("delay", 60.0);
+			g_BossRespawnDelay = kv.GetFloat("respawn_delay", 0.0);
+			kv.GetString("bosses", g_strBossList, sizeof(g_strBossList));
+			if( bDebug ) { LogMessage("Using default config. Wave: %i Mission: %s", iWave, buffer); }
 		}
 		else
 		{
@@ -259,26 +302,10 @@ void Boss_LoadWaveConfig()
 			return;
 		}
 	}
-	else if( kv.JumpToKey("default", false) )
-	{
-		g_bBossIsDefault = true;
-		g_BossState = BossState_Available;
-		g_BossBaseHealth = kv.GetNum("basehealth", 5000);
-		g_BossPlrHealth = kv.GetNum("plrhealth", 7500);
-		g_BossMinRed = kv.GetNum("minred", 6);
-		flDelay = kv.GetFloat("delay", 60.0);
-		g_BossHPRegen = kv.GetFloat("health_regen", 10.0);
-		g_BossRespawnDelay = kv.GetFloat("respawn_delay", 0.0);
-		kv.GetString("bosses", strBossProfile, sizeof(strBossProfile));		
-	}
 	
 	delete kv;
 	
-	iBossCount = ExplodeString(strBossProfile, ",", splitBossProfile, sizeof(splitBossProfile), sizeof(splitBossProfile[]));
-	g_BossTimer = GetEngineTime() + flDelay;
-	
-	strcopy(strSelectedBoss, sizeof(strSelectedBoss), splitBossProfile[GetRandomInt(0, iBossCount - 1)]);
-	Boss_LoadProfile(strSelectedBoss);
+	Boss_SelectRandom(flDelay);
 }
 
 // Load the selected boss profile
@@ -318,6 +345,9 @@ void Boss_LoadProfile(char[] bossfile)
 	char buffer[255];
 	kv.GetString("name", g_TBossName, sizeof(g_TBossName), "undefined");
 	kv.GetString("class", buffer, sizeof(buffer));
+	g_TBossBaseHealth = kv.GetNum("health_base", 3000);
+	g_TBossPlrHealth = kv.GetNum("health_player", 3500);
+	g_TBossHPRegen = kv.GetFloat("health_regen", 10.0);
 	g_TBossClass = TF2_GetClass(buffer);
 	g_TBossScale = kv.GetFloat("scale", 1.9);
 	kv.GetString("robotattributes", buffer, sizeof(buffer));
