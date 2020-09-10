@@ -514,8 +514,13 @@ bool CheckTeleportClamping(int teleporter, int client)
 {
 	float VecTeleporter[3], RayEndPos[3];
 	// Array of angles to check, remember to change array size when adding/removing angles
-	float RayAngles[13][3] = { {270.0,0.0,0.0}, {225.0,0.0,0.0}, {225.0,90.0,0.0}, {225.0,180.0,0.0}, {225.0,270.0,0.0}, {0.0,0.0,0.0}, {0.0,90.0,0.0}, {0.0,180.0,0.0}, {0.0,270.0,0.0}, 
+	//								straigh up 1		angled roof 																		// floor6		7					8
+	static float RayAngles[13][3] = { {270.0,0.0,0.0}, {225.0,0.0,0.0}, {225.0,90.0,0.0}, {225.0,180.0,0.0}, {225.0,270.0,0.0}, {0.0,0.0,0.0}, {0.0,90.0,0.0}, {0.0,180.0,0.0}, {0.0,270.0,0.0}, 
 	{0.0,45.0,0.0}, {0.0,135.0,0.0}, {0.0,225.0,0.0}, {0.0,315.0,0.0},};
+	// the minimum distances is not the same for each angle
+	//										1 								5										10		
+	static float flMinDists_Normal[13] = { 185.0 ,110.0 ,110.0 ,110.0 ,110.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0};
+	static float flMinDists_Small[13] = { 120.0 ,80.0 ,80.0 ,80.0 ,80.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0};
 	float fldistance;
 	GetEntPropVector(teleporter, Prop_Send, "m_vecOrigin", VecTeleporter);
 	VecTeleporter[2] += 5;
@@ -532,7 +537,7 @@ bool CheckTeleportClamping(int teleporter, int client)
 			fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
 			if( bSmallMap ) // Small map mode?
 			{
-				if(fldistance < 120)
+				if(fldistance < flMinDists_Small[i])
 				{
 					TE_SetupBeamPoints(VecTeleporter, RayEndPos, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0); // show a red beam to help with teleporter placement
 					TE_SendToClient(client, 0.1);
@@ -542,7 +547,7 @@ bool CheckTeleportClamping(int teleporter, int client)
 			}
 			else
 			{
-				if(fldistance < 185)
+				if(fldistance < flMinDists_Normal[i])
 				{
 					TE_SetupBeamPoints(VecTeleporter, RayEndPos, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0); // show a red beam to help with teleporter placement
 					TE_SendToClient(client, 0.1);
@@ -1079,4 +1084,53 @@ void Config_LoadMap()
 	g_iSplitSize[1] = ExplodeString(g_strGiantSpawns, ",", g_strGiantSplit, sizeof(g_strGiantSplit), sizeof(g_strGiantSplit[]));
 	g_iSplitSize[2] = ExplodeString(g_strSniperSpawns, ",", g_strSniperSplit, sizeof(g_strSniperSplit), sizeof(g_strSniperSplit[]));
 	g_iSplitSize[3] = ExplodeString(g_strSpySpawns, ",", g_strSpySplit, sizeof(g_strSpySplit), sizeof(g_strSpySplit[]));
+}
+
+// searches for red sentry guns
+// also checks for kill num
+bool ShouldDispatchSentryBuster()
+{
+	int i = -1;
+	int iKills;
+	while ((i = FindEntityByClassname(i, "obj_sentrygun")) != -1)
+	{
+		if( IsValidEntity(i) )
+		{
+			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Red) )
+			{
+				iKills = GetEntProp(i, Prop_Send, "SentrygunLocalData", _, 0);
+				if( iKills >= c_iBusterMinKills.IntValue ) // found threat
+					return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
+// gives wallhacks to sentry busters
+void BusterWallhack(int client)
+{
+	int i = -1;
+	int iKills;
+	float origin[3];
+	float start[3];
+	GetClientEyePosition(client, start);
+	
+	while ((i = FindEntityByClassname(i, "obj_sentrygun")) != -1)
+	{
+		if( IsValidEntity(i) )
+		{
+			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Red) )
+			{
+				iKills = GetEntProp(i, Prop_Send, "SentrygunLocalData", _, 0);
+				if( iKills >= c_iBusterMinKills.IntValue ) // found threat
+				{
+					GetEntPropVector( i, Prop_Data, "m_vecOrigin", origin );
+					TE_SetupBeamPoints(start, origin, g_iLaserSprite, g_iHaloSprite, 0, 0, 0.5, 1.0, 1.0, 1, 1.0, {0, 0, 255, 255}, 0);
+					TE_SendToClient(client, 0.0);
+				}
+			}
+		}
+	}	
 }

@@ -238,7 +238,10 @@ int SpawnWeapon(int client,char[] name,int index,int level,int qual,bool bWearab
 		}
 		else
 			EquipPlayerWeapon( client, entity );
+			
+		SetEntProp(entity, Prop_Send, "m_bValidatedAttachedEntity", 1);
 	}
+	
 	return entity;
 }
 
@@ -777,6 +780,8 @@ void GiveBusterInventory(int client)
 {
 	if( IsFakeClient(client) )
 		return;
+
+	TF2Attrib_RemoveAll(client); // remove atributes on the client
 
 	int iWeapon = -1;
 	iWeapon = SpawnWeapon( client, "tf_weapon_stickbomb", 307, 1, 6, false );

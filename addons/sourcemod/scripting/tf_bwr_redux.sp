@@ -49,6 +49,8 @@ float g_flLastForceBot[MAXPLAYERS + 1]; // Last time a player forced a bot
 bool g_bBotMenuIsGiant[MAXPLAYERS + 1];
 TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1];
 bool g_bWelcomeMsg[MAXPLAYERS + 1]; // Did we show the welcome message?
+int g_iBusterIndex; // Index of a sentry buster player
+float g_flBusterVisionTimer; // timer for buster wallhack
 
 int g_iLaserSprite;
 int g_iHaloSprite;
@@ -412,6 +414,7 @@ public void OnMapStart()
 	PrecacheScriptSound("MVM.GiantHeavyEntrance");
 	g_iLaserSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
 	g_iHaloSprite = PrecacheModel("materials/sprites/halo01.vmt");
+	g_flBusterVisionTimer = 0.0;
 }
 
 public void OnClientDisconnect(client)
@@ -425,6 +428,9 @@ public void OnClientDisconnect(client)
 		Boss_Death();
 		LogMessage("Client \"%L\" disconnected while playing as a boss robot.", client);
 	}
+	
+	if( client == g_iBusterIndex )
+		g_iBusterIndex = -1;
 }
 
 public void OnGameFrame()
@@ -536,6 +542,12 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		
 		if( p_iBotType[client] == Bot_Buster )
 		{
+			if( g_flBusterVisionTimer < GetEngineTime() )
+			{
+				g_flBusterVisionTimer = GetEngineTime() + 0.5;
+				BusterWallhack(client);
+			}
+		
 			if( buttons & IN_ATTACK ) // Allows sentry busters to detonate by pressing M1
 			{
 				if( !(TF2_IsPlayerInCondition(client, TFCond_Taunting)) )
@@ -1939,6 +1951,9 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		{
 			Boss_Death();
 		}
+		
+		if( client == g_iBusterIndex )
+			g_iBusterIndex = -1;
 	
 		if( TF2_GetPlayerClass(client) == TFClass_Engineer )
 		{
@@ -2834,6 +2849,7 @@ void PickRandomRobot(int client)
 			p_iBotType[client] = Bot_Buster;
 			p_iBotAttrib[client] = BotAttrib_CannotCarryBomb;
 			g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
+			g_iBusterIndex = client;
 			CreateTimer(0.1, Timer_SetRobotClass, client);
 			return;
 		}
@@ -3587,28 +3603,6 @@ int FindRandomSpawnPoint( SpawnType iType )
 	}
 		
 	return -1;
-}
-
-// searches for red sentry guns
-// also checks for kill num
-bool ShouldDispatchSentryBuster()
-{
-	int i = -1;
-	int iKills;
-	while ((i = FindEntityByClassname(i, "obj_sentrygun")) != -1)
-	{
-		if( IsValidEntity(i) )
-		{
-			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Red) )
-			{
-				iKills = GetEntProp(i, Prop_Send, "SentrygunLocalData", _, 0);
-				if( iKills >= c_iBusterMinKills.IntValue ) // found threat
-					return true;
-			}
-		}
-	}
-	
-	return false;
 }
 
 // add plugin tag to sv_tags
