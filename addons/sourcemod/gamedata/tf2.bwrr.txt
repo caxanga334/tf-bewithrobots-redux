@@ -1,0 +1,22 @@
+"Games"
+{
+	/* Team Fortress 2 */
+	"tf"
+	{
+		"Signatures"
+		{
+			"CTFPlayer::PlaySpecificSequence"	//"primary_deploybomb"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x30\x53\x56\x8B\x75\x08\x57\x56\x8B\xF9\xE8\x2A\x2A\x2A\x2A\x8B\xD8\x83\xFB\xFF\x74\x2A\x8B\x35\x2A\x2A\x2A\x2A\x8B\xCE\x8B\x16\xFF\x52\x64\x8B\x8F\xA4\x20\x00\x00\x53\x6A\x13"
+				"linux"		"@_ZN9CTFPlayer20PlaySpecificSequenceEPKc"
+			}
+			"CTFBot::GetEventChangeAttributes"	//"ChangeBotAttributes: Failed to find eve"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x33\xF6\x39\xB7\x40\x27\x00\x00"
+				"linux"		"@_ZNK6CTFBot24GetEventChangeAttributesEPKc"
+			}
+		}
+	}
+}

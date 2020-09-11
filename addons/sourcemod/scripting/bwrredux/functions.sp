@@ -1134,3 +1134,34 @@ void BusterWallhack(int client)
 		}
 	}	
 }
+
+void TF2_PlaySequence(int client, const char[] sequence)
+{
+	SDKCall(g_hSDKPlaySpecificSequence, client, sequence);
+}
+
+// code from Pelipoika's bot control
+void DisableAnim(int userid)
+{
+	static int iCount = 0;
+
+	int client = GetClientOfUserId(userid);
+	if(client > 0)
+	{
+		if(iCount > 6)
+		{		
+			SetVariantString("1");
+			AcceptEntityInput(client, "SetCustomModelRotates");
+			
+			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 0);
+			
+			iCount = 0;
+		}
+		else
+		{
+			TF2_PlaySequence(client, "primary_deploybomb");			
+			RequestFrame(DisableAnim, userid);
+			iCount++;
+		}
+	}
+}

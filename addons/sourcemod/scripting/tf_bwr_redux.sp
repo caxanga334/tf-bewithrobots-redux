@@ -13,6 +13,7 @@
 #define AUTOLOAD_EXTENSIONS
 #include <sdkhooks>
 #include <tf2items>
+#include <dhooks>
 
 #pragma semicolon 1
 
@@ -76,6 +77,10 @@ ConVar c_bLimitClasses; // Limit playable classes to the ones used in the curren
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
+
+// SDK
+Handle g_hSDKPlaySpecificSequence;
+Handle g_hGetEventChangeAttributes;
 
 enum SpawnType
 {
@@ -296,11 +301,44 @@ public void OnPluginStart()
 	HookEvent( "post_inventory_application", E_Inventory );
 	HookEvent( "player_builtobject", E_BuildObject, EventHookMode_Pre );
 	
+	// User messages
+	
 	ID_MVMResetUpgrade = GetUserMessageId("MVMResetPlayerUpgradeSpending");
 	if(ID_MVMResetUpgrade == INVALID_MESSAGE_ID)
 		LogError("Unable to hook user message.");
 		
 	HookUserMessage(ID_MVMResetUpgrade, MsgHook_MVMRespec);
+	
+	// SDK calls
+	
+	Handle hConf = LoadGameConfigFile("tf2.bwrr");
+	
+	if( hConf == null ) LogError("Failed to load gamedata file tf2.bwrr.txt");
+	
+	// bool CTFPlayer::PlaySpecificSequence( const char *pAnimationName )
+	StartPrepSDKCall(SDKCall_Player);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFPlayer::PlaySpecificSequence");
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//Sequence name
+	if ((g_hSDKPlaySpecificSequence = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CTFPlayer::PlaySpecificSequence signature!");
+	
+	//CTFBot::GetEventChangeAttributes
+	g_hGetEventChangeAttributes = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
+	if (!g_hGetEventChangeAttributes) SetFailState("[BotControl] Failed to setup detour for CTFBot::GetEventChangeAttributes");
+	
+	if (!DHookSetFromConf(g_hGetEventChangeAttributes, hConf, SDKConf_Signature, "CTFBot::GetEventChangeAttributes"))
+	{
+		SetFailState("[BotControl] Failed to load CTFBot::GetEventChangeAttributes signature from gamedata");
+	}
+	
+	// HookParamType_Unknown
+	DHookAddParam(g_hGetEventChangeAttributes, HookParamType_CharPtr);
+	
+	if (!DHookEnableDetour(g_hGetEventChangeAttributes, false, CTFBot_GetEventChangeAttributes))     SetFailState("[BotControl] Failed to detour CTFBot::GetEventChangeAttributes.");
+	if (!DHookEnableDetour(g_hGetEventChangeAttributes, true, CTFBot_GetEventChangeAttributes_Post)) SetFailState("[BotControl] Failed to detour CTFBot::GetEventChangeAttributes_Post.");
+	
+	PrintToServer("[BotControl] CTFBot::GetEventChangeAttributes detoured!");
+	
+	delete hConf;
 	
 	RT_InitArrays();
 	Config_Init();
@@ -610,6 +648,11 @@ public Action OnTouchCaptureZone(int entity, int other)
 			float CarrierPos[3];
 			GetClientAbsOrigin(other, CarrierPos);
 			TF2_AddCondition(other, TFCond_FreezeInput, 2.3);
+			TF2_PlaySequence(other, "primary_deploybomb");
+			SetEntProp(other, Prop_Send, "m_bUseClassAnimations", 0);
+			SetVariantInt(1);
+			AcceptEntityInput(other, "SetForcedTauntCam");
+			RequestFrame(DisableAnim, GetClientUserId(other));
 			if( HT_BombDeployTimer == INVALID_HANDLE )
 			{
 				HT_BombDeployTimer = CreateTimer(2.1, Timer_DeployBomb, other);
@@ -645,11 +688,45 @@ public Action OnEndTouchCaptureZone(int entity, int other)
 			{
 				CloseHandle(HT_BombDeployTimer);
 				HT_BombDeployTimer = INVALID_HANDLE;
+				SetVariantInt(0);
+				AcceptEntityInput(other, "SetForcedTauntCam");
+				SetEntProp(other, Prop_Send, "m_bUseClassAnimations", 1);
 			}
 		}
 	}
 	
 	return Plugin_Continue;
+}
+
+/****************************************************
+					DETOURS
+*****************************************************/
+
+// Crash fix for mvm_mannhattan & other gate maps. Prevents this function being called on human players.
+public MRESReturn CTFBot_GetEventChangeAttributes(int pThis, Handle hReturn, Handle hParams) 
+{
+	if( IsValidClient(pThis) && !IsFakeClient(pThis) )
+	{
+		LogMessage("CTFBot::CTFBot_GetEventChangeAttributes BLOCKED on client \"%L\"", pThis);
+		
+		DHookSetReturn(hReturn, 0);
+		return MRES_Supercede;
+	}
+
+	return MRES_Ignored; 
+}
+
+public MRESReturn CTFBot_GetEventChangeAttributes_Post(int pThis, Handle hReturn, Handle hParams)
+{
+	if( IsValidClient(pThis) && !IsFakeClient(pThis) )
+	{
+		LogMessage("CTFBot::CTFBot_GetEventChangeAttributes_Post BLOCKED on client \"%L\"", pThis);
+		
+		DHookSetReturn(hReturn, 0);
+		return MRES_Supercede;
+	}
+	
+	return MRES_Ignored;
 }
 
 /****************************************************
