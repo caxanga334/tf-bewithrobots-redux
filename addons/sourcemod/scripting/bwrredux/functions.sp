@@ -124,17 +124,14 @@ void TeleportSpyRobot(int client)
 	int target = GetRandomClientFromTeam( view_as<int>(TFTeam_Red), false);
 	int oldtarget = target;
 	
-	if( TF2Spawn_IsClientInSpawn2(target) )
+	int i = 0;
+	while( i < 20)
 	{
-		int i = 0;
-		while( i < 20)
-		{
-			target = GetRandomClientFromTeam( view_as<int>(TFTeam_Red), false);
-			if( target != oldtarget )
-				break;
-				
-			i++;
-		}
+		target = GetRandomClientFromTeam( view_as<int>(TFTeam_Red), false);
+		if( target != oldtarget )
+			break;
+			
+		i++;
 	}
 	
 	float TargetPos[3];
@@ -1149,11 +1146,29 @@ void DisableAnim(int userid)
 	if(client > 0)
 	{
 		if(iCount > 6)
-		{		
+		{
+			float vecClientPos[3], vecTargetPos[3];
+			GetClientAbsOrigin(client, vecClientPos);
+			
+			vecTargetPos = TF2_GetBombHatchPosition();
+			
+			float v[3], ang[3];
+			SubtractVectors(vecTargetPos, vecClientPos, v);
+			NormalizeVector(v, v);
+			GetVectorAngles(v, ang);
+			
+			ang[0] = 0.0;
+			
 			SetVariantString("1");
 			AcceptEntityInput(client, "SetCustomModelRotates");
 			
 			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 0);
+			
+			char strVec[16];
+			Format(strVec, sizeof(strVec), "0 %f 0", ang[1]);
+			
+			SetVariantString(strVec);
+			AcceptEntityInput(client, "SetCustomModelRotation");
 			
 			iCount = 0;
 		}
@@ -1163,5 +1178,114 @@ void DisableAnim(int userid)
 			RequestFrame(DisableAnim, userid);
 			iCount++;
 		}
+	}
+}
+
+void GetEntityWorldCenter(int entity, float[] origin)
+{
+	if( !IsValidEntity(entity) )
+	{
+		ThrowError("void GetEntityWorldCenter(int entity, float[] origin) received invalid entity!");
+	}
+	
+	SDKCall(g_hSDKWorldSpaceCenter, entity, origin);
+}
+
+float[] TF2_GetBombHatchPosition(bool update = false)
+{
+	static float origin[3];
+	
+	if( update )
+	{
+		int i = -1;
+		while ((i = FindEntityByClassname(i, "func_capturezone")) != -1)
+		{
+			GetEntityWorldCenter(i, origin);
+		}
+		
+		return origin;
+	}
+	else
+	{
+		return origin;
+	}
+}
+
+void HookRespawnRoom(int room)
+{
+	SDKUnhook(room, SDKHook_StartTouch, OnStartTouchRespawn);
+	SDKUnhook(room, SDKHook_Touch, OnTouchRespawn);
+	SDKUnhook(room, SDKHook_EndTouch, OnEndTouchRespawn);
+	SDKHook(room, SDKHook_StartTouch, OnStartTouchRespawn);
+	SDKHook(room, SDKHook_Touch, OnTouchRespawn);
+	SDKHook(room, SDKHook_EndTouch, OnEndTouchRespawn);
+}
+
+void AddAdditionalSpawnRooms()
+{
+	int i = -1;
+	while((i = FindEntityByClassname(i, "func_respawnroom")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			char targetname[50];
+			GetEntPropString(i, Prop_Data, "m_iName", targetname, sizeof(targetname));
+			if(strcmp(targetname, "bwrr_respawnroom") == 0)
+			{
+				if( IsDebugging ) LogMessage("Skipping AddAdditionalSpawnRooms() because we've already created additional spawn rooms.");
+				return; // we've already created extras spawnrooms.
+			}
+		}
+	}
+	
+	i = -1;
+	while((i = FindEntityByClassname(i, "info_player_teamspawn")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
+			{
+				CreateSpawnRoom(i);
+			}
+		}
+	}	
+}
+
+void CreateSpawnRoom(int spawnpoint)
+{
+	int entity = CreateEntityByName("func_respawnroom");
+	
+	if( entity == -1 )
+		ThrowError("Failed to create func_respawnroom.");
+		
+	DispatchKeyValue(entity, "StartDisabled", "0");
+	DispatchKeyValue(entity, "TeamNum", "3");
+	DispatchKeyValue(entity, "targetname", "bwrr_respawnroom");
+	DispatchSpawn(entity); // spawn entity
+	ActivateEntity(entity);
+	
+	PrecacheModel("models/player/items/pyro/drg_pyro_fueltank.mdl");
+	SetEntityModel(entity, "models/player/items/pyro/drg_pyro_fueltank.mdl");
+	
+	static float mins[3] = {-150.0,-150.0,-200.0};
+	static float maxs[3] = {150.0,150.0,200.0};
+	
+	SetEntPropVector(entity, Prop_Send, "m_vecMins", mins);
+	SetEntPropVector(entity, Prop_Send, "m_vecMaxs", maxs);
+	
+	SetEntProp(entity, Prop_Send, "m_nSolidType", 2);
+	
+	int enteffects = GetEntProp(entity, Prop_Send, "m_fEffects");
+	enteffects |= 32;
+	SetEntProp(entity, Prop_Send, "m_fEffects", enteffects);
+	
+	float pos[3];
+	GetEntPropVector(spawnpoint, Prop_Send, "m_vecOrigin", pos);
+	TeleportEntity(entity, pos, NULL_VECTOR, NULL_VECTOR);
+	HookRespawnRoom(entity);
+	
+	if( IsDebugging() )
+	{
+		LogMessage("Creating func_respawnroom at (%f %f %f) index %i", pos[0], pos[1], pos[2], entity);
 	}
 }

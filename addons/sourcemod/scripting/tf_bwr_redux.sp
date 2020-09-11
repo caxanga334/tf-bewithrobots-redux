@@ -5,7 +5,6 @@
 #include <multicolors>
 #define REQUIRE_PLUGIN
 #include <tf2attributes>
-#include <tf2_isPlayerInSpawn>
 #include <tf2wearables>
 #undef REQUIRE_EXTENSIONS
 #include <SteamWorks>
@@ -81,6 +80,7 @@ UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
 // SDK
 Handle g_hSDKPlaySpecificSequence;
 Handle g_hGetEventChangeAttributes;
+Handle g_hSDKWorldSpaceCenter;
 
 enum SpawnType
 {
@@ -321,22 +321,26 @@ public void OnPluginStart()
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//Sequence name
 	if ((g_hSDKPlaySpecificSequence = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CTFPlayer::PlaySpecificSequence signature!");
 	
+	// Used to get an entity center
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CBaseEntity::WorldSpaceCenter");
+	PrepSDKCall_SetReturnInfo(SDKType_Vector, SDKPass_ByRef);
+	if ((g_hSDKWorldSpaceCenter = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CBaseEntity::WorldSpaceCenter offset!");
+	
 	//CTFBot::GetEventChangeAttributes
 	g_hGetEventChangeAttributes = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
-	if (!g_hGetEventChangeAttributes) SetFailState("[BotControl] Failed to setup detour for CTFBot::GetEventChangeAttributes");
+	if (!g_hGetEventChangeAttributes) SetFailState("Failed to setup detour for CTFBot::GetEventChangeAttributes");
 	
 	if (!DHookSetFromConf(g_hGetEventChangeAttributes, hConf, SDKConf_Signature, "CTFBot::GetEventChangeAttributes"))
 	{
-		SetFailState("[BotControl] Failed to load CTFBot::GetEventChangeAttributes signature from gamedata");
+		SetFailState("Failed to load CTFBot::GetEventChangeAttributes signature from gamedata");
 	}
 	
 	// HookParamType_Unknown
 	DHookAddParam(g_hGetEventChangeAttributes, HookParamType_CharPtr);
 	
-	if (!DHookEnableDetour(g_hGetEventChangeAttributes, false, CTFBot_GetEventChangeAttributes))     SetFailState("[BotControl] Failed to detour CTFBot::GetEventChangeAttributes.");
-	if (!DHookEnableDetour(g_hGetEventChangeAttributes, true, CTFBot_GetEventChangeAttributes_Post)) SetFailState("[BotControl] Failed to detour CTFBot::GetEventChangeAttributes_Post.");
-	
-	PrintToServer("[BotControl] CTFBot::GetEventChangeAttributes detoured!");
+	if (!DHookEnableDetour(g_hGetEventChangeAttributes, false, CTFBot_GetEventChangeAttributes))     SetFailState("Failed to detour CTFBot::GetEventChangeAttributes.");
+	if (!DHookEnableDetour(g_hGetEventChangeAttributes, true, CTFBot_GetEventChangeAttributes_Post)) SetFailState("Failed to detour CTFBot::GetEventChangeAttributes_Post.");
 	
 	delete hConf;
 	
@@ -401,7 +405,16 @@ public void OnMapStart()
 		if(IsValidEntity(i))
 		{
 			SDKHook(i, SDKHook_StartTouch, OnTouchUpgradeStation);
-		} 
+		}
+	}
+	
+	i = -1;
+	while ((i = FindEntityByClassname(i, "func_respawnroom")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			HookRespawnRoom(i);
+		}
 	}
 	
 	RT_ClearArrays();
@@ -414,6 +427,8 @@ public void OnMapStart()
 	
 	array_avclass.Clear();
 	array_avgiants.Clear();
+	
+	TF2_GetBombHatchPosition(true);
 	
 	// add custom tag
 	AddPluginTag("BWRR");
@@ -455,6 +470,11 @@ public void OnMapStart()
 	g_flBusterVisionTimer = 0.0;
 }
 
+public void TF2_OnWaitingForPlayersStart()
+{
+	AddAdditionalSpawnRooms();
+}
+
 public void OnClientDisconnect(client)
 {
 	ResetRobotData(client);
@@ -484,7 +504,7 @@ public void OnGameFrame()
 					TF2_AddCondition(i, TFCond_FreezeInput, 0.255);
 					TF2_AddCondition(i, TFCond_UberchargedHidden, 0.255);
 				}
-				else if( TF2Spawn_IsClientInSpawn2(i) )
+				else if( p_bInSpawn[i] )
 				{
 					TF2_AddCondition(i, TFCond_UberchargedHidden, 0.255);
 				}
@@ -498,16 +518,16 @@ public void OnGameFrame()
 	}
 }
 
-public void TF2Spawn_EnterSpawn(int client,int entity)
+stock void TF2Spawn_EnterSpawn(int client,int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
 		p_bInSpawn[client] = true;
 		TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
-	}	
+	}
 }
 
-public void TF2Spawn_LeaveSpawn(int client,int entity)
+stock void TF2Spawn_LeaveSpawn(int client,int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
@@ -521,28 +541,32 @@ public void TF2Spawn_LeaveSpawn(int client,int entity)
 	}
 }
 
-public void OnEntityCreated(int iEntity,const char[] name)
+public void OnEntityCreated(int entity,const char[] name)
 {
 	if ( StrEqual( name, "func_capturezone", false) )
 	{
-		SDKHook(iEntity, SDKHook_Touch, OnTouchCaptureZone);
-		SDKHook(iEntity, SDKHook_EndTouch, OnEndTouchCaptureZone);
+		SDKHook(entity, SDKHook_StartTouch, OnTouchCaptureZone);
+		SDKHook(entity, SDKHook_EndTouch, OnEndTouchCaptureZone);
 	}
 	else if ( StrEqual( name, "entity_revive_marker", false) )
 	{
-		CreateTimer(0.1, Timer_KillReviveMarker, iEntity);
+		CreateTimer(0.1, Timer_KillReviveMarker, entity);
 	}
 	else if( StrEqual( name, "entity_medigun_shield", false ) )
 	{
-		if(IsValidEntity(iEntity))
+		if(IsValidEntity(entity))
 		{
-			int iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
+			int iOwner = GetEntPropEnt( entity, Prop_Send, "m_hOwnerEntity" );
 			if( IsValidClient(iOwner) && TF2_GetClientTeam(iOwner) == TFTeam_Blue && !IsFakeClient(iOwner) )
 			{
 				SetVariantInt(1);
-				AcceptEntityInput(iEntity, "Skin" );
+				AcceptEntityInput(entity, "Skin" );
 			}
 		}
+	}
+	else if( StrEqual( name, "func_respawnroom", false) )
+	{
+		HookRespawnRoom(entity);
 	}
 }
 
@@ -649,7 +673,6 @@ public Action OnTouchCaptureZone(int entity, int other)
 			GetClientAbsOrigin(other, CarrierPos);
 			TF2_AddCondition(other, TFCond_FreezeInput, 2.3);
 			TF2_PlaySequence(other, "primary_deploybomb");
-			SetEntProp(other, Prop_Send, "m_bUseClassAnimations", 0);
 			SetVariantInt(1);
 			AcceptEntityInput(other, "SetForcedTauntCam");
 			RequestFrame(DisableAnim, GetClientUserId(other));
@@ -693,6 +716,39 @@ public Action OnEndTouchCaptureZone(int entity, int other)
 				SetEntProp(other, Prop_Send, "m_bUseClassAnimations", 1);
 			}
 		}
+	}
+	
+	return Plugin_Continue;
+}
+
+// Called when a player starts touching a respawn room
+public Action OnStartTouchRespawn(int entity, int other)
+{
+	if( IsValidClient(other) )
+	{
+		TF2Spawn_EnterSpawn(other, entity);
+	}
+	
+	return Plugin_Continue;
+}
+
+// Called when a player is touching a respawn room
+public Action OnTouchRespawn(int entity, int other)
+{
+	if( IsValidClient(other) )
+	{
+		TF2Spawn_EnterSpawn(other, entity);
+	}
+	
+	return Plugin_Continue;
+}
+
+// Called when a player stops touching a respawn room
+public Action OnEndTouchRespawn(int entity, int other)
+{
+	if( IsValidClient(other) )
+	{
+		TF2Spawn_LeaveSpawn(other, entity);
 	}
 	
 	return Plugin_Continue;
@@ -1107,12 +1163,18 @@ public Action Command_BotClass( int client, int nArgs )
 	if( TF2_GetClientTeam(client) == TFTeam_Red )
 		return Plugin_Handled;
 		
-	if( !TF2Spawn_IsClientInSpawn2(client) && GameRules_GetRoundState() == RoundState_RoundRunning )
+	if( !p_bInSpawn[client] && GameRules_GetRoundState() == RoundState_RoundRunning )
 	{
 		CReplyToCommand(client, "%t", "BotClassFailMsg");
 		return Plugin_Handled;
 	}
 
+	if( Boss_GetClient() == client )
+	{
+		Boss_Death();
+		LogAction(client, -1, "\"%L\" selected a new robot while playing as a boss.", client);
+	}
+	
 	PickRandomRobot(client);
 	CreateTimer(0.5, Timer_Respawn, client);
 
@@ -1151,9 +1213,9 @@ public Action Command_ShowPlayers( int client, int nArgs )
 		}
 	}
 	
-	CReplyToCommand(client, "{green}%i{cyan} player(s) in RED: {red}%s", iRedCount, RedNames);
-	CReplyToCommand(client, "{green}%i{cyan} player(s) in BLU: {blue}%s", iBluCount, BluNames);
-	CReplyToCommand(client, "{green}%i{cyan} player(s) in SPEC: {grey}%s", iSpecCount, SpecNames);
+	ReplyToCommand(client, "%i player(s) in RED: %s", iRedCount, RedNames);
+	ReplyToCommand(client, "%i player(s) in BLU: %s", iBluCount, BluNames);
+	ReplyToCommand(client, "%i player(s) in SPEC: %s", iSpecCount, SpecNames);
 
 	return Plugin_Handled;
 }
@@ -1344,11 +1406,11 @@ public Action Command_WaveInfo( int client, int nArgs )
 		FormatEx(strGiantBots, sizeof(strGiantBots), "%s", "None");
 	
 	OR_GetMissionName(buffer, sizeof(buffer));
-	CReplyToCommand(client, "{cyan}Mission:{green} %s", buffer);
-	CReplyToCommand(client, "{cyan}Wave{green} %d {cyan}of{green} %d", iCW, iMW);
-	CReplyToCommand(client, "{cyan}Available Robots:");
-	CReplyToCommand(client, "{cyan}Normal Robots:{green} %s", strNormalBots);
-	CReplyToCommand(client, "{cyan}Giant Robots:{green} %s", strGiantBots);
+	ReplyToCommand(client, "Mission: %s", buffer);
+	ReplyToCommand(client, "Wave %d of %d", iCW, iMW);
+	ReplyToCommand(client, "Available Robots:");
+	ReplyToCommand(client, "Normal Robots: %s", strNormalBots);
+	ReplyToCommand(client, "Giant Robots: %s", strGiantBots);
 	
 	return Plugin_Handled;
 }
@@ -1360,7 +1422,7 @@ public Action Command_BossInfo( int client, int nArgs )
 	
 	if( GameRules_GetRoundState() != RoundState_RoundRunning )
 	{
-		CReplyToCommand(client, "{red}No Boss data available.");
+		ReplyToCommand(client, "Boss data is only available after wave start.");
 		return Plugin_Handled;
 	}
 	
@@ -1385,24 +1447,25 @@ public Action Command_BossInfo( int client, int nArgs )
 	}
 	
 	Boss_GetName(bossname, sizeof(bossname));
-	CReplyToCommand(client, "{cyan}Boss State: {red}%s", state);
-	CReplyToCommand(client, "{cyan}Selected Boss: {green}%s", bossname);
+	ReplyToCommand(client, "Boss State: %s", state);
+	ReplyToCommand(client, "Selected Boss: %s", bossname);
 	if( IsValidClient(iBossPlayer) && IsPlayerAlive(iBossPlayer) )
 	{
-		CReplyToCommand(client, "{cyan}Active Boss: Controller: {green}%N{cyan} || Health: {green}%i", iBossPlayer, GetClientHealth(iBossPlayer));
+		ReplyToCommand(client, "Active Boss: Controller: N || Health: %i", iBossPlayer, GetClientHealth(iBossPlayer));
 	}
 	
 	if( GetTeamClientCount(2) < g_BossMinRed )
 	{
-		CReplyToCommand(client, "{cyan}Not enough players in {red}RED{cyan} to allow bosses to spawn.");
+		ReplyToCommand(client, "Not enough players in RED to allow bosses to spawn.");
 	}
 	
-	if( g_BossRespawnDelay > 1.0 )
+	float enginetime = GetEngineTime();
+	if( g_BossTimer > enginetime )
 	{
-		int iSpawnTime = RoundToNearest( g_BossTimer - GetEngineTime() );
+		int iSpawnTime = RoundToNearest( g_BossTimer - enginetime );
 		if( iSpawnTime > 0 )
 		{
-			CReplyToCommand(client, "{cyan}Boss will be able to spawn in {green}%i{cyan} seconds", iSpawnTime);
+			ReplyToCommand(client, "Boss will be able to spawn in %i seconds", iSpawnTime);
 		}
 	}
 	
@@ -1476,7 +1539,7 @@ public Action Listener_Build(int client, const char[] command, int argc)
 	if( IsFakeClient(client) )
 		return Plugin_Continue;
 
-	if( TF2Spawn_IsClientInSpawn2(client) )
+	if( p_bInSpawn[client] )
 	{
 		return Plugin_Handled;
 	}
@@ -1548,7 +1611,7 @@ public Action Command_RobotMenu( int client, int nArgs )
 		return Plugin_Handled;
 	}
 		
-	if(!TF2Spawn_IsClientInSpawn(client))
+	if(!p_bInSpawn[client] && GameRules_GetRoundState() == RoundState_RoundRunning )
 	{
 		CReplyToCommand(client, "%t", "BotClassFailMsg");
 		return Plugin_Handled;
@@ -1775,6 +1838,11 @@ public int MenuHandler_SelectVariant(Menu menu, MenuAction action, int param1, i
 					g_flLastForceBot[param1] = GetEngineTime() + 5.0; // small cooldown when the wave is not in progress
 				}
 				LogAction(param1, -1, "\"%L\" selected a robot (%s)", param1,botname);
+				if( Boss_GetClient() == param1 )
+				{
+					Boss_Death();
+					LogAction(param1, -1, "\"%L\" selected a new robot while playing as a boss.", param1);
+				}
 			}
 		}
 		case MenuAction_End:

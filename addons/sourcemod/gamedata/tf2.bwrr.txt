@@ -18,5 +18,13 @@
 				"linux"		"@_ZNK6CTFBot24GetEventChangeAttributesEPKc"
 			}
 		}
+		"Offsets"
+		{
+			"CBaseEntity::WorldSpaceCenter" // use https://asherkin.github.io/vtable/
+			{
+				"windows"	"149"
+				"linux"		"150"
+			}
+		}
 	}
 }
