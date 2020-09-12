@@ -1289,3 +1289,40 @@ void CreateSpawnRoom(int spawnpoint)
 		LogMessage("Creating func_respawnroom at (%f %f %f) index %i", pos[0], pos[1], pos[2], entity);
 	}
 }
+
+bool TF2_IsGiant(int client)
+{
+	return view_as<bool>(GetEntProp(client, Prop_Send, "m_bIsMiniBoss"));
+}
+
+// code from Pelipoika's bot control
+// Updates the bomb level show on the HUD
+void UpdateBombHud(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if(client <= 0)
+		return;
+		
+	RoboPlayer rp = RoboPlayer(client);
+		
+	int iResource = FindEntityByClassname(-1, "tf_objective_resource");
+	SetEntProp(iResource,      Prop_Send, "m_nFlagCarrierUpgradeLevel", rp.BombLevel);
+	SetEntPropFloat(iResource, Prop_Send, "m_flMvMBaseBombUpgradeTime", (TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden)) ? -1.0 : GetGameTime());
+	SetEntPropFloat(iResource, Prop_Send, "m_flMvMNextBombUpgradeTime", (TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden)) ? -1.0 : rp.UpgradeTime);	
+}
+
+float g_flNextCommand[MAXPLAYERS + 1];
+
+// code from Pelipoika's bot control
+// executes a delayed command on the client
+bool FakeClientCommandThrottled(int client, const char[] command)
+{
+	if(g_flNextCommand[client] > GetGameTime())
+		return false;
+	
+	FakeClientCommand(client, command);
+	
+	g_flNextCommand[client] = GetGameTime() + 0.4;
+	
+	return true;
+}

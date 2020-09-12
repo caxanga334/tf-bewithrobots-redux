@@ -115,4 +115,8 @@
 		"#format"	"{1:s},{2:s},{3:d}"
 		"en"	"{red}[BOSS]{cyan} Player {yellow}{1}{cyan} spawned as {yellow}{2}{cyan} with {yellow}{3}{cyan} health."
 	}
+	"Spec_Stuck"
+	{
+		"en"	"{cyan}If you're stuck in spectator, type {green}!joinred{cyan} in chat."
+	}
 }

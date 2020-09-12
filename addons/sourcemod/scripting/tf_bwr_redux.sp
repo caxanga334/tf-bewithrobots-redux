@@ -36,6 +36,8 @@ bool p_bInSpawn[MAXPLAYERS + 1]; // Local cache to know if a player is in spawn
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
+int g_iBombCarrierUpgradeLevel[MAXPLAYERS + 1];
+float g_flNextBombUpgradeTime[MAXPLAYERS + 1];
 Handle HT_BombDeployTimer;
 
 ArrayList array_avclass; // array containing available classes
@@ -79,8 +81,21 @@ UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
 
 // SDK
 Handle g_hSDKPlaySpecificSequence;
+Handle g_hSDKDispatchParticleEffect;
 Handle g_hGetEventChangeAttributes;
 Handle g_hSDKWorldSpaceCenter;
+
+enum ParticleAttachment
+{
+	PATTACH_ABSORIGIN = 0,			// Create at absorigin, but don't follow
+	PATTACH_ABSORIGIN_FOLLOW,		// Create at absorigin, and update to follow the entity
+	PATTACH_CUSTOMORIGIN,			// Create at a custom origin, but don't follow
+	PATTACH_POINT,					// Create on attachment point, but don't follow
+	PATTACH_POINT_FOLLOW,			// Create on attachment point, and update to follow the entity
+	PATTACH_WORLDORIGIN,			// Used for control points that don't attach to an entity
+	PATTACH_ROOTBONE_FOLLOW,		// Create at the root bone of the entity, and update to follow
+	MAX_PATTACH_TYPES,
+};
 
 enum SpawnType
 {
@@ -146,6 +161,16 @@ methodmap RoboPlayer
 	{
 		public get()	{ return p_iBotAttrib[this.index]; }
 		public set( int value ) { p_iBotAttrib[this.index] = value; }
+	}
+	property int BombLevel
+	{
+		public get() { return g_iBombCarrierUpgradeLevel[this.index]; }
+		public set( int value ) { g_iBombCarrierUpgradeLevel[this.index] = value; }
+	}
+	property float UpgradeTime
+	{
+		public get() { return g_flNextBombUpgradeTime[this.index]; }
+		public set( float value ) { g_flNextBombUpgradeTime[this.index] = value; }
 	}
 	property TFClassType Class
 	{
@@ -321,6 +346,16 @@ public void OnPluginStart()
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//Sequence name
 	if ((g_hSDKPlaySpecificSequence = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CTFPlayer::PlaySpecificSequence signature!");
 	
+	//This call will play a particle effect
+	StartPrepSDKCall(SDKCall_Static);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "DispatchParticleEffect");
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//pszParticleName
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);	//iAttachType
+	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);	//pEntity
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//pszAttachmentName
+	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//bResetAllParticlesOnEntity 
+	if ((g_hSDKDispatchParticleEffect = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for DispatchParticleEffect signature!");
+	
 	// Used to get an entity center
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CBaseEntity::WorldSpaceCenter");
@@ -465,6 +500,7 @@ public void OnMapStart()
 	PrecacheSound("vo/mvm_sentry_buster_alerts06.mp3");
 	PrecacheSound("vo/mvm_sentry_buster_alerts07.mp3");
 	PrecacheScriptSound("MVM.GiantHeavyEntrance");
+	PrecacheScriptSound("MVM.Warning");
 	g_iLaserSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
 	g_iHaloSprite = PrecacheModel("materials/sprites/halo01.vmt");
 	g_flBusterVisionTimer = 0.0;
@@ -475,7 +511,7 @@ public void TF2_OnWaitingForPlayersStart()
 	AddAdditionalSpawnRooms();
 }
 
-public void OnClientDisconnect(client)
+public void OnClientDisconnect(int client)
 {
 	ResetRobotData(client);
 	StopRobotLoopSound(client);
@@ -489,6 +525,11 @@ public void OnClientDisconnect(client)
 	
 	if( client == g_iBusterIndex )
 		g_iBusterIndex = -1;
+}
+
+public void OnClientPostAdminCheck(int client)
+{
+	CreateTimer(20.0, Timer_HelpUnstuck, GetClientUserId(client)); // unstuck players from spectator team.
 }
 
 public void OnGameFrame()
@@ -527,12 +568,36 @@ stock void TF2Spawn_EnterSpawn(int client,int entity)
 	}
 }
 
+stock void TF2Spawn_EnterSpawnOnce(int client,int entity)
+{
+	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
+	{
+		RoboPlayer rp = RoboPlayer(client);
+		if(rp.Carrier)
+		{
+			RequestFrame(UpdateBombHud, GetClientUserId(client));
+		}
+	}
+}
+
 stock void TF2Spawn_LeaveSpawn(int client,int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
+		RoboPlayer rp = RoboPlayer(client);
 		TF2_RemoveCondition(client, TFCond_UberchargedHidden);
-		p_bInSpawn[client] = false;
+		rp.InSpawn = false;
+		
+		if(rp.Carrier)
+		{
+			switch( rp.BombLevel )
+			{
+				case 0: rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_1st_upgrade"));
+				case 1: rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_2nd_upgrade"));
+				case 2: rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_3rd_upgrade"));
+			}
+			RequestFrame(UpdateBombHud, GetClientUserId(client));
+		}
 		
 		if( GameRules_GetRoundState() == RoundState_BetweenRounds && !p_bSpawned[client] )
 		{
@@ -575,9 +640,11 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	if( IsFakeClient(client) || !IsPlayerAlive(client) )
 		return Plugin_Continue;
 		
+	RoboPlayer rp = RoboPlayer(client);
+		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
-		if( p_bInSpawn[client] )
+		if( rp.InSpawn )
 		{
 			if( buttons & IN_ATTACK ) // block attack buttons when robot players are inside their spawn room.
 			{
@@ -602,7 +669,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 		
-		if( p_iBotType[client] == Bot_Buster )
+		if( rp.Type == Bot_Buster )
 		{
 			if( g_flBusterVisionTimer < GetEngineTime() )
 			{
@@ -616,6 +683,89 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 				{
 					FakeClientCommand(client, "taunt");
 					return Plugin_Continue;
+				}
+			}
+		}
+		
+		if( rp.Carrier && HT_BombDeployTimer == INVALID_HANDLE && !TF2_IsPlayerInCondition(client, TFCond_Taunting) && !TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden) )
+		{
+			if( TF2_IsGiant(client) )
+			{
+				if( rp.BombLevel != 4 )
+				{
+					rp.BombLevel = 4;
+					RequestFrame(UpdateBombHud, GetClientUserId(client));
+				}
+			}
+			else
+			{
+				if( rp.BombLevel > 0 ) // apply defensive buff to nearby robots
+				{
+					float pPos[3];
+					GetClientAbsOrigin(client, pPos);
+					for(int i = 1; i <= MaxClients; i++)
+					{
+						if(i == client)
+							continue;
+					
+						if(!IsClientInGame(i))
+							continue;
+							
+						if(GetClientTeam(i) != GetClientTeam(client))
+							continue;
+						
+						if(rp.BombLevel < 1)
+							continue;
+							
+						float iPos[3];
+						GetClientAbsOrigin(i, iPos);
+						
+						float flDistance = GetVectorDistance(pPos, iPos);
+						
+						if(flDistance <= 450.0)
+						{
+							TF2_AddCondition(i, TFCond_DefenseBuffNoCritBlock, 0.125);
+						}
+					}
+				}
+				
+				if(rp.UpgradeTime <= GetGameTime() && rp.BombLevel < 3 && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1) // time to upgrade
+				{
+					FakeClientCommandThrottled(client, "taunt");
+					
+					if(TF2_IsPlayerInCondition(client, TFCond_Taunting))
+					{
+						rp.BombLevel += 1;
+						
+						switch( rp.BombLevel )
+						{
+							case 1:
+							{
+								rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_2nd_upgrade"));
+								TF2_AddCondition(client, TFCond_DefenseBuffNoCritBlock, TFCondDuration_Infinite);
+								SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup1", PATTACH_POINT_FOLLOW, client, "head", 0);
+							}
+							case 2:
+							{
+								rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_3rd_upgrade"));
+								
+								Address pRegen = TF2Attrib_GetByName(client, "health regen");
+								float flRegen = 0.0;
+								if(pRegen != Address_Null)
+									flRegen = TF2Attrib_GetValue(pRegen);
+								
+								TF2Attrib_SetByName(client, "health regen", flRegen + 45.0);
+								SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup2", PATTACH_POINT_FOLLOW, client, "head", 0);
+							}
+							case 3:
+							{
+								TF2_AddCondition(client, TFCond_CritOnWin, TFCondDuration_Infinite);
+								SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup3", PATTACH_POINT_FOLLOW, client, "head", 0);
+							}
+						}
+						EmitGameSoundToAll("MVM.Warning", SOUND_FROM_WORLD);
+						RequestFrame(UpdateBombHud, GetClientUserId(client));
+					}
 				}
 			}
 		}
@@ -727,6 +877,7 @@ public Action OnStartTouchRespawn(int entity, int other)
 	if( IsValidClient(other) )
 	{
 		TF2Spawn_EnterSpawn(other, entity);
+		TF2Spawn_EnterSpawnOnce(other, entity);
 	}
 	
 	return Plugin_Continue;
@@ -2181,6 +2332,16 @@ public Action E_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast
 		if( !IsFakeClient(client) )
 		{
 			rp.Carrier = true;
+			if(TF2_IsGiant(client))
+			{
+				rp.BombLevel = 4;
+			}
+			else
+			{
+				rp.BombLevel = 0;
+				rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_1st_upgrade")); 
+			}
+			RequestFrame(UpdateBombHud, GetClientUserId(client));
 		}
 	}
 	if( event.GetInt("eventtype") == TF_FLAGEVENT_DROPPED )
@@ -2763,6 +2924,22 @@ public Action Timer_ShowWelcMsg(Handle timer, any client)
 		return Plugin_Stop;
 		
 	CPrintToChat(client, "%t", "Welcome_Msg");
+	
+	return Plugin_Stop;
+}
+
+public Action Timer_HelpUnstuck(Handle timer, any userid)
+{
+	int client = GetClientOfUserId(userid);
+	if( !IsValidClient(client) || IsFakeClient(client) )
+		return Plugin_Stop;
+	
+	if( GetClientTeam(client) <= 1 )
+	{
+		// moving players automatically to RED causes them to be unable to close the MOTD with the mouse
+		// to avoid issues, print a message telling players to type the join team command in chat.
+		CPrintToChat(client, "%t", "Spec_Stuck");
+	}
 	
 	return Plugin_Stop;
 }

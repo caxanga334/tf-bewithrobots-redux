@@ -115,4 +115,8 @@
 		"#format"	"{1:s},{2:s},{3:d}"
 		"pt"	"{red}[BOSS]{cyan} Jogador {yellow}{1}{cyan} deu spawn como {yellow}{2}{cyan} com {yellow}{3}{cyan} de vida."
 	}
+	"Spec_Stuck"
+	{
+		"pt"	"{cyan}Se você estiver preso no espectador, digite {green}!joinred{cyan} no chat."
+	}
 }
