@@ -78,7 +78,7 @@ void StripItems( int client, bool RemoveWeapons = true )
 			if( iOwner == client )
 			{
 				TF2_RemoveWearable( client, iEntity );
-				AcceptEntityInput( iEntity, "Kill" );
+				RemoveEntity(iEntity);
 			}
 		}
 		
@@ -89,7 +89,7 @@ void StripItems( int client, bool RemoveWeapons = true )
 			if( iOwner == client )
 			{
 				TF2_RemoveWearable( client, iEntity );
-				AcceptEntityInput( iEntity, "Kill" );
+				RemoveEntity(iEntity);
 			}
 		}
 		
@@ -106,7 +106,7 @@ void StripItems( int client, bool RemoveWeapons = true )
 			if( iOwner == client )
 			{
 				TF2_RemoveWearable( client, iEntity );
-				AcceptEntityInput( iEntity, "Kill" );
+				RemoveEntity(iEntity);
 			}
 		}
 	}
@@ -116,14 +116,14 @@ void StripItems( int client, bool RemoveWeapons = true )
 	{
 		iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
 		if( iOwner == client )
-			AcceptEntityInput( iEntity, "Kill" );
+			RemoveEntity(iEntity);
 	}
 	iEntity = -1;
 	while( ( iEntity = FindEntityByClassname( iEntity, "tf_usableitem" ) ) > MaxClients )
 	{
 		iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
 		if( iOwner == client )
-			AcceptEntityInput( iEntity, "Kill" );
+			RemoveEntity(iEntity);
 	}
 }
 
@@ -143,7 +143,7 @@ void StripWeapons( int client )
 		if( iOwner == client )
 		{
 			TF2_RemoveWearable( client, iEntity );
-			AcceptEntityInput( iEntity, "Kill" );
+			RemoveEntity(iEntity);
 		}
 	}
 	
@@ -154,7 +154,7 @@ void StripWeapons( int client )
 		if( iOwner == client )
 		{
 			TF2_RemoveWearable( client, iEntity );
-			AcceptEntityInput( iEntity, "Kill" );
+			RemoveEntity(iEntity);
 		}
 	}
 	
@@ -168,7 +168,7 @@ bool IsWeaponWearable(char[] classname)
 	
 	for(int i = 0;i < sizeof(strWearables);i++)
 	{
-		if(StrEqual(classname, strWearables[i], false))
+		if(strcmp(classname, strWearables[i], false) == 0)
 			return true;
 	}
 	
@@ -875,7 +875,7 @@ void RT_PostLoad()
 				{
 					for(int z = 0;z < sizeof(strValidAttribs);z++)
 					{
-						if(StrEqual(strBits[x], strValidAttribs[z], false))
+						if(strcmp(strBits[x], strValidAttribs[z], false) == 0)
 						{
 							iBits += AttribValue[z];
 							break;
@@ -899,7 +899,7 @@ void RT_PostLoad()
 				{
 					for(int z = 0;z < sizeof(strValidAttribs);z++)
 					{
-						if(StrEqual(strBits[x], strValidAttribs[z], false))
+						if(strcmp(strBits[x], strValidAttribs[z], false) == 0)
 						{
 							iBits += AttribValue[z];
 							break;

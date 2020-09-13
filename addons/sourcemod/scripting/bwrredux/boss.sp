@@ -357,7 +357,7 @@ void Boss_LoadProfile(char[] bossfile)
 	{
 		for(int z = 0;z < sizeof(strValidAttribs);z++)
 		{
-			if(StrEqual(strBits[x], strValidAttribs[z], false))
+			if(strcmp(strBits[x], strValidAttribs[z], false) == 0)
 			{
 				iBits += AttribValue[z];
 				break;

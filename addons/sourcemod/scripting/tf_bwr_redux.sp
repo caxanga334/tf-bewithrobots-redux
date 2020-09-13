@@ -31,7 +31,6 @@ int p_iBotType[MAXPLAYERS + 1];
 int p_iBotVariant[MAXPLAYERS + 1];
 int p_iBotAttrib[MAXPLAYERS + 1];
 TFClassType p_BotClass[MAXPLAYERS + 1];
-bool p_bSpawned[MAXPLAYERS + 1]; // store if a player has recently spawned.
 bool p_bInSpawn[MAXPLAYERS + 1]; // Local cache to know if a player is in spawn
 
 // bomb
@@ -84,6 +83,7 @@ Handle g_hSDKPlaySpecificSequence;
 Handle g_hSDKDispatchParticleEffect;
 Handle g_hGetEventChangeAttributes;
 Handle g_hSDKWorldSpaceCenter;
+Handle g_hCFilterTFBotHasTag;
 
 enum ParticleAttachment
 {
@@ -182,11 +182,6 @@ methodmap RoboPlayer
 		public get()	{ return g_bIsCarrier[this.index]; }
 		public set( bool value ) { g_bIsCarrier[this.index] = value; }
 	}
-	property bool Spawned
-	{
-		public get()	{ return p_bSpawned[this.index]; }
-		public set( bool value ) { p_bSpawned[this.index] = value; }
-	}
 	property bool InSpawn
 	{
 		public get() { return p_bInSpawn[this.index]; }
@@ -218,16 +213,16 @@ public Plugin myinfo =
 
 stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	char gamefolder[32]
-	GetGameFolderName(gamefolder, sizeof(gamefolder));
-	if(!StrEqual(gamefolder, "tf")
+	EngineVersion ev = GetEngineVersion();
+	
+	if( ev == Engine_TF2 )
 	{
-		LogError("This plugin is for TF2 only!");
-		return APLRes_Failure;
+		return APLRes_Success;
 	}
 	else
 	{
-		return APLRes_Success;
+		strcopy(error, err_max, "This plugin is for Team Fortress 2 only.");
+		return APLRes_Failure;
 	}
 }
 
@@ -362,6 +357,13 @@ public void OnPluginStart()
 	PrepSDKCall_SetReturnInfo(SDKType_Vector, SDKPass_ByRef);
 	if ((g_hSDKWorldSpaceCenter = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CBaseEntity::WorldSpaceCenter offset!");
 	
+	// Used to allow humans to capture gates
+	int iOffset = GameConfGetOffset(hConf, "CFilterTFBotHasTag::PassesFilterImpl");	
+	if(iOffset == -1) SetFailState("Failed to get offset of CFilterTFBotHasTag::PassesFilterImpl");
+	g_hCFilterTFBotHasTag = DHookCreate(iOffset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, CFilterTFBotHasTag);
+	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index of the entity using the filter
+	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index that triggered the filter
+	
 	//CTFBot::GetEventChangeAttributes
 	g_hGetEventChangeAttributes = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
 	if (!g_hGetEventChangeAttributes) SetFailState("Failed to setup detour for CTFBot::GetEventChangeAttributes");
@@ -409,7 +411,7 @@ char GiantBotsFile()
 
 public void OnLibraryAdded(const char[] name)
 {
-	if(StrEqual(name, "SteamWorks", false))
+	if(strcmp(name, "SteamWorks", false) == 0)
 	{
 		SteamWorks_SetGameDescription("Be With Robots Redux");
 	}
@@ -598,26 +600,21 @@ stock void TF2Spawn_LeaveSpawn(int client,int entity)
 			}
 			RequestFrame(UpdateBombHud, GetClientUserId(client));
 		}
-		
-		if( GameRules_GetRoundState() == RoundState_BetweenRounds && !p_bSpawned[client] )
-		{
-			TF2_RespawnPlayer(client);
-		}
 	}
 }
 
 public void OnEntityCreated(int entity,const char[] name)
 {
-	if ( StrEqual( name, "func_capturezone", false) )
+	if ( strcmp( name, "func_capturezone", false) == 0 )
 	{
 		SDKHook(entity, SDKHook_StartTouch, OnTouchCaptureZone);
 		SDKHook(entity, SDKHook_EndTouch, OnEndTouchCaptureZone);
 	}
-	else if ( StrEqual( name, "entity_revive_marker", false) )
+	else if ( strcmp( name, "entity_revive_marker", false) == 0 )
 	{
-		CreateTimer(0.1, Timer_KillReviveMarker, entity);
+		SDKHook(entity, SDKHook_SpawnPost, OnReviveMarkerSpawnPost);
 	}
-	else if( StrEqual( name, "entity_medigun_shield", false ) )
+	else if( strcmp( name, "entity_medigun_shield", false ) == 0 )
 	{
 		if(IsValidEntity(entity))
 		{
@@ -629,9 +626,13 @@ public void OnEntityCreated(int entity,const char[] name)
 			}
 		}
 	}
-	else if( StrEqual( name, "func_respawnroom", false) )
+	else if( strcmp( name, "func_respawnroom", false) == 0 )
 	{
 		HookRespawnRoom(entity);
+	}
+	else if(strcmp(name, "filter_tf_bot_has_tag") == 0)
+	{
+		SDKHook(entity, SDKHook_SpawnPost, OnTFBotTagFilterSpawnPost);
 	}
 }
 
@@ -905,6 +906,16 @@ public Action OnEndTouchRespawn(int entity, int other)
 	return Plugin_Continue;
 }
 
+public void OnReviveMarkerSpawnPost(int entity)
+{
+	RequestFrame(KillReviveMaker, EntIndexToEntRef(entity));
+}
+
+public void OnTFBotTagFilterSpawnPost(int entity)
+{
+	DHookEntity(g_hCFilterTFBotHasTag, true, entity);
+}
+
 /****************************************************
 					DETOURS
 *****************************************************/
@@ -934,6 +945,53 @@ public MRESReturn CTFBot_GetEventChangeAttributes_Post(int pThis, Handle hReturn
 	}
 	
 	return MRES_Ignored;
+}
+
+// Allow human robots to capture gates
+public MRESReturn CFilterTFBotHasTag(int iFilter, Handle hReturn, Handle hParams)
+{
+	if(!GameRules_GetProp("m_bPlayingMannVsMachine") || DHookIsNullParam(hParams, 2) || DHookIsNullParam(hParams, 1))
+		return MRES_Ignored;
+
+	int iEntity = DHookGetParam(hParams, 1);
+	int iOther  = DHookGetParam(hParams, 2);
+	
+	if(iOther <= 0 || iOther > MaxClients || !IsClientInGame(iOther))
+		return MRES_Ignored;
+	
+	//Don't care about real bots
+	if(IsFakeClient(iOther))
+		return MRES_Ignored;
+	
+	if(!IsPlayerAlive(iOther))
+	{
+		DHookSetReturn(hReturn, false);
+		return MRES_Supercede;
+	}
+	
+	// Don't care if not from BLU team.
+	if(GetClientTeam(iOther) != 3)
+		return MRES_Ignored;
+
+	bool bNegated = !!GetEntProp(iFilter, Prop_Data, "m_bNegated");
+	
+	bool bResult = true;
+	if(bNegated)
+		bResult = !bResult;
+	
+	char iEntityClassname[64];
+	GetEntityClassname(iEntity, iEntityClassname, sizeof(iEntityClassname));
+	
+	//We don't care about you
+	if(strcmp(iEntityClassname, "func_nav_prerequisite") == 0)
+		return MRES_Ignored;
+	
+	//These work the opposite way
+	if(strcmp(iEntityClassname, "trigger_add_tf_player_condition") == 0)
+		bResult = !bResult;
+	
+	DHookSetReturn(hReturn, bResult);
+	return MRES_Supercede;
 }
 
 /****************************************************
@@ -1112,39 +1170,39 @@ public Action Command_ForceBot( int client, int nArgs )
 	
 	GetCmdArg(2, arg2, sizeof(arg2));
 	
-	if( StrEqual(arg2, "scout", false) )
+	if( strcmp(arg2, "scout", false) == 0 )
 	{
 		TargetClass = TFClass_Scout;
 	}
-	else if( StrEqual(arg2, "soldier", false) )
+	else if( strcmp(arg2, "soldier", false) == 0 )
 	{
 		TargetClass = TFClass_Soldier;
 	}
-	else if( StrEqual(arg2, "pyro", false) )
+	else if( strcmp(arg2, "pyro", false) == 0 )
 	{
 		TargetClass = TFClass_Pyro;
 	}
-	else if( StrEqual(arg2, "demoman", false) )
+	else if( strcmp(arg2, "demoman", false) == 0 )
 	{
 		TargetClass = TFClass_DemoMan;
 	}
-	else if( StrEqual(arg2, "heavy", false) )
+	else if( strcmp(arg2, "heavy", false) == 0 )
 	{
 		TargetClass = TFClass_Heavy;
 	}
-	else if( StrEqual(arg2, "engineer", false) )
+	else if( strcmp(arg2, "engineer", false) == 0 )
 	{
 		TargetClass = TFClass_Engineer;
 	}
-	else if( StrEqual(arg2, "medic", false) )
+	else if( strcmp(arg2, "medic", false) == 0 )
 	{
 		TargetClass = TFClass_Medic;
 	}
-	else if( StrEqual(arg2, "sniper", false) )
+	else if( strcmp(arg2, "sniper", false) == 0 )
 	{
 		TargetClass = TFClass_Sniper;
 	}
-	else if( StrEqual(arg2, "spy", false) )
+	else if( strcmp(arg2, "spy", false) == 0 )
 	{
 		TargetClass = TFClass_Spy;
 	}
@@ -1400,39 +1458,39 @@ public Action Command_RobotInfo( int client, int nArgs )
 	if(iArg2 != 0)
 		bGiants = true;
 	
-	if( StrEqual(arg1, "scout", false) )
+	if( strcmp(arg1, "scout", false) == 0 )
 	{
 		TargetClass = TFClass_Scout;
 	}
-	else if( StrEqual(arg1, "soldier", false) )
+	else if( strcmp(arg1, "soldier", false) == 0 )
 	{
 		TargetClass = TFClass_Soldier;
 	}
-	else if( StrEqual(arg1, "pyro", false) )
+	else if( strcmp(arg1, "pyro", false) == 0 )
 	{
 		TargetClass = TFClass_Pyro;
 	}
-	else if( StrEqual(arg1, "demoman", false) )
+	else if( strcmp(arg1, "demoman", false) == 0 )
 	{
 		TargetClass = TFClass_DemoMan;
 	}
-	else if( StrEqual(arg1, "heavy", false) )
+	else if( strcmp(arg1, "heavy", false) == 0 )
 	{
 		TargetClass = TFClass_Heavy;
 	}
-	else if( StrEqual(arg1, "engineer", false) )
+	else if( strcmp(arg1, "engineer", false) == 0 )
 	{
 		TargetClass = TFClass_Engineer;
 	}
-	else if( StrEqual(arg1, "medic", false) )
+	else if( strcmp(arg1, "medic", false) == 0 )
 	{
 		TargetClass = TFClass_Medic;
 	}
-	else if( StrEqual(arg1, "sniper", false) )
+	else if( strcmp(arg1, "sniper", false) == 0 )
 	{
 		TargetClass = TFClass_Sniper;
 	}
-	else if( StrEqual(arg1, "spy", false) )
+	else if( strcmp(arg1, "spy", false) == 0 )
 	{
 		TargetClass = TFClass_Spy;
 	}
@@ -1637,17 +1695,17 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 		
 	char strTeam[16];
 	GetCmdArg(1, strTeam, sizeof(strTeam));
-	if( StrEqual( strTeam, "red", false ) )
+	if( strcmp( strTeam, "red", false ) == 0 )
 	{
 		FakeClientCommand(client, "sm_joinred");
 		return Plugin_Handled;
 	}
-	else if( StrEqual( strTeam, "blue", false ) )
+	else if( strcmp( strTeam, "blue", false ) == 0 )
 	{
 		FakeClientCommand(client, "sm_joinblue");
 		return Plugin_Handled;
 	}
-	else if( StrEqual( strTeam, "spectate", false ) || StrEqual( strTeam, "spectator", false ) )
+	else if( strcmp( strTeam, "spectate", false ) == 0 || strcmp( strTeam, "spectator", false ) == 0 )
 	{
 		MovePlayerToSpec(client);
 		return Plugin_Handled;
@@ -1822,11 +1880,11 @@ public int MenuHandler_SelectBotType(Menu menu, MenuAction action, int param1, i
 			bool bFound = menu.GetItem(param2, info, sizeof(info));
 			if(bFound)
 			{
-				if(StrEqual(info, "normal_bot"))
+				if(strcmp(info, "normal_bot") == 0)
 				{
 					MenuFunc_ShowClassMenu(param1, false);
 				}
-				else if(StrEqual(info, "giant_bot"))
+				else if(strcmp(info, "giant_bot") == 0)
 				{
 					MenuFunc_ShowClassMenu(param1, true);
 				}
@@ -1888,23 +1946,23 @@ public int MenuHandler_SelectClass(Menu menu, MenuAction action, int param1, int
 			bool bFound = menu.GetItem(param2, info, sizeof(info));
 			if(bFound)
 			{
-				if(StrEqual(info, "scout"))
+				if(strcmp(info, "scout") == 0)
 				{	selectedclass = TFClass_Scout; }
-				else if(StrEqual(info, "soldier"))
+				else if(strcmp(info, "soldier") == 0)
 				{	selectedclass = TFClass_Soldier; }
-				else if(StrEqual(info, "pyro"))
+				else if(strcmp(info, "pyro") == 0)
 				{	selectedclass = TFClass_Pyro; }
-				else if(StrEqual(info, "demoman"))
+				else if(strcmp(info, "demoman") == 0)
 				{	selectedclass = TFClass_DemoMan; }
-				else if(StrEqual(info, "heavy"))
+				else if(strcmp(info, "heavy") == 0)
 				{	selectedclass = TFClass_Heavy; }
-				else if(StrEqual(info, "engineer"))
+				else if(strcmp(info, "engineer") == 0)
 				{	selectedclass = TFClass_Engineer; }
-				else if(StrEqual(info, "medic"))
+				else if(strcmp(info, "medic") == 0)
 				{	selectedclass = TFClass_Medic; }
-				else if(StrEqual(info, "sniper"))
+				else if(strcmp(info, "sniper") == 0)
 				{	selectedclass = TFClass_Sniper; }
-				else if(StrEqual(info, "spy"))
+				else if(strcmp(info, "spy") == 0)
 				{	selectedclass = TFClass_Spy; }
 				
 				MenuFunc_ShowVariantMenu(param1, selectedclass);
@@ -2038,27 +2096,27 @@ public int MenuHandler_HelpMenu(Menu menu, MenuAction action, int param1, int pa
 			bool bFound = menu.GetItem(param2, info, sizeof(info));
 			if(bFound)
 			{
-				if(StrEqual(info, "helpm1"))
+				if(strcmp(info, "helpm1") == 0)
 				{
 					MenuFunc_PrintHelp(1, param1);
 				}
-				else if(StrEqual(info, "helpm2"))
+				else if(strcmp(info, "helpm2") == 0)
 				{
 					MenuFunc_PrintHelp(2, param1);
 				}
-				else if(StrEqual(info, "helpm3"))
+				else if(strcmp(info, "helpm3") == 0)
 				{
 					MenuFunc_PrintHelp(3, param1);
 				}
-				else if(StrEqual(info, "helpm4"))
+				else if(strcmp(info, "helpm4") == 0)
 				{
 					MenuFunc_PrintHelp(4, param1);
 				}
-				else if(StrEqual(info, "helpm5"))
+				else if(strcmp(info, "helpm5") == 0)
 				{
 					MenuFunc_PrintHelp(5, param1);
 				}
-				else if(StrEqual(info, "helpm6"))
+				else if(strcmp(info, "helpm6") == 0)
 				{
 					MenuFunc_PrintHelp(6, param1);
 				}
@@ -2131,7 +2189,7 @@ public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 	CreateTimer(2.0, Timer_UpdateWaveData);
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if( IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue )
+		if( IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue )
 		{
 			CreateTimer(3.0, Timer_UpdateRobotClasses, i);
 		}
@@ -2151,7 +2209,7 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if( IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue )
+		if( IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue )
 		{
 			MovePlayerToRED(i);
 		}
@@ -2390,12 +2448,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
-	
-		//TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
 		g_bIsCarrier[client] = false;
-		p_bSpawned[client] = true;
-		CreateTimer(0.2, Timer_RemoveSpawnedBool, client);
-		
 		
 		if( TFClass == TFClass_Spy && p_iBotAttrib[client] & BotAttrib_AutoDisguise )
 		{
@@ -2614,27 +2667,6 @@ public Action Timer_PickRandomRobot(Handle timer, any client)
 	return Plugin_Stop;
 }
 
-public Action Timer_KillReviveMarker(Handle timer, any revivemarker)
-{
-	if( IsValidEntity(revivemarker) )
-	{
-		char classname[64];
-		if( GetEntityClassname(revivemarker, classname, sizeof(classname)) )
-		{
-			if( StrEqual(classname, "entity_revive_marker", false) )
-			{
-				int client = GetEntPropEnt(revivemarker, Prop_Send, "m_hOwner");
-				if( !IsValidClient(client) || TF2_GetClientTeam(client) == TFTeam_Blue )
-				{
-					AcceptEntityInput(revivemarker,"Kill");
-				}
-			}
-		}
-	}
-	
-	return Plugin_Stop;
-}
-
 public Action Timer_UpdateWaveData(Handle timer)
 {
 	OR_Update();
@@ -2656,7 +2688,7 @@ public Action Timer_RemoveFromSpec(Handle timer, any client)
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if( IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Spectator )
+		if( IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Spectator )
 		{
 			MovePlayerToRED(i);
 		}
@@ -2754,14 +2786,6 @@ public Action Timer_OnTeleporterFinished(Handle timer, any index)
 	return Plugin_Continue;
 }
 
-public Action Timer_RemoveSpawnedBool(Handle timer, any client)
-{
-	if( p_bSpawned[client] )
-		p_bSpawned[client] = false;
-	
-	return Plugin_Stop;
-}
-
 public Action Timer_DeployBomb(Handle timer, any client)
 {
 	if( !IsValidClient(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || IsFakeClient(client) )
@@ -2847,8 +2871,8 @@ public Action Timer_DeleteParticle(Handle timer, any iEntRef)
 	{
 		char strClassname[64];
 		GetEdictClassname( iParticle, strClassname, sizeof(strClassname) );
-		if( StrEqual( strClassname, "info_particle_system", false ) )
-			AcceptEntityInput( iParticle, "Kill" );
+		if( strcmp( strClassname, "info_particle_system", false ) == 0 )
+			RemoveEntity(iParticle);
 	}
 }
 
@@ -2872,7 +2896,6 @@ public Action Timer_RemoveBody(Handle timer, any client)
 
 public Action Timer_RemoveGibs(Handle timer, any entity)
 {
-
 	//Validate:
 	if(IsValidEntity(entity))
 	{
@@ -2881,14 +2904,12 @@ public Action Timer_RemoveGibs(Handle timer, any entity)
 		char Classname[64];
 
 		//Initialize:
-		GetEdictClassname(entity, Classname, sizeof(Classname));
+		GetEntityClassname(entity, Classname, sizeof(Classname));
 
 		//Is a Particle:
-		if(StrEqual(Classname, "tf_ragdoll", false))
+		if(strcmp(Classname, "tf_ragdoll", false) == 0)
 		{
-
-			//Delete:
-			RemoveEdict(entity);
+			RemoveEntity(entity);
 		}
 	}
 }
@@ -3754,7 +3775,6 @@ void ResetRobotData(int client, bool bStrip = false)
 	p_iBotVariant[client] = 0;
 	p_iBotAttrib[client] = 0;
 	p_BotClass[client] = TFClass_Unknown;
-	p_bSpawned[client] = false;
 	p_bInSpawn[client] = false;
 	g_bIsCarrier[client] = false;
 	g_bUpgradeStation[client] = false;
@@ -3879,7 +3899,7 @@ int FindRandomSpawnPoint( SpawnType iType )
 				{
 					for(int i = 0;i < g_iSplitSize[0];i++)
 					{
-						if( StrEqual( strSpawnName, g_strNormalSplit[i] ) )
+						if( strcmp( strSpawnName, g_strNormalSplit[i] ) == 0 )
 						{
 							array_spawns.Push( iEnt );
 						}
@@ -3889,7 +3909,7 @@ int FindRandomSpawnPoint( SpawnType iType )
 				{
 					for(int i = 0;i < g_iSplitSize[1];i++)
 					{
-						if( StrEqual( strSpawnName, g_strGiantSplit[i] ) )
+						if( strcmp( strSpawnName, g_strGiantSplit[i] ) == 0 )
 						{
 							array_spawns.Push( iEnt );
 						}
@@ -3899,7 +3919,7 @@ int FindRandomSpawnPoint( SpawnType iType )
 				{
 					for(int i = 0;i < g_iSplitSize[2];i++)
 					{
-						if( StrEqual( strSpawnName, g_strSniperSplit[i] ) )
+						if( strcmp( strSpawnName, g_strSniperSplit[i] ) == 0 )
 						{
 							array_spawns.Push( iEnt );
 						}
@@ -3909,7 +3929,7 @@ int FindRandomSpawnPoint( SpawnType iType )
 				{
 					for(int i = 0;i < g_iSplitSize[3];i++)
 					{
-						if( StrEqual( strSpawnName, g_strSpySplit[i] ) )
+						if( strcmp( strSpawnName, g_strSpySplit[i] ) == 0 )
 						{
 							array_spawns.Push( iEnt );
 						}

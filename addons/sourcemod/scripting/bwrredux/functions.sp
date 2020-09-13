@@ -27,7 +27,6 @@ stock bool IsValidClient(int client)
 {
 	if( client < 1 || client > MaxClients ) return false;
 	if( !IsValidEntity(client) ) return false;
-	if( !IsClientConnected(client) ) return false;
 	return IsClientInGame(client);
 }
 
@@ -47,7 +46,7 @@ stock int GetRandomClientFromTeam(const int iTeam, bool bBots = false)
 	{
 		if( bBots )
 		{
-			if ( IsClientConnected(i) && IsClientInGame(i) && GetClientTeam(i) == iTeam )
+			if ( IsClientInGame(i) && GetClientTeam(i) == iTeam )
 			{
 				players_available[counter] = i;
 				counter++;
@@ -55,7 +54,7 @@ stock int GetRandomClientFromTeam(const int iTeam, bool bBots = false)
 		}
 		else
 		{
-			if ( IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == iTeam )
+			if ( IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == iTeam )
 			{
 				players_available[counter] = i;
 				counter++;
@@ -662,7 +661,7 @@ void CreateTEParticle(	char strParticle[128],
 	for(int i = 0;i < iCounter; i++)
 	{
 		ReadStringTable(ParticleTable, i, Temp, sizeof(Temp));
-		if(StrEqual(Temp, strParticle, false))
+		if( strcmp(Temp, strParticle, false) == 0 )
 		{
 			iParticleIndex = i;
 			break;
@@ -1061,14 +1060,14 @@ void Config_LoadMap()
 	do
 	{
 		kv.GetSectionName(buffer, sizeof(buffer));
-		if( StrEqual(buffer, "SpawnPoints", false) )
+		if( strcmp(buffer, "SpawnPoints", false) == 0 )
 		{
 			kv.GetString("normal", g_strNormalSpawns, sizeof(g_strNormalSpawns));
 			kv.GetString("giant", g_strGiantSpawns, sizeof(g_strGiantSpawns));
 			kv.GetString("sniper", g_strSniperSpawns, sizeof(g_strSniperSpawns));
 			kv.GetString("spy", g_strSpySpawns, sizeof(g_strSpySpawns));
 		}
-		else if( StrEqual(buffer, "HatchTrigger", false) )
+		else if( strcmp(buffer, "HatchTrigger", false) == 0 )
 		{
 			kv.GetString("tank_relay", g_strHatchTrigger, sizeof(g_strHatchTrigger), "boss_deploy_relay");
 			kv.GetString("cap_relay", g_strExploTrigger, sizeof(g_strExploTrigger), "cap_destroy_relay");
@@ -1232,7 +1231,7 @@ void AddAdditionalSpawnRooms()
 			GetEntPropString(i, Prop_Data, "m_iName", targetname, sizeof(targetname));
 			if(strcmp(targetname, "bwrr_respawnroom") == 0)
 			{
-				if( IsDebugging ) LogMessage("Skipping AddAdditionalSpawnRooms() because we've already created additional spawn rooms.");
+				if( IsDebugging ) { LogMessage("Skipping AddAdditionalSpawnRooms() because we've already created additional spawn rooms."); }
 				return; // we've already created extras spawnrooms.
 			}
 		}
@@ -1325,4 +1324,17 @@ bool FakeClientCommandThrottled(int client, const char[] command)
 	g_flNextCommand[client] = GetGameTime() + 0.4;
 	
 	return true;
+}
+
+void KillReviveMaker(int entref)
+{
+	int entity = EntRefToEntIndex(entref);
+	if(entity == INVALID_ENT_REFERENCE)
+		return;
+		
+	int iTeam = GetEntProp(entity, Prop_Send, "m_iTeamNum");
+	if(iTeam != 3)
+		return;
+		
+	RemoveEntity(entity);
 }

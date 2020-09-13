@@ -31,6 +31,11 @@
 				"windows"	"149"
 				"linux"		"150"
 			}
+			"CFilterTFBotHasTag::PassesFilterImpl" //(CBaseEntity *, CBaseEntity *) use asherkin's vtable dumper
+			{
+				"windows"	"191"
+				"linux"		"192"
+			}
 		}
 	}
 }
