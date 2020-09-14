@@ -586,17 +586,17 @@ public void OnGameFrame()
 		{		
 			if(TF2_GetClientTeam(i) == TFTeam_Blue)
 			{
-				if( GameRules_GetRoundState() == RoundState_BetweenRounds )
+				if(GameRules_GetRoundState() == RoundState_BetweenRounds)
 				{
 					TF2_AddCondition(i, TFCond_FreezeInput, 0.255);
 					TF2_AddCondition(i, TFCond_UberchargedHidden, 0.255);
 				}
-				else if( p_bInSpawn[i] )
+				else if(p_bInSpawn[i])
 				{
 					TF2_AddCondition(i, TFCond_UberchargedHidden, 0.255);
 				}
 				
-				if( p_iBotAttrib[i] & BotAttrib_InfiniteCloak )
+				if(p_iBotAttrib[i] & BotAttrib_InfiniteCloak)
 				{
 					SetEntPropFloat( i, Prop_Send, "m_flCloakMeter", 100.0 );
 				}
@@ -1495,21 +1495,21 @@ public Action Command_ShowPlayers( int client, int nArgs )
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if( IsClientInGame(i) && !IsFakeClient(i) )
+		if(IsClientInGame(i) && !IsFakeClient(i))
 		{
-			if( TF2_GetClientTeam(i) == TFTeam_Red )
+			if(TF2_GetClientTeam(i) == TFTeam_Red)
 			{
 				GetClientName(i, plrname, sizeof(plrname));
 				Format(RedNames, sizeof(RedNames), "%s %s", plrname, RedNames);
 				iRedCount++;
 			}
-			else if( TF2_GetClientTeam(i) == TFTeam_Blue )
+			else if(TF2_GetClientTeam(i) == TFTeam_Blue )
 			{
 				GetClientName(i, plrname, sizeof(plrname));
 				Format(BluNames, sizeof(BluNames), "%s %s", plrname, BluNames);
 				iBluCount++;
 			}
-			else if( TF2_GetClientTeam(i) == TFTeam_Spectator || TF2_GetClientTeam(i) == TFTeam_Unassigned )
+			else if(TF2_GetClientTeam(i) == TFTeam_Spectator || TF2_GetClientTeam(i) == TFTeam_Unassigned)
 			{
 				GetClientName(i, plrname, sizeof(plrname));
 				Format(SpecNames, sizeof(SpecNames), "%s %s", plrname, SpecNames);				
@@ -1527,7 +1527,7 @@ public Action Command_ShowPlayers( int client, int nArgs )
 
 public Action Command_RobotInfo( int client, int nArgs )
 {
-	if( nArgs < 3 )
+	if(nArgs < 3)
 	{
 		ReplyToCommand(client, "Usage: sm_robotinfo <class> <type: 0 - normal | 1 - giant> <variant>");
 		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy");
@@ -1545,7 +1545,7 @@ public Action Command_RobotInfo( int client, int nArgs )
 	iArg2 = StringToInt(arg2);
 	iArg3 = StringToInt(arg3);
 	
-	if( iArg2 < 0 || iArg2 > 1 )
+	if(iArg2 < 0 || iArg2 > 1)
 	{
 		ReplyToCommand(client, "ERROR: Use 0 for Normal Bot and 1 for Giant Bot");
 		return Plugin_Handled;
@@ -1554,44 +1554,44 @@ public Action Command_RobotInfo( int client, int nArgs )
 	if(iArg2 != 0)
 		bGiants = true;
 	
-	if( strcmp(arg1, "scout", false) == 0 )
+	if(strcmp(arg1, "scout", false) == 0)
 	{
 		TargetClass = TFClass_Scout;
 	}
-	else if( strcmp(arg1, "soldier", false) == 0 )
+	else if(strcmp(arg1, "soldier", false) == 0)
 	{
 		TargetClass = TFClass_Soldier;
 	}
-	else if( strcmp(arg1, "pyro", false) == 0 )
+	else if(strcmp(arg1, "pyro", false) == 0)
 	{
 		TargetClass = TFClass_Pyro;
 	}
-	else if( strcmp(arg1, "demoman", false) == 0 )
+	else if(strcmp(arg1, "demoman", false) == 0)
 	{
 		TargetClass = TFClass_DemoMan;
 	}
-	else if( strcmp(arg1, "heavy", false) == 0 )
+	else if(strcmp(arg1, "heavy", false) == 0)
 	{
 		TargetClass = TFClass_Heavy;
 	}
-	else if( strcmp(arg1, "engineer", false) == 0 )
+	else if(strcmp(arg1, "engineer", false) == 0)
 	{
 		TargetClass = TFClass_Engineer;
 	}
-	else if( strcmp(arg1, "medic", false) == 0 )
+	else if(strcmp(arg1, "medic", false) == 0)
 	{
 		TargetClass = TFClass_Medic;
 	}
-	else if( strcmp(arg1, "sniper", false) == 0 )
+	else if(strcmp(arg1, "sniper", false) == 0)
 	{
 		TargetClass = TFClass_Sniper;
 	}
-	else if( strcmp(arg1, "spy", false) == 0 )
+	else if(strcmp(arg1, "spy", false) == 0)
 	{
 		TargetClass = TFClass_Spy;
 	}
 	
-	if( TargetClass == TFClass_Unknown )
+	if(TargetClass == TFClass_Unknown)
 	{
 		ReplyToCommand(client, "ERROR: Invalid class.");
 		ReplyToCommand(client, "Valid Classes: scout,soldier,pyro,demoman,heavy,engineer,medic,sniper,spy.");
@@ -2292,7 +2292,7 @@ public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 	CreateTimer(2.0, Timer_CheckGates);
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if( IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue )
+		if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue)
 		{
 			CreateTimer(3.0, Timer_UpdateRobotClasses, i);
 		}
@@ -2312,7 +2312,7 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 {
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if( IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue )
+		if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue)
 		{
 			MovePlayerToRED(i);
 		}
@@ -4175,9 +4175,9 @@ int GetRandomBLUPlayer()
 	int counter = 0; // counts how many valid players we have
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if( IsValidClient(i) && !IsFakeClient(i) )
+		if(IsClientInGame(i) && !IsFakeClient(i))
 		{
-			if( TF2_GetClientTeam(i) == TFTeam_Blue )
+			if(TF2_GetClientTeam(i) == TFTeam_Blue)
 			{
 				players_available[counter] = i; // stores the client userid
 				counter++;				

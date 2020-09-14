@@ -234,7 +234,7 @@ void FindEngineerNestNearBomb(int client)
 	}
 }
 
-// teleports a client to the entity origin.
+// teleports a client to the ent origin.
 // also adds engineer spawn particle
 void TeleportEngineerToPosition(float origin[3], int client, float OffsetVec[3] = {0.0,0.0,0.0})
 {
@@ -449,7 +449,7 @@ int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false, b
 	return iClassNum;
 }
 
-// returns the entity index of the first available weapon
+// returns the ent index of the first available weapon
 int GetFirstAvailableWeapon(int client)
 {
 	int iWeapon = -1;
@@ -478,18 +478,18 @@ void BlockBombPickup(int client)
 }
 
 // add particle to the robot engineer teleporter
-void AddParticleToTeleporter(int entity)
+void AddParticleToTeleporter(int ent)
 {
 	int particle = CreateEntityByName("info_particle_system");
 
 	char targetname[64];
 	float VecOrigin[3];
-	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", VecOrigin);
+	GetEntPropVector(ent, Prop_Send, "m_vecOrigin", VecOrigin);
 	VecOrigin[2] -= 500;
 	TeleportEntity(particle, VecOrigin, NULL_VECTOR, NULL_VECTOR);
 
-	FormatEx(targetname, sizeof(targetname), "tele_target_%i", entity);
-	DispatchKeyValue(entity, "targetname", targetname);
+	FormatEx(targetname, sizeof(targetname), "tele_target_%i", ent);
+	DispatchKeyValue(ent, "targetname", targetname);
 
 	DispatchKeyValue(particle, "targetname", "bwrr_tele_particle");
 	DispatchKeyValue(particle, "parentname", targetname);
@@ -497,7 +497,7 @@ void AddParticleToTeleporter(int entity)
 	DispatchSpawn(particle);
 	SetVariantString(targetname);
 	AcceptEntityInput(particle, "SetParent", particle, particle);
-	SetEntPropEnt(particle, Prop_Send, "m_hOwnerEntity", entity);
+	SetEntPropEnt(particle, Prop_Send, "m_hOwnerEntity", ent);
 	ActivateEntity(particle);
 	AcceptEntityInput(particle, "start");
 }
@@ -576,13 +576,13 @@ bool CheckTeleportClamping(int teleporter, int client)
 	return false;
 }
 
-bool TraceFilterIgnorePlayers(int entity, int contentsMask)
+bool TraceFilterIgnorePlayers(int ent, int contentsMask)
 {
-    if(entity >= 1 && entity <= MaxClients)
+    if(ent >= 1 && ent <= MaxClients)
     {
         return false;
     }
-    if(entity != 0)
+    if(ent != 0)
         return false;
   
     return true;
@@ -796,11 +796,11 @@ bool TraceFilterSentryBuster(int iEntity,int iContentsMask, any iOther )
 	return false;
 }
 
-void DealDamage(int entity, int inflictor, int attacker, float damage, int damageType, int weapon=-1, const float damageForce[3]=NULL_VECTOR, const float damagePosition[3]=NULL_VECTOR)
+void DealDamage(int ent, int inflictor, int attacker, float damage, int damageType, int weapon=-1, const float damageForce[3]=NULL_VECTOR, const float damagePosition[3]=NULL_VECTOR)
 {
-	if( entity > 0 && IsValidEntity(entity) && ( entity > MaxClients || IsClientInGame(entity) && IsPlayerAlive(entity) ) && damage > 0 )
+	if( ent > 0 && IsValidEntity(ent) && ( ent > MaxClients || IsClientInGame(ent) && IsPlayerAlive(ent) ) && damage > 0 )
 	{
-		SDKHooks_TakeDamage(entity, inflictor, attacker, damage, damageType, weapon, damageForce, damagePosition);
+		SDKHooks_TakeDamage(ent, inflictor, attacker, damage, damageType, weapon, damageForce, damagePosition);
 	}
 }
 
@@ -1198,15 +1198,15 @@ void DisableAnim(int userid)
 	}
 }
 
-void GetEntityWorldCenter(int entity, float[] origin)
+void GetEntityWorldCenter(int ent, float[] origin)
 {
-	if( !IsValidEntity(entity) )
+	if( !IsValidEntity(ent) )
 	{
-		ThrowError("void GetEntityWorldCenter(int entity, float[] origin) received invalid entity!");
+		ThrowError("void GetEntityWorldCenter(int ent, float[] origin) received invalid ent!");
 		return;
 	}
 	
-	SDKCall(g_hSDKWorldSpaceCenter, entity, origin);
+	SDKCall(g_hSDKWorldSpaceCenter, ent, origin);
 }
 
 float[] TF2_GetBombHatchPosition(bool update = false)
@@ -1271,43 +1271,43 @@ void AddAdditionalSpawnRooms()
 
 void CreateSpawnRoom(int spawnpoint)
 {
-	int entity = CreateEntityByName("func_respawnroom");
+	int ent = CreateEntityByName("func_respawnroom");
 	
-	if( entity == -1 )
+	if( ent == -1 )
 	{
 		ThrowError("Failed to create func_respawnroom.");
 		return;
 	}
 		
-	DispatchKeyValue(entity, "StartDisabled", "0");
-	DispatchKeyValue(entity, "TeamNum", "3");
-	DispatchKeyValue(entity, "targetname", "bwrr_respawnroom");
-	DispatchSpawn(entity); // spawn entity
-	ActivateEntity(entity);
+	DispatchKeyValue(ent, "StartDisabled", "0");
+	DispatchKeyValue(ent, "TeamNum", "3");
+	DispatchKeyValue(ent, "targetname", "bwrr_respawnroom");
+	DispatchSpawn(ent); // spawn ent
+	ActivateEntity(ent);
 	
 	PrecacheModel("models/player/items/pyro/drg_pyro_fueltank.mdl");
-	SetEntityModel(entity, "models/player/items/pyro/drg_pyro_fueltank.mdl");
+	SetEntityModel(ent, "models/player/items/pyro/drg_pyro_fueltank.mdl");
 	
 	static float mins[3] = {-150.0,-150.0,-200.0};
 	static float maxs[3] = {150.0,150.0,200.0};
 	
-	SetEntPropVector(entity, Prop_Send, "m_vecMins", mins);
-	SetEntPropVector(entity, Prop_Send, "m_vecMaxs", maxs);
+	SetEntPropVector(ent, Prop_Send, "m_vecMins", mins);
+	SetEntPropVector(ent, Prop_Send, "m_vecMaxs", maxs);
 	
-	SetEntProp(entity, Prop_Send, "m_nSolidType", 2);
+	SetEntProp(ent, Prop_Send, "m_nSolidType", 2);
 	
-	int enteffects = GetEntProp(entity, Prop_Send, "m_fEffects");
+	int enteffects = GetEntProp(ent, Prop_Send, "m_fEffects");
 	enteffects |= 32;
-	SetEntProp(entity, Prop_Send, "m_fEffects", enteffects);
+	SetEntProp(ent, Prop_Send, "m_fEffects", enteffects);
 	
 	float pos[3];
 	GetEntPropVector(spawnpoint, Prop_Send, "m_vecOrigin", pos);
-	TeleportEntity(entity, pos, NULL_VECTOR, NULL_VECTOR);
-	HookRespawnRoom(entity);
+	TeleportEntity(ent, pos, NULL_VECTOR, NULL_VECTOR);
+	HookRespawnRoom(ent);
 	
 	if( IsDebugging() )
 	{
-		LogMessage("Creating func_respawnroom at (%f %f %f) index %i", pos[0], pos[1], pos[2], entity);
+		LogMessage("Creating func_respawnroom at (%f %f %f) index %i", pos[0], pos[1], pos[2], ent);
 	}
 }
 
@@ -1350,24 +1350,24 @@ bool FakeClientCommandThrottled(int client, const char[] command)
 
 void KillReviveMaker(int entref)
 {
-	int entity = EntRefToEntIndex(entref);
-	if(entity == INVALID_ENT_REFERENCE)
+	int ent = EntRefToEntIndex(entref);
+	if(ent == INVALID_ENT_REFERENCE)
 		return;
 		
-	int iTeam = GetEntProp(entity, Prop_Send, "m_iTeamNum");
+	int iTeam = GetEntProp(ent, Prop_Send, "m_iTeamNum");
 	if(iTeam != 3)
 		return;
 		
-	RemoveEntity(entity);
+	RemoveEntity(ent);
 }
 
 void SetBLURespawnWaveTime(float time)
 {
-	int entity = FindEntityByClassname(-1, "tf_gamerules");
-	if(IsValidEntity(entity))
+	int ent = FindEntityByClassname(-1, "tf_gamerules");
+	if(IsValidEntity(ent))
 	{
 		SetVariantFloat(time);
-		AcceptEntityInput(entity, "SetBlueTeamRespawnWaveTime");
+		AcceptEntityInput(ent, "SetBlueTeamRespawnWaveTime");
 	}
 }
 
@@ -1468,10 +1468,10 @@ void HookEntitiesOnLateLoad()
 	{
 		if(IsValidEntity(ent))
 		{
-			SDKUnhook(entity, SDKHook_StartTouch, OnTouchCaptureZone); // propably not needed but added just for safety
-			SDKUnhook(entity, SDKHook_EndTouch, OnEndTouchCaptureZone);
-			SDKHook(entity, SDKHook_StartTouch, OnTouchCaptureZone);
-			SDKHook(entity, SDKHook_EndTouch, OnEndTouchCaptureZone);			
+			SDKUnhook(ent, SDKHook_StartTouch, OnTouchCaptureZone); // propably not needed but added just for safety
+			SDKUnhook(ent, SDKHook_EndTouch, OnEndTouchCaptureZone);
+			SDKHook(ent, SDKHook_StartTouch, OnTouchCaptureZone);
+			SDKHook(ent, SDKHook_EndTouch, OnEndTouchCaptureZone);			
 		}
 	}
 	ent = -1;
