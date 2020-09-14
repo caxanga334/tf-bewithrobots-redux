@@ -16,6 +16,9 @@ char g_strSniperSplit[16][64];
 char g_strSpySplit[16][64];
 int g_iSplitSize[4];
 
+float g_flGateStunDuration;
+bool g_bLimitRobotScale;
+
 /**
  * Checks if the given client index is valid.
  *
@@ -499,10 +502,11 @@ void AddParticleToTeleporter(int entity)
 	AcceptEntityInput(particle, "start");
 }
 
-void OnDestroyedTeleporter(const char[] output, int caller, int activator, float delay)
+public void OnDestroyedTeleporter(const char[] output, int caller, int activator, float delay)
 {
 	AcceptEntityInput(caller,"KillHierarchy");
 }
+
 // Fires a bunch of tracers to check if there is enough space for robots (and giants) to spawn.
 // The player size can be found here: https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper's_Reference
 // Remember that giant's size is multiplied by 1.75 (some bosses uses 1.9).
@@ -1047,6 +1051,10 @@ void Config_LoadMap()
 		SetFailState("Map \"%s\" configuration not found.", mapname);
 	}
 	
+	// reset some globals
+	g_flGateStunDuration = 0.0;
+	g_bLimitRobotScale = false;
+	
 	KeyValues kv = new KeyValues("MapConfig");
 	kv.ImportFromFile(g_strConfigFile);
 	
@@ -1072,6 +1080,14 @@ void Config_LoadMap()
 			kv.GetString("tank_relay", g_strHatchTrigger, sizeof(g_strHatchTrigger), "boss_deploy_relay");
 			kv.GetString("cap_relay", g_strExploTrigger, sizeof(g_strExploTrigger), "cap_destroy_relay");
 		}
+		else if( strcmp(buffer, "Gatebot", false) == 0 )
+		{
+			g_flGateStunDuration = kv.GetFloat("stun_duration", 22.0);
+		}
+		else if( strcmp(buffer, "RobotScaling", false) == 0 )
+		{
+			g_bLimitRobotScale = !!kv.GetNum("limited_size", 0);
+		}
 	} while (kv.GotoNextKey());
 	
 	delete kv;
@@ -1081,6 +1097,8 @@ void Config_LoadMap()
 	g_iSplitSize[2] = ExplodeString(g_strSniperSpawns, ",", g_strSniperSplit, sizeof(g_strSniperSplit), sizeof(g_strSniperSplit[]));
 	g_iSplitSize[3] = ExplodeString(g_strSpySpawns, ",", g_strSpySplit, sizeof(g_strSpySplit), sizeof(g_strSpySplit[]));
 }
+
+bool IsSmallMap() { return g_bLimitRobotScale; }
 
 // searches for red sentry guns
 // also checks for kill num
@@ -1185,6 +1203,7 @@ void GetEntityWorldCenter(int entity, float[] origin)
 	if( !IsValidEntity(entity) )
 	{
 		ThrowError("void GetEntityWorldCenter(int entity, float[] origin) received invalid entity!");
+		return;
 	}
 	
 	SDKCall(g_hSDKWorldSpaceCenter, entity, origin);
@@ -1255,7 +1274,10 @@ void CreateSpawnRoom(int spawnpoint)
 	int entity = CreateEntityByName("func_respawnroom");
 	
 	if( entity == -1 )
+	{
 		ThrowError("Failed to create func_respawnroom.");
+		return;
+	}
 		
 	DispatchKeyValue(entity, "StartDisabled", "0");
 	DispatchKeyValue(entity, "TeamNum", "3");
@@ -1337,4 +1359,102 @@ void KillReviveMaker(int entref)
 		return;
 		
 	RemoveEntity(entity);
+}
+
+void SetBLURespawnWaveTime(float time)
+{
+	int entity = FindEntityByClassname(-1, "tf_gamerules");
+	if(IsValidEntity(entity))
+	{
+		SetVariantFloat(time);
+		AcceptEntityInput(entity, "SetBlueTeamRespawnWaveTime");
+	}
+}
+
+// checks for RED owned team_control_point
+bool IsGatebotAvailable(bool update = false)
+{
+	static bool isavailable;
+	
+	if(update)
+	{
+		int ent = -1;
+		while((ent = FindEntityByClassname(ent, "team_control_point")) != -1)
+		{
+			if(IsValidEntity(ent))
+			{
+				if(GetEntProp(ent, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
+				{
+					if(IsDebugging()) { CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Found {red}RED{cyan} owned {orange}team_control_point{cyan}."); }
+					isavailable = true;
+					return isavailable;
+				}
+			}
+		}
+		
+		if(IsDebugging()) { CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Didn't found any {orange}team_control_point{cyan} owned by {red}RED{cyan} team."); }
+		isavailable = false;
+	}
+	
+	return isavailable;
+}
+
+// a gate has been taken by the robots
+void GateCapturedByRobots()
+{
+	g_flGateStunTime = GetGameTime() + g_flGateStunDuration;
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(IsClientInGame(i) && GetClientTeam(i) == 3 && !IsFakeClient(i) && IsPlayerAlive(i) && !TF2_IsGiant(i))
+		{
+			TF2_AddCondition(i, TFCond_MVMBotRadiowave, g_flGateStunDuration);
+			TF2_StunPlayer(i, g_flGateStunDuration, 0.0, TF_STUNFLAG_LIMITMOVEMENT|TF_STUNFLAG_BONKSTUCK|TF_STUNFLAG_THIRDPERSON|TF_STUNFLAG_NOSOUNDOREFFECT);
+			if(IsDebugging()) { CPrintToChat(i, "{green}[DEBUG] {cyan}GateCapturedByRobots() applying stun to client %N, stun time: %f", i, g_flGateStunDuration); }
+		}
+	}
+}
+
+// applies gate stun to a client, stun duration depends on stun time left
+void ApplyGateStunToClient(int client)
+{
+	float stuntime = g_flGateStunTime - GetGameTime();
+	TF2_AddCondition(client, TFCond_MVMBotRadiowave, stuntime);
+	TF2_StunPlayer(client, stuntime, 0.0, TF_STUNFLAG_LIMITMOVEMENT|TF_STUNFLAG_BONKSTUCK|TF_STUNFLAG_THIRDPERSON|TF_STUNFLAG_NOSOUNDOREFFECT);
+	if(IsDebugging()) { CPrintToChat(client, "{green}[DEBUG] {cyan}ApplyGateStunToClient(%i) stuntime: %f", client, stuntime); }
+}
+
+bool IsGateStunActive()
+{
+	if(g_flGateStunTime > GetGameTime())
+	{
+		return true;
+	}
+	
+	return false;
+}
+
+int BotNoticeBackstabChance(bool update = false)
+{
+	static int chance;
+	
+	if(update)
+	{
+		chance = GetConVarInt(FindConVar("tf_bot_notice_backstab_chance"));
+		return chance;
+	}
+	
+	return chance;
+}
+
+int BotTauntAfterKillChance(bool update = false)
+{
+	static int chance;
+	
+	if(update)
+	{
+		chance = GetConVarInt(FindConVar("tf_bot_taunt_victim_chance"));
+		return chance;
+	}
+	
+	return chance;
 }

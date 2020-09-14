@@ -32,6 +32,7 @@ int p_iBotVariant[MAXPLAYERS + 1];
 int p_iBotAttrib[MAXPLAYERS + 1];
 TFClassType p_BotClass[MAXPLAYERS + 1];
 bool p_bInSpawn[MAXPLAYERS + 1]; // Local cache to know if a player is in spawn
+bool p_bIsGatebot[MAXPLAYERS + 1]; // Is the player a gatebot
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
@@ -53,6 +54,9 @@ bool g_bWelcomeMsg[MAXPLAYERS + 1]; // Did we show the welcome message?
 int g_iBusterIndex; // Index of a sentry buster player
 float g_flBusterVisionTimer; // timer for buster wallhack
 
+// gatebot
+float g_flGateStunTime;
+
 int g_iLaserSprite;
 int g_iHaloSprite;
 
@@ -64,7 +68,6 @@ ConVar c_iGiantMinRed; // minimum red players to allow giants.
 ConVar c_iMaxBlu; // maximum blu players allowed
 ConVar c_flBluRespawnTime; // blu players respawn time
 ConVar c_bAutoTeamBalance;
-ConVar c_bSmallMap; // change robot scale to avoid getting stuck in maps such as mvm_2fort
 ConVar c_flBusterDelay; // delay between human sentry buster spawns.
 ConVar c_iBusterMinKills; // minimum amount of kills a sentry needs to have before becoming a threat
 ConVar c_svTag; // server tags
@@ -74,6 +77,10 @@ ConVar c_flFDGiant; // Extra delay added when the forced bot is a giant
 ConVar c_strNBFile; // Normal bot template file
 ConVar c_strGBFile; // Giant bot template file
 ConVar c_bLimitClasses; // Limit playable classes to the ones used in the current wave
+ConVar c_iGatebotChance; // change to spawn as a gatebot
+
+// convar globals
+bool g_bDebugEnabled;
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -187,6 +194,11 @@ methodmap RoboPlayer
 		public get() { return p_bInSpawn[this.index]; }
 		public set( bool value ) { p_bInSpawn[this.index] = value; }
 	}
+	property bool Gatebot
+	{
+		public get() { return p_bIsGatebot[this.index]; }
+		public set( bool value ) { p_bIsGatebot[this.index] = value; }
+	}
 	public void MiniBoss(bool value)
 	{
 		SetEntProp( this.index, Prop_Send, "m_bIsMiniBoss", view_as<int>(value) );
@@ -240,16 +252,17 @@ public void OnPluginStart()
 	c_iGiantMinRed = AutoExecConfig_CreateConVar("sm_bwrr_giantminred", "5", "Minimum amount of players on RED team to allow human giants. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 8.0);
 	c_iMaxBlu = AutoExecConfig_CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 5.0);
 	c_bAutoTeamBalance = AutoExecConfig_CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_bSmallMap = AutoExecConfig_CreateConVar("sm_bwrr_smallmap", "0", "Use small robot size for human players. Enable if players are getting stuck.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_flBusterDelay = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_delay", "95.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
 	c_iBusterMinKills = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
 	c_flBluRespawnTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Respawn Time for BLU Players.", FCVAR_NONE, true, 5.0, true, 30.0);
 	c_bDebug = AutoExecConfig_CreateConVar("sm_bwrr_debug_enabled", "0.0", "Enable/Disable the debug mode.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bDebug.AddChangeHook(OnDebugCvarChanged);
 	c_flForceDelay = AutoExecConfig_CreateConVar("sm_bwrr_force_delay", "30.0", "Base delay for sm_robotmenu usage (Normal Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
 	c_flFDGiant = AutoExecConfig_CreateConVar("sm_bwrr_force_giant_delay", "60.0", "Base delay for sm_robotmenu usage (Giant Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
 	c_strNBFile = AutoExecConfig_CreateConVar("sm_bwrr_botnormal_file", "robots_normal.cfg", "The file to load normal robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
 	c_strGBFile = AutoExecConfig_CreateConVar("sm_bwrr_botgiant_file", "robots_giant.cfg", "The file to load giant robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
 	c_bLimitClasses = AutoExecConfig_CreateConVar("sm_bwrr_limit_classes", "1", "Limit playable classes on the BLU team to classes that are used in the current wave", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_iGatebotChance = AutoExecConfig_CreateConVar("sm_bwrr_gatebot_chance", "25", "Chance to spawn as a gatebot on gate maps. 0 = Disabled", FCVAR_NONE, true, 0.0, true, 100.0);
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
@@ -321,12 +334,16 @@ public void OnPluginStart()
 	HookEvent( "post_inventory_application", E_Inventory );
 	HookEvent( "player_builtobject", E_BuildObject, EventHookMode_Pre );
 	
+	// Entities
+	HookEntityOutput("team_control_point", "OnCapTeam1", OnGateCaptureRED);
+	HookEntityOutput("team_control_point", "OnCapTeam2", OnGateCaptureBLU);
+	
 	// User messages
 	
 	ID_MVMResetUpgrade = GetUserMessageId("MVMResetPlayerUpgradeSpending");
 	if(ID_MVMResetUpgrade == INVALID_MESSAGE_ID)
 		LogError("Unable to hook user message.");
-		
+
 	HookUserMessage(ID_MVMResetUpgrade, MsgHook_MVMRespec);
 	
 	// SDK calls
@@ -390,9 +407,7 @@ public void OnPluginStart()
 	array_spawns = new ArrayList();
 }
 
-bool IsDebugging() { return c_bDebug.BoolValue; }
-
-bool IsSmallMap() { return c_bSmallMap.BoolValue; }
+bool IsDebugging() { return g_bDebugEnabled; }
 
 char NormalBotsFile()
 {
@@ -423,6 +438,8 @@ public void OnConfigsExecuted()
 	RT_LoadCfgNormal();
 	RT_LoadCfgGiant();
 	RT_PostLoad();
+	
+	g_bDebugEnabled = c_bDebug.BoolValue;
 }
 
 public void OnMapStart()
@@ -466,6 +483,11 @@ public void OnMapStart()
 	array_avgiants.Clear();
 	
 	TF2_GetBombHatchPosition(true);
+	g_flGateStunTime = 0.0;
+	g_BossTimer = 0.0;
+	g_flBusterVisionTimer = 0.0;
+	BotNoticeBackstabChance(true);
+	BotTauntAfterKillChance(true);
 	
 	// add custom tag
 	AddPluginTag("BWRR");
@@ -503,6 +525,7 @@ public void OnMapStart()
 	PrecacheSound("vo/mvm_sentry_buster_alerts07.mp3");
 	PrecacheScriptSound("MVM.GiantHeavyEntrance");
 	PrecacheScriptSound("MVM.Warning");
+	PrecacheScriptSound("Player.Spy_Shield_Break");
 	g_iLaserSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
 	g_iHaloSprite = PrecacheModel("materials/sprites/halo01.vmt");
 	g_flBusterVisionTimer = 0.0;
@@ -511,6 +534,12 @@ public void OnMapStart()
 public void TF2_OnWaitingForPlayersStart()
 {
 	AddAdditionalSpawnRooms();
+	CreateTimer(1.0, Timer_CheckGates);
+}
+
+public void OnClientPutInServer(int client)
+{
+	SDKHook(client, SDKHook_OnTakeDamage, SDKOnPlayerTakeDamage);
 }
 
 public void OnClientDisconnect(int client)
@@ -672,9 +701,9 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		
 		if( rp.Type == Bot_Buster )
 		{
-			if( g_flBusterVisionTimer < GetEngineTime() )
+			if( g_flBusterVisionTimer < GetGameTime() )
 			{
-				g_flBusterVisionTimer = GetEngineTime() + 0.5;
+				g_flBusterVisionTimer = GetGameTime() + 0.5;
 				BusterWallhack(client);
 			}
 		
@@ -781,6 +810,11 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 public void OnTagsChanged(ConVar convar, char[] oldValue, char[] newValue)
 {
 	AddPluginTag("BWRR");
+}
+
+public void OnDebugCvarChanged(ConVar convar, char[] oldValue, char[] newValue)
+{
+	g_bDebugEnabled = convar.BoolValue;
 }
 
 /****************************************************
@@ -916,6 +950,26 @@ public void OnTFBotTagFilterSpawnPost(int entity)
 	DHookEntity(g_hCFilterTFBotHasTag, true, entity);
 }
 
+public Action SDKOnPlayerTakeDamage(int victim, int& attacker, int& inflictor, float& damage, int& damagetype, int& weapon, float damageForce[3], float damagePosition[3], int damagecustom)
+{
+	if(victim <= 0 || victim > MaxClients)
+		return Plugin_Continue;
+	
+	if(attacker <= 0 || attacker > MaxClients)
+		return Plugin_Continue;
+
+	bool announce = GetRandomInt(1,100) <= BotNoticeBackstabChance();
+	
+	if(damagecustom == TF_CUSTOM_BACKSTAB && damagetype & DMG_CRIT && announce && TF2_IsGiant(victim))
+	{
+		// Alert giant players they're getting backstabbed
+		EmitGameSoundToClient(victim, "Player.Spy_Shield_Break", SOUND_FROM_WORLD);
+		PrintCenterText(victim, "!!!!!! YOU WERE BACKSTABBED !!!!!");
+	}
+	
+	return Plugin_Continue;
+}
+
 /****************************************************
 					DETOURS
 *****************************************************/
@@ -972,10 +1026,20 @@ public MRESReturn CFilterTFBotHasTag(int iFilter, Handle hReturn, Handle hParams
 	// Don't care if not from BLU team.
 	if(GetClientTeam(iOther) != 3)
 		return MRES_Ignored;
+	
+	// Don't allow taking gates if stun is active
+	if(IsGateStunActive())
+		return MRES_Ignored;
+		
+	if(TF2_GetPlayerClass(iOther) == TFClass_Spy)
+	{
+		if(TF2_IsPlayerInCondition(iOther, TFCond_Disguised) || TF2_IsPlayerInCondition(iOther, TFCond_Cloaked) || TF2_IsPlayerInCondition(iOther, TFCond_Stealthed))
+			return MRES_Ignored; // Don't allow disguised or cloaked spies to cap
+	}
 
 	bool bNegated = !!GetEntProp(iFilter, Prop_Data, "m_bNegated");
 	
-	bool bResult = true;
+	bool bResult = p_bIsGatebot[iOther];
 	if(bNegated)
 		bResult = !bResult;
 	
@@ -992,6 +1056,21 @@ public MRESReturn CFilterTFBotHasTag(int iFilter, Handle hReturn, Handle hParams
 	
 	DHookSetReturn(hReturn, bResult);
 	return MRES_Supercede;
+}
+
+/****************************************************
+					ENTITY OUTPUTS
+*****************************************************/
+
+void OnGateCaptureBLU(const char[] output, int caller, int activator, float delay)
+{
+	CreateTimer(1.0, Timer_CheckGates);
+	RequestFrame(GateCapturedByRobots);
+}
+
+void OnGateCaptureRED(const char[] output, int caller, int activator, float delay)
+{
+	CreateTimer(1.0, Timer_CheckGates);
 }
 
 /****************************************************
@@ -1121,6 +1200,8 @@ public Action Command_Debug( int client, int nArgs )
 	ReplyToCommand(client, "Class Array Size: %i", array_avclass.Length);
 	ReplyToCommand(client, "Giant Array Size: %i", array_avgiants.Length);
 	ReplyToCommand(client, "Client Data: RT: %d, RV: %d, RA: %d", p_iBotType[client], p_iBotVariant[client], p_iBotAttrib[client]);
+	ReplyToCommand(client, "Bot taunt after kill chance: %i", BotTauntAfterKillChance(true));
+	ReplyToCommand(client, "Bot notice backstab chance: %i", BotNoticeBackstabChance(true));
 	
 	return Plugin_Handled;
 }
@@ -1668,7 +1749,7 @@ public Action Command_BossInfo( int client, int nArgs )
 		ReplyToCommand(client, "Not enough players in RED to allow bosses to spawn.");
 	}
 	
-	float enginetime = GetEngineTime();
+	float enginetime = GetGameTime();
 	if( g_BossTimer > enginetime )
 	{
 		int iSpawnTime = RoundToNearest( g_BossTimer - enginetime );
@@ -1826,9 +1907,9 @@ public Action Command_RobotMenu( int client, int nArgs )
 		return Plugin_Handled;
 	}
 
-	if( GetEngineTime() < g_flLastForceBot[client] )
+	if( GetGameTime() < g_flLastForceBot[client] )
 	{
-		int iWaitTime = RoundToNearest(g_flLastForceBot[client] - GetEngineTime());
+		int iWaitTime = RoundToNearest(g_flLastForceBot[client] - GetGameTime());
 		CReplyToCommand(client, "%t", "Wait Secs to Use", iWaitTime);
 		return Plugin_Handled;
 	}
@@ -2035,16 +2116,20 @@ public int MenuHandler_SelectVariant(Menu menu, MenuAction action, int param1, i
 				if( type == Bot_Normal ) 
 				{ 
 					RT_GetTemplateName(botname, sizeof(botname), g_BotMenuSelectedClass[param1], id, 0);
-					g_flLastForceBot[param1] = GetEngineTime() + c_flForceDelay.FloatValue + RT_GetCooldown(g_BotMenuSelectedClass[param1], id, 0);
+					g_flLastForceBot[param1] = GetGameTime() + c_flForceDelay.FloatValue + RT_GetCooldown(g_BotMenuSelectedClass[param1], id, 0);
 				} 
 				else 
 				{ 
 					RT_GetTemplateName(botname, sizeof(botname), g_BotMenuSelectedClass[param1], id, 1);
-					g_flLastForceBot[param1] = GetEngineTime() + c_flFDGiant.FloatValue + RT_GetCooldown(g_BotMenuSelectedClass[param1], id, 1);
+					g_flLastForceBot[param1] = GetGameTime() + c_flFDGiant.FloatValue + RT_GetCooldown(g_BotMenuSelectedClass[param1], id, 1);
 				}
 				if(GameRules_GetRoundState() == RoundState_BetweenRounds)
 				{
-					g_flLastForceBot[param1] = GetEngineTime() + 5.0; // small cooldown when the wave is not in progress
+					g_flLastForceBot[param1] = GetGameTime() + 5.0; // small cooldown when the wave is not in progress
+				}
+				if( IsGatebotAvailable() && GetRandomInt(0,100) <= c_iGatebotChance.IntValue )
+				{
+					p_bIsGatebot[param1] = true;
 				}
 				LogAction(param1, -1, "\"%L\" selected a robot (%s)", param1,botname);
 				if( Boss_GetClient() == param1 )
@@ -2182,11 +2267,14 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
 	ResetRobotMenuCooldown();
 	Boss_LoadWaveConfig();
+	SetBLURespawnWaveTime(2.0);
+	CreateTimer(1.0, Timer_CheckGates);
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 {
 	CreateTimer(2.0, Timer_UpdateWaveData);
+	CreateTimer(2.0, Timer_CheckGates);
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if( IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue )
@@ -2294,6 +2382,7 @@ public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadca
 public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
+	int attacker = GetClientOfUserId(event.GetInt("attacker"));
 	
 	int deathflags = event.GetInt("death_flags");
 	if(deathflags & TF_DEATHFLAG_DEADRINGER)
@@ -2301,6 +2390,8 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
+		p_bIsGatebot[client] = false;
+	
 		if( client == Boss_GetClient() )
 		{
 			Boss_Death();
@@ -2334,6 +2425,14 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		CreateTimer(c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client);
 		CreateTimer(1.0, Timer_PickRandomRobot, client);
 		StopRobotLoopSound(client);
+	}
+	else if( TF2_GetClientTeam(client) == TFTeam_Red )
+	{
+		if( IsValidClient(attacker) && !IsFakeClient(attacker) && TF2_GetClientTeam(attacker) == TFTeam_Blue && !TF2_IsGiant(attacker) )
+		{
+			bool taunt = GetRandomInt(1,100) <= BotTauntAfterKillChance();
+			if(taunt) { FakeClientCommand(attacker, "taunt"); }
+		}
 	}
 	
 	return Plugin_Continue;
@@ -2445,10 +2544,11 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	char strBotName[255], strBotDesc[255];
 	int iTeleTarget = -1;
+	RoboPlayer rp = RoboPlayer(client);
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
-		g_bIsCarrier[client] = false;
+		rp.Carrier = false;
 		
 		if( TFClass == TFClass_Spy && p_iBotAttrib[client] & BotAttrib_AutoDisguise )
 		{
@@ -2460,7 +2560,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 		
 		// TO DO: pyro's gas passer and phlog
-		if( p_iBotAttrib[client] & BotAttrib_FullCharge )
+		if( rp.Attributes & BotAttrib_FullCharge )
 		{
 			if( TFClass == TFClass_Medic )
 			{
@@ -2474,7 +2574,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
 			}			
 		}
-		if( p_iBotAttrib[client] & BotAttrib_CannotCarryBomb )
+		if( rp.Attributes & BotAttrib_CannotCarryBomb )
 		{
 			BlockBombPickup(client);
 		}
@@ -2484,7 +2584,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 		}
 		
-		switch( p_iBotType[client] )
+		switch( rp.Type )
 		{
 			case Bot_Giant:
 			{
@@ -2522,7 +2622,15 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				RT_GetDescription(strBotDesc, sizeof(strBotDesc), TFClass, p_iBotVariant[client], 1);
 				StopRobotLoopSound(client);
 				RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 0);
+				if( IsGateStunActive() ) { ApplyGateStunToClient(client); }
 			}
+		}
+		
+		if( rp.Gatebot )
+		{
+			Format(strBotName, sizeof(strBotName), "Gatebot %s", strBotName); // add Gatebot prefix to robot name
+			GiveGatebotHat(client, TFClass);
+			BlockBombPickup(client);
 		}
 
 		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
@@ -2531,7 +2639,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		SetRobotModel(client,TFClass);
 		
 		// teleport player
-		if( GameRules_GetRoundState() == RoundState_RoundRunning )
+		if( GameRules_GetRoundState() == RoundState_RoundRunning && !IsGateStunActive() )
 		{
 			switch( TFClass )
 			{
@@ -2588,9 +2696,9 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 		
 		// apply attributes to own loadout
-		if( p_iBotVariant[client] == -1 )
+		if( rp.Variant == -1 )
 		{
-			if( p_iBotType[client] == Bot_Giant )
+			if( rp.Type == Bot_Giant )
 				SetOwnAttributes(client ,true);
 			else
 				SetOwnAttributes(client ,false);
@@ -2672,6 +2780,12 @@ public Action Timer_UpdateWaveData(Handle timer)
 	OR_Update();
 	UpdateClassArray();
 	
+	return Plugin_Stop;
+}
+
+public Action Timer_CheckGates(Handle timer)
+{
+	IsGatebotAvailable(true);
 	return Plugin_Stop;
 }
 
@@ -3170,6 +3284,7 @@ void PickRandomRobot(int client)
 	
 	int iSize, iRandom, iClass;
 	bool bGiants = false;
+	RoboPlayer rp = RoboPlayer(client);
 	
 	// First, check if we can spawn a buster or a boss robot.
 	if(GameRules_GetRoundState() == RoundState_RoundRunning)
@@ -3187,10 +3302,10 @@ void PickRandomRobot(int client)
 		// Check cooldown, spawn conditions and permission
 		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() && CheckCommandAccess(client, "bwrr_sentrybuster", 0) )
 		{
-			p_BotClass[client] = TFClass_DemoMan;
-			p_iBotVariant[client] = 0;
-			p_iBotType[client] = Bot_Buster;
-			p_iBotAttrib[client] = BotAttrib_CannotCarryBomb;
+			rp.Class = TFClass_DemoMan;
+			rp.Variant = 0;
+			rp.Type = Bot_Buster;
+			rp.Attributes = BotAttrib_CannotCarryBomb;
 			g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
 			g_iBusterIndex = client;
 			CreateTimer(0.1, Timer_SetRobotClass, client);
@@ -3198,8 +3313,13 @@ void PickRandomRobot(int client)
 		}
 	}
 	
+	if( IsGatebotAvailable() && GetRandomInt(1,100) <= c_iGatebotChance.IntValue )
+	{
+		rp.Gatebot = true;
+	}
+	
 	// Checks if giants are allowed.
-	if( OR_IsGiantAvaiable && GetRandomInt(0, 100) <= c_iGiantChance.IntValue && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue && array_avgiants.Length >= 1 )
+	if( OR_IsGiantAvaiable && GetRandomInt(1, 100) <= c_iGiantChance.IntValue && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue && array_avgiants.Length >= 1 )
 	{
 		bGiants = true;
 	}
@@ -3778,7 +3898,7 @@ void ResetRobotData(int client, bool bStrip = false)
 	p_bInSpawn[client] = false;
 	g_bIsCarrier[client] = false;
 	g_bUpgradeStation[client] = false;
-	g_flLastForceBot[client] = GetEngineTime();
+	g_flLastForceBot[client] = 0.0;
 	if( bStrip )
 		StripWeapons(client);
 }

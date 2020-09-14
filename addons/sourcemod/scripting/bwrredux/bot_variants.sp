@@ -245,6 +245,28 @@ int SpawnWeapon(int client,char[] name,int index,int level,int qual,bool bWearab
 	return entity;
 }
 
+// gives the gatebot hat to the client
+void GiveGatebotHat(int client, TFClassType class)
+{
+	int index;
+	
+	switch(class) // item definition index for gatebot hats "MvM GateBot Light" --> https://wiki.alliedmods.net/Team_Fortress_2_Item_Definition_Indexes 
+	{
+		case TFClass_Scout: index = 1057;
+		case TFClass_Soldier: index = 1063;
+		case TFClass_Pyro: index = 1058;
+		case TFClass_DemoMan: index = 1061;
+		case TFClass_Heavy: index = 1060;
+		case TFClass_Engineer: index = 1065;
+		case TFClass_Medic: index = 1059;
+		case TFClass_Sniper: index = 1062;
+		case TFClass_Spy: index = 1064;
+		default: return;
+	}
+	
+	SpawnWeapon(client,"tf_wearable",index,1,1,true);
+}
+
 // Give weapons to the player
 // type: 0 - normal, 1 - giant
 void RT_GiveInventory(int client, int type = 0, int templateindex)

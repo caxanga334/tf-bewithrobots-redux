@@ -98,6 +98,7 @@ void Boss_SetupPlayer(int client)
 	rp.Variant = 0;
 	rp.Attributes = g_TBossBitsAttribs;
 	rp.Class = g_TBossClass;
+	rp.Gatebot = false;
 	
 	g_BossClient = client;
 	g_BossState = BossState_InPlay;
@@ -168,7 +169,7 @@ bool Boss_CanSpawn()
 		{
 			if( GetTeamClientCount(2) >= g_BossMinRed ) // Enough players on RED;
 			{
-				if( GetEngineTime() > g_BossTimer ) // Delay check
+				if( GetGameTime() > g_BossTimer ) // Delay check
 				{
 					return true;
 				}
@@ -186,7 +187,7 @@ void Boss_SelectRandom(float flDelay = 0.0)
 	int iBossCount;
 	
 	iBossCount = ExplodeString(g_strBossList, ",", splitBossProfile, sizeof(splitBossProfile), sizeof(splitBossProfile[]));
-	g_BossTimer = GetEngineTime() + flDelay;
+	g_BossTimer = GetGameTime() + flDelay;
 	
 	strcopy(strSelectedBoss, sizeof(strSelectedBoss), splitBossProfile[GetRandomInt(0, iBossCount - 1)]);
 	Boss_LoadProfile(strSelectedBoss);
