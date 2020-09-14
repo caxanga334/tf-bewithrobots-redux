@@ -2142,7 +2142,7 @@ public int MenuHandler_SelectVariant(Menu menu, MenuAction action, int param1, i
 				{
 					g_flLastForceBot[param1] = GetGameTime() + 5.0; // small cooldown when the wave is not in progress
 				}
-				if( IsGatebotAvailable() && GetRandomInt(0,100) <= c_iGatebotChance.IntValue && CheckCommandAccess(param1, "bwrr_gatebot", 0) )
+				if( CheckCommandAccess(param1, "bwrr_gatebot", 0) && IsGatebotAvailable() && GetRandomInt(0,100) <= c_iGatebotChance.IntValue )
 				{
 					p_bIsGatebot[param1] = true;
 				}
@@ -3328,7 +3328,7 @@ void PickRandomRobot(int client)
 		}
 	}
 	
-	if( CheckCommandAccess(param1, "bwrr_gatebot", 0) && IsGatebotAvailable() && GetRandomInt(1,100) <= c_iGatebotChance.IntValue )
+	if( CheckCommandAccess(client, "bwrr_gatebot", 0) && IsGatebotAvailable() && GetRandomInt(1,100) <= c_iGatebotChance.IntValue )
 	{
 		rp.Gatebot = true;
 	}
