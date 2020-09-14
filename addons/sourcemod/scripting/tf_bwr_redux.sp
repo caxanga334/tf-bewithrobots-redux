@@ -53,6 +53,7 @@ TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1];
 bool g_bWelcomeMsg[MAXPLAYERS + 1]; // Did we show the welcome message?
 int g_iBusterIndex; // Index of a sentry buster player
 float g_flBusterVisionTimer; // timer for buster wallhack
+bool g_bLateLoad;
 
 // gatebot
 float g_flGateStunTime;
@@ -226,6 +227,7 @@ public Plugin myinfo =
 stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	EngineVersion ev = GetEngineVersion();
+	g_bLateLoad = late;
 	
 	if( ev == Engine_TF2 )
 	{
@@ -405,6 +407,19 @@ public void OnPluginStart()
 	array_avclass = new ArrayList(10);
 	array_avgiants = new ArrayList(10);
 	array_spawns = new ArrayList();
+	
+	if(g_bLateLoad)
+	{
+		LogMessage("Plugin was late loaded, changing level is recommended to fully load the plugin.");
+		HookEntitiesOnLateLoad();
+		for(int i = 1;i <=MaxClients;i++)
+		{
+			if(IsClientInGame(i))
+			{
+				OnClientPutInServer(i);
+			}
+		}
+	}
 }
 
 bool IsDebugging() { return g_bDebugEnabled; }
@@ -2127,7 +2142,7 @@ public int MenuHandler_SelectVariant(Menu menu, MenuAction action, int param1, i
 				{
 					g_flLastForceBot[param1] = GetGameTime() + 5.0; // small cooldown when the wave is not in progress
 				}
-				if( IsGatebotAvailable() && GetRandomInt(0,100) <= c_iGatebotChance.IntValue )
+				if( IsGatebotAvailable() && GetRandomInt(0,100) <= c_iGatebotChance.IntValue && CheckCommandAccess(param1, "bwrr_gatebot", 0) )
 				{
 					p_bIsGatebot[param1] = true;
 				}
@@ -3300,7 +3315,7 @@ void PickRandomRobot(int client)
 		}
 	
 		// Check cooldown, spawn conditions and permission
-		if( GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() && CheckCommandAccess(client, "bwrr_sentrybuster", 0) )
+		if( CheckCommandAccess(client, "bwrr_sentrybuster", 0) && GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() )
 		{
 			rp.Class = TFClass_DemoMan;
 			rp.Variant = 0;
@@ -3313,7 +3328,7 @@ void PickRandomRobot(int client)
 		}
 	}
 	
-	if( IsGatebotAvailable() && GetRandomInt(1,100) <= c_iGatebotChance.IntValue )
+	if( CheckCommandAccess(param1, "bwrr_gatebot", 0) && IsGatebotAvailable() && GetRandomInt(1,100) <= c_iGatebotChance.IntValue )
 	{
 		rp.Gatebot = true;
 	}

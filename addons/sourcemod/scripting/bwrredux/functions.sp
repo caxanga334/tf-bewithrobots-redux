@@ -1458,3 +1458,28 @@ int BotTauntAfterKillChance(bool update = false)
 	
 	return chance;
 }
+
+// Add hook to entities on plugin late load
+// Some entitie are only hooked on OnEntityCreated which is not fired when you late load a plugin
+void HookEntitiesOnLateLoad()
+{
+	int ent = -1;
+	while((ent = FindEntityByClassname(ent, "func_capturezone")) != -1)
+	{
+		if(IsValidEntity(ent))
+		{
+			SDKUnhook(entity, SDKHook_StartTouch, OnTouchCaptureZone); // propably not needed but added just for safety
+			SDKUnhook(entity, SDKHook_EndTouch, OnEndTouchCaptureZone);
+			SDKHook(entity, SDKHook_StartTouch, OnTouchCaptureZone);
+			SDKHook(entity, SDKHook_EndTouch, OnEndTouchCaptureZone);			
+		}
+	}
+	ent = -1;
+	while((ent = FindEntityByClassname(ent, "func_respawnroom")) != -1)
+	{
+		if(IsValidEntity(ent))
+		{
+			HookRespawnRoom(ent);		
+		}
+	}
+}
