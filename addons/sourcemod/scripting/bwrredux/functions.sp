@@ -643,7 +643,7 @@ void TriggerHatchExplosion()
 	}
 }
 
-void CreateTEParticle(	char strParticle[128],
+void CreateTEParticle(	char strParticle[64],
 						float OriginVec[3]=NULL_VECTOR,
 						float StartVec[3]=NULL_VECTOR,
 						float AnglesVec[3]=NULL_VECTOR,
@@ -807,18 +807,61 @@ void DealDamage(int ent, int inflictor, int attacker, float damage, int damageTy
 int CreateParticle( float flOrigin[3], const char[] strParticle, float flDuration = -1.0 )
 {
 	int iParticle = CreateEntityByName( "info_particle_system" );
-	if( IsValidEdict( iParticle ) )
+	if( IsValidEntity( iParticle ) )
 	{
 		DispatchKeyValue( iParticle, "effect_name", strParticle );
 		DispatchKeyValue( iParticle, "targetname", "bwrr_particle_effect" );
-		DispatchSpawn( iParticle );
 		TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
+		DispatchSpawn( iParticle );
 		ActivateEntity( iParticle );
 		AcceptEntityInput( iParticle, "Start" );
 		if( flDuration >= 0.0 )
 			CreateTimer( flDuration, Timer_DeleteParticle, EntIndexToEntRef(iParticle) );
 	}
 	return iParticle;
+}
+
+// Creates a particle system and sets a client as it's owner.
+int CreateParticleOnPlayer( float flOrigin[3], const char[] strParticle, float flDuration = -1.0, int client)
+{
+	int iParticle = CreateEntityByName( "info_particle_system" );
+	if( IsValidEntity( iParticle ) )
+	{
+		DispatchKeyValue( iParticle, "effect_name", strParticle );
+		DispatchKeyValue( iParticle, "targetname", "bwrr_player_particle" );
+		TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
+		DispatchSpawn( iParticle );
+		ActivateEntity( iParticle );
+		AcceptEntityInput( iParticle, "Start" );
+		SetEntPropEnt(iParticle, Prop_Send, "m_hOwnerEntity", client);
+		if( flDuration >= 0.0 )
+			CreateTimer( flDuration, Timer_DeleteParticle, EntIndexToEntRef(iParticle) );
+	}
+	return iParticle;
+}
+
+void DeleteParticleOnPlayerDeath(int client)
+{
+	int ent = -1;
+	int owner;
+	char targetname[32];
+	
+	while ((ent = FindEntityByClassname(ent, "info_particle_system")) != -1)
+	{
+		if(IsValidEntity(ent))
+		{
+			GetEntPropString( ent, Prop_Data, "m_iName", targetname, sizeof(targetname) );
+			if(strcmp(targetname, "bwrr_player_particle", false) == 0) // check targetname
+			{
+				owner = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
+				if(owner == client)
+				{
+					RemoveEntity(ent);
+					return;
+				}
+			}
+		}
+	}
 }
 
 void Robot_GibGiant(int client, float OriginVec[3])
@@ -851,102 +894,6 @@ void Config_Init()
 {
 	g_aSpyTeleport = new ArrayList(3);
 	g_aEngyTeleport = new ArrayList(3);
-}
-
-// load spies teleport position
-void Config_LoadSpyTelePos()
-{
-	char mapname[64], buffer[256];
-	float OriginVec[3];
-	
-	g_aSpyTeleport.Clear();
-	
-	GetCurrentMap(buffer, sizeof(buffer));
-	
-	// Some servers might use workshop
-	if( !GetMapDisplayName(buffer, mapname, sizeof(mapname)) )
-	{
-		strcopy(mapname, sizeof(mapname), buffer); // use the result from GetCurrentMap if this fails.
-	}
-
-	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/spy/");
-	
-	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s.cfg", g_strConfigFile, mapname);
-	
-	if(!FileExists(g_strConfigFile))
-	{
-		LogMessage("Spy teleport config file not found for map \"%s\"", mapname);
-		return;
-	}
-	
-	KeyValues kv = new KeyValues("SpyTeleport");
-	kv.ImportFromFile(g_strConfigFile);
-	
-	// Jump into the first subsection
-	if (!kv.GotoFirstSubKey())
-	{
-		delete kv;
-		return;
-	}
-	
-	do
-	{
-		kv.GetVector("origin", OriginVec, NULL_VECTOR);
-		g_aSpyTeleport.PushArray(OriginVec);
-	} while (kv.GotoNextKey());
-	
-	if( IsDebugging() )
-		LogMessage("Loaded %i spy teleport positions.", g_aSpyTeleport.Length);
-	
-	delete kv;
-}
-
-// load engineer teleport position
-void Config_LoadEngyTelePos()
-{
-	char mapname[64], buffer[256];
-	float OriginVec[3];
-	
-	g_aEngyTeleport.Clear();
-	
-	GetCurrentMap(buffer, sizeof(buffer));
-	
-	// Some servers might use workshop
-	if( !GetMapDisplayName(buffer, mapname, sizeof(mapname)) )
-	{
-		strcopy(mapname, sizeof(mapname), buffer); // use the result from GetCurrentMap if this fails.
-	}
-
-	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/engy/");
-	
-	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s.cfg", g_strConfigFile, mapname);
-	
-	if(!FileExists(g_strConfigFile))
-	{
-		//LogMessage("Engineer teleport config file not found for map \"%s\"", mapname);
-		return;
-	}
-	
-	KeyValues kv = new KeyValues("EngyTeleport");
-	kv.ImportFromFile(g_strConfigFile);
-	
-	// Jump into the first subsection
-	if (!kv.GotoFirstSubKey())
-	{
-		delete kv;
-		return;
-	}
-	
-	do
-	{
-		kv.GetVector("origin", OriginVec, NULL_VECTOR);
-		g_aEngyTeleport.PushArray(OriginVec);
-	} while (kv.GotoNextKey());
-	
-	delete kv;
-	
-	if( IsDebugging() )
-		LogMessage("Loaded %i engineer teleport positions.", g_aEngyTeleport.Length);
 }
 
 // Gets an origin to teleport a spy
@@ -1033,6 +980,10 @@ bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
 void Config_LoadMap()
 {
 	char mapname[64], buffer[256];
+	float origin[3];
+	
+	g_aSpyTeleport.Clear();
+	g_aEngyTeleport.Clear();
 	
 	GetCurrentMap(buffer, sizeof(buffer));
 	
@@ -1088,6 +1039,30 @@ void Config_LoadMap()
 		{
 			g_bLimitRobotScale = !!kv.GetNum("limited_size", 0);
 		}
+		else if( strcmp(buffer, "SpyTeleport", false) == 0 )
+		{
+			kv.GotoFirstSubKey();
+			
+			do
+			{
+				kv.GetVector("origin", origin, NULL_VECTOR);
+				g_aSpyTeleport.PushArray(origin);
+			} while (kv.GotoNextKey());
+			
+			kv.GoBack();
+		}
+		else if( strcmp(buffer, "EngineerTeleport", false) == 0 )
+		{
+			kv.GotoFirstSubKey();
+			
+			do
+			{
+				kv.GetVector("origin", origin, NULL_VECTOR);
+				g_aEngyTeleport.PushArray(origin);
+			} while (kv.GotoNextKey());
+			
+			kv.GoBack();
+		}
 	} while (kv.GotoNextKey());
 	
 	delete kv;
@@ -1096,6 +1071,11 @@ void Config_LoadMap()
 	g_iSplitSize[1] = ExplodeString(g_strGiantSpawns, ",", g_strGiantSplit, sizeof(g_strGiantSplit), sizeof(g_strGiantSplit[]));
 	g_iSplitSize[2] = ExplodeString(g_strSniperSpawns, ",", g_strSniperSplit, sizeof(g_strSniperSplit), sizeof(g_strSniperSplit[]));
 	g_iSplitSize[3] = ExplodeString(g_strSpySpawns, ",", g_strSpySplit, sizeof(g_strSpySplit), sizeof(g_strSpySplit[]));
+	
+	if(IsDebugging())
+	{
+		LogMessage("Finished parsing map config file. Found %i spy teleport points and %i engineer teleport points.", g_aSpyTeleport.Length, g_aEngyTeleport.Length);
+	}
 }
 
 bool IsSmallMap() { return g_bLimitRobotScale; }
@@ -1416,6 +1396,7 @@ bool IsGatebotAvailable(bool update = false)
 // a gate has been taken by the robots
 void GateCapturedByRobots()
 {
+	float origin[3];
 	g_flGateStunTime = GetGameTime() + g_flGateStunDuration;
 	for(int i = 1;i <= MaxClients;i++)
 	{
@@ -1423,6 +1404,8 @@ void GateCapturedByRobots()
 		{
 			TF2_AddCondition(i, TFCond_MVMBotRadiowave, g_flGateStunDuration);
 			TF2_StunPlayer(i, g_flGateStunDuration, 0.0, TF_STUNFLAG_LIMITMOVEMENT|TF_STUNFLAG_BONKSTUCK|TF_STUNFLAG_THIRDPERSON|TF_STUNFLAG_NOSOUNDOREFFECT);
+			GetClientEyePosition(i, origin);
+			CreateParticleOnPlayer(origin, "bot_radio_waves", g_flGateStunDuration, i);
 			if(IsDebugging()) { CPrintToChat(i, "{green}[DEBUG] {cyan}GateCapturedByRobots() applying stun to client %N, stun time: %f", i, g_flGateStunDuration); }
 		}
 	}

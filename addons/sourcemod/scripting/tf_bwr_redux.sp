@@ -254,10 +254,10 @@ public void OnPluginStart()
 	c_iGiantMinRed = AutoExecConfig_CreateConVar("sm_bwrr_giantminred", "5", "Minimum amount of players on RED team to allow human giants. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 8.0);
 	c_iMaxBlu = AutoExecConfig_CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 5.0);
 	c_bAutoTeamBalance = AutoExecConfig_CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_flBusterDelay = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_delay", "95.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
+	c_flBusterDelay = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_delay", "60.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
 	c_iBusterMinKills = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
 	c_flBluRespawnTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Respawn Time for BLU Players.", FCVAR_NONE, true, 5.0, true, 30.0);
-	c_bDebug = AutoExecConfig_CreateConVar("sm_bwrr_debug_enabled", "0.0", "Enable/Disable the debug mode.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bDebug = AutoExecConfig_CreateConVar("sm_bwrr_debug_enabled", "0", "Enable/Disable the debug mode.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_bDebug.AddChangeHook(OnDebugCvarChanged);
 	c_flForceDelay = AutoExecConfig_CreateConVar("sm_bwrr_force_delay", "30.0", "Base delay for sm_robotmenu usage (Normal Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
 	c_flFDGiant = AutoExecConfig_CreateConVar("sm_bwrr_force_giant_delay", "60.0", "Base delay for sm_robotmenu usage (Giant Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
@@ -490,8 +490,6 @@ public void OnMapStart()
 	RT_LoadCfgNormal();
 	RT_LoadCfgGiant();
 	RT_PostLoad();
-	Config_LoadSpyTelePos();
-	Config_LoadEngyTelePos();
 	Config_LoadMap();
 	
 	array_avclass.Clear();
@@ -2411,6 +2409,8 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	int deathflags = event.GetInt("death_flags");
 	if(deathflags & TF_DEATHFLAG_DEADRINGER)
 		return Plugin_Handled;
+		
+	DeleteParticleOnPlayerDeath(client); // Check and delete any particle effect we might have added to the player.
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
@@ -3006,6 +3006,10 @@ public Action Timer_SentryBuster_Explode(Handle timer, any client)
 public Action Timer_DeleteParticle(Handle timer, any iEntRef)
 {
 	int iParticle = EntRefToEntIndex( iEntRef );
+	
+	if(iParticle == INVALID_ENT_REFERENCE)
+		return Plugin_Stop;
+	
 	if( IsValidEntity(iParticle) )
 	{
 		char strClassname[64];
@@ -3013,6 +3017,8 @@ public Action Timer_DeleteParticle(Handle timer, any iEntRef)
 		if( strcmp( strClassname, "info_particle_system", false ) == 0 )
 			RemoveEntity(iParticle);
 	}
+	
+	return Plugin_Stop;
 }
 
 public Action Timer_RemoveBody(Handle timer, any client)
