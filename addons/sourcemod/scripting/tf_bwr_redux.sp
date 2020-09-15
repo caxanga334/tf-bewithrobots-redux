@@ -385,7 +385,7 @@ public void OnPluginStart()
 	
 	//CTFBot::GetEventChangeAttributes
 	g_hGetEventChangeAttributes = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
-	if (!g_hGetEventChangeAttributes) SetFailState("Failed to setup detour for CTFBot::GetEventChangeAttributes");
+	if (!g_hGetEventChangeAttributes) { SetFailState("Failed to setup detour for CTFBot::GetEventChangeAttributes"); }
 	
 	if (!DHookSetFromConf(g_hGetEventChangeAttributes, hConf, SDKConf_Signature, "CTFBot::GetEventChangeAttributes"))
 	{
@@ -538,9 +538,9 @@ public void OnMapStart()
 	PrecacheSound("vo/mvm_sentry_buster_alerts05.mp3");
 	PrecacheSound("vo/mvm_sentry_buster_alerts06.mp3");
 	PrecacheSound("vo/mvm_sentry_buster_alerts07.mp3");
+	PrecacheSound("player/spy_shield_break.wav");
 	PrecacheScriptSound("MVM.GiantHeavyEntrance");
 	PrecacheScriptSound("MVM.Warning");
-	PrecacheScriptSound("Player.Spy_Shield_Break");
 	g_iLaserSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
 	g_iHaloSprite = PrecacheModel("materials/sprites/halo01.vmt");
 	g_flBusterVisionTimer = 0.0;
@@ -677,6 +677,10 @@ public void OnEntityCreated(int entity,const char[] name)
 	else if(strcmp(name, "filter_tf_bot_has_tag") == 0)
 	{
 		SDKHook(entity, SDKHook_SpawnPost, OnTFBotTagFilterSpawnPost);
+	}
+	else if(strcmp(name, "tf_ammo_pack") == 0)
+	{
+		SDKHook(entity, SDKHook_SpawnPost, OnAmmoPackSpawnPost);
 	}
 }
 
@@ -965,6 +969,11 @@ public void OnTFBotTagFilterSpawnPost(int entity)
 	DHookEntity(g_hCFilterTFBotHasTag, true, entity);
 }
 
+public void OnAmmoPackSpawnPost(int entity)
+{
+	RequestFrame(KillAmmoPack, EntIndexToEntRef(entity));
+}
+
 public Action SDKOnPlayerTakeDamage(int victim, int& attacker, int& inflictor, float& damage, int& damagetype, int& weapon, float damageForce[3], float damagePosition[3], int damagecustom)
 {
 	if(victim <= 0 || victim > MaxClients)
@@ -978,7 +987,7 @@ public Action SDKOnPlayerTakeDamage(int victim, int& attacker, int& inflictor, f
 	if(damagecustom == TF_CUSTOM_BACKSTAB && damagetype & DMG_CRIT && announce && TF2_IsGiant(victim))
 	{
 		// Alert giant players they're getting backstabbed
-		EmitGameSoundToClient(victim, "Player.Spy_Shield_Break", SOUND_FROM_WORLD);
+		EmitSoundToClient(victim, "player/spy_shield_break.wav");
 		PrintCenterText(victim, "!!!!!! YOU WERE BACKSTABBED !!!!!");
 	}
 	
@@ -2719,6 +2728,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				SetOwnAttributes(client ,false);
 				
 			TF2_RegeneratePlayer(client);
+			GiveGatebotHat(client, TFClass); // TF2_RegeneratePlayer will cause the hat to be removed, add it again.
 		}
 	}
 	

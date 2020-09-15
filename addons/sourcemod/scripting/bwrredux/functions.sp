@@ -1361,6 +1361,20 @@ void KillReviveMaker(int entref)
 	RemoveEntity(ent);
 }
 
+void KillAmmoPack(int entref)
+{
+	int ent = EntRefToEntIndex(entref);
+	if(ent == INVALID_ENT_REFERENCE)
+		return;
+		
+	int owner = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
+	
+	if(IsValidClient(owner) && GetClientTeam(owner) == 3)
+	{
+		RemoveEntity(ent);
+	}
+}
+
 void SetBLURespawnWaveTime(float time)
 {
 	int ent = FindEntityByClassname(-1, "tf_gamerules");
