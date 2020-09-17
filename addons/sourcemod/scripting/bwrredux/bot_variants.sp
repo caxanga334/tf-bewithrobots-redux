@@ -881,8 +881,8 @@ void RT_ClearArrays()
 void RT_PostLoad()
 {
 	char strBits[12][MAXLEN_CONFIG_STRING];
-	char strValidAttribs[8][MAXLEN_CONFIG_STRING] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit"};
-	int AttribValue[8] = {1,2,4,8,16,32,64,128};
+	char strValidAttribs[][] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire"};
+	int AttribValue[] = {1,2,4,8,16,32,64,128,256,512};
 	int iNum, iBits;
 
 	for(int i = 0;i < MAX_ROBOTS_TEMPLATE;i++)

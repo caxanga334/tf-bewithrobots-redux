@@ -3,13 +3,10 @@
 // Globals
 ArrayList g_aSpyTeleport;
 ArrayList g_aEngyTeleport;
+ArrayList g_aSpawnRooms; // arraylist containing func_respawnroom that already exists in the map
 
 char g_strHatchTrigger[64];
 char g_strExploTrigger[64];
-char g_strNormalSpawns[512];
-char g_strGiantSpawns[512];
-char g_strSniperSpawns[512];
-char g_strSpySpawns[512];
 char g_strNormalSplit[16][64];
 char g_strGiantSplit[16][64];
 char g_strSniperSplit[16][64];
@@ -18,6 +15,7 @@ int g_iSplitSize[4];
 
 float g_flGateStunDuration;
 bool g_bLimitRobotScale;
+bool g_bSkipSpawnRoom; // Should we skip creating additional spawn rooms?
 
 /**
  * Checks if the given client index is valid.
@@ -894,6 +892,7 @@ void Config_Init()
 {
 	g_aSpyTeleport = new ArrayList(3);
 	g_aEngyTeleport = new ArrayList(3);
+	g_aSpawnRooms = new ArrayList();
 }
 
 // Gets an origin to teleport a spy
@@ -902,7 +901,7 @@ void Config_Init()
 bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 {
 	float tVec[3], rVec[3]; // target_player's vector, return vector
-	int iBestCell = -1, iCellMax = (g_aSpyTeleport.Length - 1);
+	int iBestCell = -1;
 	float current_dist, smallest_dist = 999999.0;
 	
 	if( g_aSpyTeleport.Length < 1 )
@@ -912,7 +911,7 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 	{
 		GetClientAbsOrigin(target_player, tVec);
 		
-		for(int i = 0;i < iCellMax;i++)
+		for(int i = 0;i < g_aSpyTeleport.Length;i++)
 		{
 		
 			g_aSpyTeleport.GetArray(i, rVec);
@@ -946,14 +945,14 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
 {
 	float rVec[3];
-	int iBestCell = -1, iCellMax = (g_aEngyTeleport.Length - 1);
+	int iBestCell = -1;
 	float current_dist, min_dist = 750.0, smallest_dist = 999999.0;
 	
 	
 	if( g_aEngyTeleport.Length < 1 )
 		return false;
 	
-	for(int i = 0;i < iCellMax;i++)
+	for(int i = 0;i < g_aEngyTeleport.Length;i++)
 	{
 	
 		g_aEngyTeleport.GetArray(i, rVec);
@@ -979,7 +978,7 @@ bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
 // map specific config
 void Config_LoadMap()
 {
-	char mapname[64], buffer[256];
+	char mapname[64], buffer[256], strNormalSpawns[512], strGiantSpawns[512], strSniperSpawns[512], strSpySpawns[512];
 	float origin[3];
 	
 	g_aSpyTeleport.Clear();
@@ -1021,10 +1020,10 @@ void Config_LoadMap()
 		kv.GetSectionName(buffer, sizeof(buffer));
 		if( strcmp(buffer, "SpawnPoints", false) == 0 )
 		{
-			kv.GetString("normal", g_strNormalSpawns, sizeof(g_strNormalSpawns));
-			kv.GetString("giant", g_strGiantSpawns, sizeof(g_strGiantSpawns));
-			kv.GetString("sniper", g_strSniperSpawns, sizeof(g_strSniperSpawns));
-			kv.GetString("spy", g_strSpySpawns, sizeof(g_strSpySpawns));
+			kv.GetString("normal", strNormalSpawns, sizeof(strNormalSpawns));
+			kv.GetString("giant", strGiantSpawns, sizeof(strGiantSpawns));
+			kv.GetString("sniper", strSniperSpawns, sizeof(strSniperSpawns));
+			kv.GetString("spy", strSpySpawns, sizeof(strSpySpawns));
 		}
 		else if( strcmp(buffer, "HatchTrigger", false) == 0 )
 		{
@@ -1067,10 +1066,10 @@ void Config_LoadMap()
 	
 	delete kv;
 	
-	g_iSplitSize[0] = ExplodeString(g_strNormalSpawns, ",", g_strNormalSplit, sizeof(g_strNormalSplit), sizeof(g_strNormalSplit[]));
-	g_iSplitSize[1] = ExplodeString(g_strGiantSpawns, ",", g_strGiantSplit, sizeof(g_strGiantSplit), sizeof(g_strGiantSplit[]));
-	g_iSplitSize[2] = ExplodeString(g_strSniperSpawns, ",", g_strSniperSplit, sizeof(g_strSniperSplit), sizeof(g_strSniperSplit[]));
-	g_iSplitSize[3] = ExplodeString(g_strSpySpawns, ",", g_strSpySplit, sizeof(g_strSpySplit), sizeof(g_strSpySplit[]));
+	g_iSplitSize[0] = ExplodeString(strNormalSpawns, ",", g_strNormalSplit, sizeof(g_strNormalSplit), sizeof(g_strNormalSplit[]));
+	g_iSplitSize[1] = ExplodeString(strGiantSpawns, ",", g_strGiantSplit, sizeof(g_strGiantSplit), sizeof(g_strGiantSplit[]));
+	g_iSplitSize[2] = ExplodeString(strSniperSpawns, ",", g_strSniperSplit, sizeof(g_strSniperSplit), sizeof(g_strSniperSplit[]));
+	g_iSplitSize[3] = ExplodeString(strSpySpawns, ",", g_strSpySplit, sizeof(g_strSpySplit), sizeof(g_strSpySplit[]));
 	
 	if(IsDebugging())
 	{
@@ -1106,7 +1105,7 @@ bool ShouldDispatchSentryBuster()
 void BusterWallhack(int client)
 {
 	int i = -1;
-	int iKills;
+	int mostkills = 0, bestsentry = -1, currentkills;
 	float origin[3];
 	float start[3];
 	GetClientEyePosition(client, start);
@@ -1117,16 +1116,26 @@ void BusterWallhack(int client)
 		{
 			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Red) )
 			{
-				iKills = GetEntProp(i, Prop_Send, "SentrygunLocalData", _, 0);
-				if( iKills >= c_iBusterMinKills.IntValue ) // found threat
+				currentkills = GetEntProp(i, Prop_Send, "SentrygunLocalData", _, 0);
+				if( currentkills >= c_iBusterMinKills.IntValue ) // found threat
 				{
-					GetEntPropVector( i, Prop_Data, "m_vecOrigin", origin );
-					TE_SetupBeamPoints(start, origin, g_iLaserSprite, g_iHaloSprite, 0, 0, 0.5, 1.0, 1.0, 1, 1.0, {0, 0, 255, 255}, 0);
-					TE_SendToClient(client, 0.0);
+					if( currentkills > mostkills ) // find the sentry with the most kills
+					{
+						bestsentry = i;
+						mostkills = currentkills;
+					}
 				}
 			}
 		}
-	}	
+	}
+	
+	if(bestsentry != -1)
+	{
+		GetEntPropVector( bestsentry, Prop_Data, "m_vecOrigin", origin );
+		origin[2] += 15.0;
+		CreateAnnotation(origin, client, "Target Sentry", 0, 5.0);
+		if(IsDebugging()) { PrintToConsole(client, "BusterWallhack:: sentry at %.1f %.1f %.1f", origin[0],origin[1],origin[2]); }
+	}
 }
 
 void TF2_PlaySequence(int client, const char[] sequence)
@@ -1219,9 +1228,35 @@ void HookRespawnRoom(int room)
 	SDKHook(room, SDKHook_EndTouch, OnEndTouchRespawn);
 }
 
+// Searches for spawnroom entities that already exists in the map
+void FindSpawnRoomsInTheMap()
+{
+	g_aSpawnRooms.Clear();
+	
+	int i = -1;
+	while((i = FindEntityByClassname(i, "func_respawnroom")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			if(GetEntProp(i, Prop_Send, "m_iTeamNum") == 3) // for now we only care about BLU respawn rooms.
+			{
+				g_aSpawnRooms.Push(EntIndexToEntRef(i));
+			}
+		}
+	}	
+}
+
 void AddAdditionalSpawnRooms()
 {
-	int i = -1;
+	if(g_bSkipSpawnRoom) // all info_player_teamspawn in this map are inside a func_respawnroom, skip
+		return;
+
+	int i = -1, trigger;
+	float origin[3];
+	bool created;
+	
+	FindSpawnRoomsInTheMap();
+	
 	while((i = FindEntityByClassname(i, "func_respawnroom")) != -1)
 	{
 		if(IsValidEntity(i))
@@ -1243,10 +1278,29 @@ void AddAdditionalSpawnRooms()
 		{
 			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
 			{
-				CreateSpawnRoom(i);
+				bool canskip;
+				for(int y = 0;y < g_aSpawnRooms.Length;y++) // search existing spawnrooms
+				{
+					trigger = EntRefToEntIndex(g_aSpawnRooms.Get(y));
+					if(trigger != INVALID_ENT_REFERENCE)
+					{
+						GetEntPropVector(i, Prop_Send, "m_vecOrigin", origin);
+						if(SDKIsPointWithIn(trigger, origin)) { canskip = true; } // check if info_player_teamspawn is already inside a func_respawnroom
+					}
+				}
+				
+				if(!canskip)
+				{
+					CreateSpawnRoom(i);
+					FindSpawnRoomsInTheMap(); // update list so we don't create unnecessary spawnrooms
+					created = true;
+				}
+				else { LogMessage("Skipping info_player_teamspawn %i at %.1f %.1f %.1f because it's already inside the boundaries of a func_respawnroom", i, origin[0], origin[1], origin[2]); }
 			}
 		}
-	}	
+	}
+	
+	g_bSkipSpawnRoom = !created;
 }
 
 void CreateSpawnRoom(int spawnpoint)
@@ -1287,7 +1341,7 @@ void CreateSpawnRoom(int spawnpoint)
 	
 	if( IsDebugging() )
 	{
-		LogMessage("Creating func_respawnroom at (%f %f %f) index %i", pos[0], pos[1], pos[2], ent);
+		LogMessage("Creating func_respawnroom at (%.1f %.1f %.1f) index %i", pos[0], pos[1], pos[2], ent);
 	}
 }
 
@@ -1457,7 +1511,7 @@ int BotTauntAfterKillChance(bool update = false)
 }
 
 // Add hook to entities on plugin late load
-// Some entitie are only hooked on OnEntityCreated which is not fired when you late load a plugin
+// Some entities are only hooked on OnEntityCreated which is not fired when you late load a plugin
 void HookEntitiesOnLateLoad()
 {
 	int ent = -1;
@@ -1479,4 +1533,113 @@ void HookEntitiesOnLateLoad()
 			HookRespawnRoom(ent);		
 		}
 	}
+}
+
+bool SDKIsPointWithIn(int trigger, float origin[3])
+{
+	return view_as<bool>(SDKCall(g_hSDKPointIsWithin, trigger, origin));
+}
+
+void SDKTFPlayerRemoveObject(int client, int obj)
+{
+	SDKCall(g_hSDKRemoveObject, client, obj);
+}
+
+void CreateAnnotation(float pos[3], int client, char[] message, int offset, float lifetime = 8.0, int followentity = -1)
+{
+	Event event = CreateEvent("show_annotation");
+	if(event != null)
+	{
+		event.SetFloat("worldPosX", pos[0]);
+		event.SetFloat("worldPosY", pos[1]);
+		event.SetFloat("worldPosZ", pos[2]);
+		event.SetFloat("lifetime", lifetime);
+		event.SetInt("id", client + offset + GetRandomInt(0,5000));
+		if (followentity != -1) { event.SetInt("follow_entindex", followentity); }
+		event.SetString("text", message);
+		event.SetString("play_sound", "ui/hint.wav");
+		event.SetString("show_effect", "1");
+		event.SetString("show_distance", "1");
+		event.SetInt("visibilityBitfield", 1 << client);
+		event.Fire();		
+	}
+}
+
+void SpyDisguiseClear(int client)
+{
+	for(int i=0; i<4; i++)
+	{
+		SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", 0, _, i);
+	}
+
+	g_nDisguised[client].g_iDisguisedClass = 0;
+	g_nDisguised[client].g_iDisguisedTeam = 0;
+}
+
+void SpyDisguiseThink(int client, int disguiseclass, int disguiseteam)
+{
+	int team = GetClientTeam(client);
+	int enemyteam = (team == view_as<int>(TFTeam_Red)) ? view_as<int>(TFTeam_Blue) : view_as<int>(TFTeam_Red);
+	
+	switch(team)
+	{
+		// RED
+		case 2:
+		{
+			if(disguiseteam == view_as<int>(TFTeam_Red))
+			{
+				// RED spy disguised as a RED team member, should look like a RED human to the BLU team
+				SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", g_iModelIndexHumans[disguiseclass], _, g_teamOverrides[enemyteam]);
+			}
+			else
+			{
+				// RED spy disguised as a BLU team member, should look like a BLU robot to the BLU team
+				SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", g_iModelIndexRobots[disguiseclass], _, g_teamOverrides[enemyteam]);
+			}
+		}
+	}
+}
+
+// called when an engineer robot is killed
+void FrameEngineerDeath(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if(client <= 0)
+		return;
+		
+	char strobjects[][] = { "obj_sentrygun", "obj_dispenser", "obj_teleporter" };
+	
+	int i;
+	for(int x = 0;x < sizeof(strobjects);x++)
+	{
+		i = -1;
+		while((i = FindEntityByClassname(i, strobjects[x])) != -1)
+		{
+			if(IsValidEntity(i))
+			{
+				if(client == GetEntPropEnt(i, Prop_Send, "m_hBuilder"))
+				{
+					SDKTFPlayerRemoveObject(client, i);
+					SetEntPropEnt(i, Prop_Send, "m_hBuilder", -1);
+					if(IsDebugging()) { CPrintToChat(client, "{cyan}Removing object {orange}%s", strobjects[x]); }
+				}
+			}
+		}
+	}
+}
+
+int GetWeaponMaxClip(int weapon)
+{
+	return SDKCall(g_hSDKGetMaxClip, weapon);
+}
+
+int GetWeaponClip(int weapon)
+{
+	return SDKCall(g_hSDKGetClip, weapon);
+}
+
+void SetWeaponClip(int weapon, int clip)
+{
+	int offset = FindSendPropInfo("CTFWeaponBase", "m_iClip1");
+	SetEntData(weapon, offset, clip, 4, true);
 }

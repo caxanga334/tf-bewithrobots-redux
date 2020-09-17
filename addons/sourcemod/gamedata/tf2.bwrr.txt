@@ -11,6 +11,12 @@
 				"windows"	"\x55\x8B\xEC\x83\xEC\x30\x53\x56\x8B\x75\x08\x57\x56\x8B\xF9\xE8\x2A\x2A\x2A\x2A\x8B\xD8\x83\xFB\xFF\x74\x2A\x8B\x35\x2A\x2A\x2A\x2A\x8B\xCE\x8B\x16\xFF\x52\x64\x8B\x8F\xA4\x20\x00\x00\x53\x6A\x13"
 				"linux"		"@_ZN9CTFPlayer20PlaySpecificSequenceEPKc"
 			}
+			"CTFPlayer::RemoveObject" //"mvm_mission_update"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x8B\xD1\x56\x8B\xB2\x8C\x21\x00\x00"
+				"linux"		"@_ZN9CTFPlayer12RemoveObjectEP11CBaseObject"
+			}
 			"CTFBot::GetEventChangeAttributes"	//"ChangeBotAttributes: Failed to find eve"
 			{
 				"library"	"server"
@@ -22,6 +28,12 @@
 				"library"	"server"
 				"windows"	"\x55\x8B\xEC\x56\x8B\x75\x10\x57\x83\xCF\xFF"
 				"linux"		"@_Z22DispatchParticleEffectPKc20ParticleAttachment_tP11CBaseEntityS0_b"
+			}
+			"CBaseTrigger::PointIsWithin"
+			{
+				"library"	"server"
+				"windows"	"\x53\x8B\xDC\x83\xEC\x2A\x83\xE4\x2A\x83\xC4\x2A\x55\x8B\x6B\x2A\x89\x6C\x2A\x2A\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x8B\x43\x2A\x56\x50\x8B\xF1"	
+				"linux"		"@_ZN12CBaseTrigger13PointIsWithinERK6Vector"
 			}
 		}
 		"Offsets"
@@ -35,6 +47,16 @@
 			{
 				"windows"	"191"
 				"linux"		"192"
+			}
+			"CTFWeaponBase::GetMaxClip1" // int	CTFWeaponBase::GetMaxClip1( void ) const
+			{
+				"windows"	"317"
+				"linux"		"323"
+			}
+			"CTFWeaponBase::Clip1" // virtual int	Clip1() { return IsEnergyWeapon() ? Energy_GetEnergy() : m_iClip1; }
+			{
+				"windows"	"337"
+				"linux"		"343"
 			}
 		}
 	}

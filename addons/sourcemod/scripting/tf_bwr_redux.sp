@@ -33,6 +33,7 @@ int p_iBotAttrib[MAXPLAYERS + 1];
 TFClassType p_BotClass[MAXPLAYERS + 1];
 bool p_bInSpawn[MAXPLAYERS + 1]; // Local cache to know if a player is in spawn
 bool p_bIsGatebot[MAXPLAYERS + 1]; // Is the player a gatebot
+bool p_bIsReloadingBarrage[MAXPLAYERS + 1]; // Is loading a barrage?
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
@@ -54,6 +55,14 @@ bool g_bWelcomeMsg[MAXPLAYERS + 1]; // Did we show the welcome message?
 int g_iBusterIndex; // Index of a sentry buster player
 float g_flBusterVisionTimer; // timer for buster wallhack
 bool g_bLateLoad;
+float g_flinstructiontime[MAXPLAYERS + 1]; // Last time we gave an instruction to a player 
+int g_teamOverrides[4] = {0, 0, 3, 0}; // This is the m_nModelIndexOverrides index for each team.
+Handle g_hHUDReload;
+
+char g_strModelRobots[][] = {"", "models/bots/scout/bot_scout.mdl", "models/bots/sniper/bot_sniper.mdl", "models/bots/soldier/bot_soldier.mdl", "models/bots/demo/bot_demo.mdl", "models/bots/medic/bot_medic.mdl", "models/bots/heavy/bot_heavy.mdl", "models/bots/pyro/bot_pyro.mdl", "models/bots/spy/bot_spy.mdl", "models/bots/engineer/bot_engineer.mdl"};
+int g_iModelIndexRobots[sizeof(g_strModelRobots)];
+char g_strModelHumans[][] =  {"", "models/player/scout.mdl", "models/player/sniper.mdl", "models/player/soldier.mdl", "models/player/demo.mdl", "models/player/medic.mdl", "models/player/heavy.mdl", "models/player/pyro.mdl", "models/player/spy.mdl", "models/player/engineer.mdl"};
+int g_iModelIndexHumans[sizeof(g_strModelHumans)];
 
 // gatebot
 float g_flGateStunTime;
@@ -89,9 +98,13 @@ UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
 // SDK
 Handle g_hSDKPlaySpecificSequence;
 Handle g_hSDKDispatchParticleEffect;
+Handle g_hSDKPointIsWithin;
 Handle g_hGetEventChangeAttributes;
 Handle g_hSDKWorldSpaceCenter;
 Handle g_hCFilterTFBotHasTag;
+Handle g_hSDKRemoveObject;
+Handle g_hSDKGetMaxClip;
+Handle g_hSDKGetClip;
 
 enum ParticleAttachment
 {
@@ -144,7 +157,16 @@ enum
 	BotAttrib_TeleportToHint = 32, // teleport engineers to a nest near the bomb.
 	BotAttrib_CannotCarryBomb = 64, // Blocks players from carrying the bomb
 	BotAttrib_CannotBuildTele = 128, // disallow engineers to build teleporters
+	BotAttrib_HoldFireFullReload = 256, // Waits until the weapon is fully loaded to fire again
+	BotAttrib_AlwaysFireWeapon = 512, // Always fire weapon
 };
+
+enum struct eDisguisedStruct
+{
+	int g_iDisguisedTeam; // The spy's disguised team
+	int g_iDisguisedClass; // The spy's disguised class
+}
+eDisguisedStruct g_nDisguised[MAXPLAYERS+1];
 
 // Methodmaps
 
@@ -199,6 +221,11 @@ methodmap RoboPlayer
 	{
 		public get() { return p_bIsGatebot[this.index]; }
 		public set( bool value ) { p_bIsGatebot[this.index] = value; }
+	}
+	property bool ReloadingBarrage
+	{
+		public get() { return p_bIsReloadingBarrage[this.index]; }
+		public set( bool value ) { p_bIsReloadingBarrage[this.index] = value; }
 	}
 	public void MiniBoss(bool value)
 	{
@@ -370,6 +397,19 @@ public void OnPluginStart()
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//bResetAllParticlesOnEntity 
 	if ((g_hSDKDispatchParticleEffect = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for DispatchParticleEffect signature!");
 	
+	// This allows us to check if a vector is within a cbasetrigger entity
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CBaseTrigger::PointIsWithin");
+	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Plain);
+	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
+	if ((g_hSDKPointIsWithin = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CBaseTrigger::PointIsWithin signature!");
+	
+	//This call is used to remove an objects owner
+	StartPrepSDKCall(SDKCall_Player);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFPlayer::RemoveObject");
+	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);	//CBaseObject
+	if ((g_hSDKRemoveObject = EndPrepSDKCall()) == null) SetFailState("Failed To create SDKCall for CTFPlayer::RemoveObject signature");
+	
 	// Used to get an entity center
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CBaseEntity::WorldSpaceCenter");
@@ -382,6 +422,18 @@ public void OnPluginStart()
 	g_hCFilterTFBotHasTag = DHookCreate(iOffset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, CFilterTFBotHasTag);
 	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index of the entity using the filter
 	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index that triggered the filter
+	
+	//This call gets the maximum clip 1 of a weapon
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CTFWeaponBase::GetMaxClip1");
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Clip
+	if ((g_hSDKGetMaxClip = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CTFWeaponBase::GetMaxClip1 offset!");
+	
+	//This call gets clip 1 of a weapon
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CTFWeaponBase::Clip1");
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Clip
+	if ((g_hSDKGetClip = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CTFWeaponBase::GetMaxClip1 offset!");
 	
 	//CTFBot::GetEventChangeAttributes
 	g_hGetEventChangeAttributes = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
@@ -407,6 +459,8 @@ public void OnPluginStart()
 	array_avclass = new ArrayList(10);
 	array_avgiants = new ArrayList(10);
 	array_spawns = new ArrayList();
+	
+	g_hHUDReload = CreateHudSynchronizer();
 	
 	if(g_bLateLoad)
 	{
@@ -499,6 +553,7 @@ public void OnMapStart()
 	g_flGateStunTime = 0.0;
 	g_BossTimer = 0.0;
 	g_flBusterVisionTimer = 0.0;
+	g_bSkipSpawnRoom = false;
 	BotNoticeBackstabChance(true);
 	BotTauntAfterKillChance(true);
 	
@@ -541,7 +596,9 @@ public void OnMapStart()
 	PrecacheScriptSound("MVM.Warning");
 	g_iLaserSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
 	g_iHaloSprite = PrecacheModel("materials/sprites/halo01.vmt");
-	g_flBusterVisionTimer = 0.0;
+	
+	for(int x = 1;x < sizeof(g_iModelIndexHumans);x++) { g_iModelIndexHumans[x] = PrecacheModel(g_strModelHumans[x]); }
+	for(int x = 1;x < sizeof(g_iModelIndexRobots);x++) { g_iModelIndexRobots[x] = PrecacheModel(g_strModelRobots[x]); }
 }
 
 public void TF2_OnWaitingForPlayersStart()
@@ -553,6 +610,7 @@ public void TF2_OnWaitingForPlayersStart()
 public void OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_OnTakeDamage, SDKOnPlayerTakeDamage);
+	g_flinstructiontime[client] = 0.0;
 }
 
 public void OnClientDisconnect(int client)
@@ -576,7 +634,8 @@ public void OnClientPostAdminCheck(int client)
 	CreateTimer(20.0, Timer_HelpUnstuck, GetClientUserId(client)); // unstuck players from spectator team.
 }
 
-public void OnGameFrame()
+// Moved to OnPlayerRunCmd
+/* public void OnGameFrame()
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -601,7 +660,7 @@ public void OnGameFrame()
 			}
 		}
 	}
-}
+} */
 
 stock void TF2Spawn_EnterSpawn(int client,int entity)
 {
@@ -684,15 +743,20 @@ public void OnEntityCreated(int entity,const char[] name)
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
-	if( IsFakeClient(client) || !IsPlayerAlive(client) )
+	if(IsFakeClient(client) || !IsPlayerAlive(client))
 		return Plugin_Continue;
 		
 	RoboPlayer rp = RoboPlayer(client);
+	TFClassType class = TF2_GetPlayerClass(client);
 		
-	if( TF2_GetClientTeam(client) == TFTeam_Blue )
+	if(TF2_GetClientTeam(client) == TFTeam_Blue)
 	{
-		if( rp.InSpawn )
+		int iActiveWeapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
+	
+		if(rp.InSpawn)
 		{
+			SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.5); // block attack
+			TF2_AddCondition(client, TFCond_UberchargedHidden, 0.255);
 			if( buttons & IN_ATTACK ) // block attack buttons when robot players are inside their spawn room.
 			{
 				buttons &= ~IN_ATTACK;
@@ -716,16 +780,81 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 		
-		if( rp.Type == Bot_Buster )
+		if(rp.Attributes & BotAttrib_InfiniteCloak)
 		{
-			if( g_flBusterVisionTimer < GetGameTime() )
+			SetEntPropFloat(client, Prop_Send, "m_flCloakMeter", 100.0);
+		}
+		
+		if(rp.Attributes & BotAttrib_AlwaysFireWeapon && !rp.ReloadingBarrage && !rp.InSpawn)
+		{
+			buttons |= IN_ATTACK;
+		}
+		
+		if(IsValidEntity(iActiveWeapon))
+		{
+			if(rp.Attributes & BotAttrib_HoldFireFullReload)
 			{
-				g_flBusterVisionTimer = GetGameTime() + 0.5;
+				int iClip = GetWeaponClip(iActiveWeapon);
+				int iMaxClip = GetWeaponMaxClip(iActiveWeapon);	
+				
+				if(iClip <= 0 || (!rp.ReloadingBarrage && buttons & IN_RELOAD)) // Enter barrage reload if empty or when manually reloading
+				{
+					rp.ReloadingBarrage = true;
+				}
+				else if(rp.ReloadingBarrage) // reloading barrage
+				{
+					SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.5);
+					buttons &= ~IN_ATTACK; // block attack
+					buttons &= ~IN_ATTACK2;
+					
+					SetHudTextParams(-1.0, -0.55, 0.25, 255, 150, 0, 255, 0, 0.0, 0.0, 0.0);
+					ShowSyncHudText(client, g_hHUDReload, "RELOADING... (%i / %i)", iClip, iMaxClip);
+					
+					if(iClip >= iMaxClip)
+					{
+						SetHudTextParams(-1.0, -0.55, 1.75, 0, 255, 0, 255, 0, 0.0, 0.0, 0.0);
+						ShowSyncHudText(client, g_hHUDReload, "READY TO FIRE! (%i / %i)", iClip, iMaxClip);
+						rp.ReloadingBarrage = false;
+					}
+				}
+			}
+		}
+		
+		if(class == TFClass_Spy)
+		{
+			int iDisguisedClass = GetEntProp(client, Prop_Send, "m_nDisguiseClass");
+			int iDisguisedTeam = GetEntProp(client, Prop_Send, "m_nDisguiseTeam");
+			if(g_nDisguised[client].g_iDisguisedClass != iDisguisedClass || g_nDisguised[client].g_iDisguisedTeam != iDisguisedTeam)
+			{
+				if(iDisguisedClass == 0 && iDisguisedTeam == 0)
+				{
+					SpyDisguiseClear(client);
+				}else{
+					SpyDisguiseThink(client, iDisguisedClass, iDisguisedTeam);
+
+					g_nDisguised[client].g_iDisguisedClass = iDisguisedClass;
+					g_nDisguised[client].g_iDisguisedTeam = iDisguisedTeam;
+				}
+			}
+		}
+		
+		if(GameRules_GetRoundState() == RoundState_BetweenRounds)
+		{
+			TF2_AddCondition(client, TFCond_FreezeInput, 0.255);
+		}
+		
+		if(rp.Type == Bot_Buster)
+		{
+			if(g_flBusterVisionTimer < GetGameTime())
+			{
+				g_flBusterVisionTimer = GetGameTime() + 6.0;
+				PrintToConsole(client, "Calling BusterWallhack %.1f", g_flBusterVisionTimer);
 				BusterWallhack(client);
 			}
 		
-			if( buttons & IN_ATTACK ) // Allows sentry busters to detonate by pressing M1
+			if(buttons & IN_ATTACK && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1) // Allows sentry busters to detonate by pressing M1
 			{
+				buttons &= ~IN_ATTACK;
 				if( !(TF2_IsPlayerInCondition(client, TFCond_Taunting)) )
 				{
 					FakeClientCommand(client, "taunt");
@@ -976,6 +1105,27 @@ public Action SDKOnPlayerTakeDamage(int victim, int& attacker, int& inflictor, f
 {
 	if(victim <= 0 || victim > MaxClients)
 		return Plugin_Continue;
+		
+	if(IsFakeClient(victim))
+		return Plugin_Continue;
+		
+	if(GetClientTeam(victim) == 3)
+	{
+		if(p_iBotType[victim] == Bot_Buster)
+		{
+			int health = GetClientHealth(victim);
+			int idamage = RoundToNearest(damage);
+			
+			// detonate a buster if it's going to die and it's on the ground
+			if(health - idamage <= 0 && GetEntPropEnt(victim, Prop_Data, "m_hGroundEntity") != -1)
+			{
+				FakeClientCommand(victim, "taunt");
+				SetEntProp(victim, Prop_Data, "m_takedamage", 0, 1);
+				damage = 0.0;
+				return Plugin_Changed;
+			}
+		}
+	}
 	
 	if(attacker <= 0 || attacker > MaxClients)
 		return Plugin_Continue;
@@ -2427,7 +2577,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		if( TF2_GetPlayerClass(client) == TFClass_Engineer )
 		{
 			AnnounceEngineerDeath(client);
-			//CreateTimer(1.0, Timer_FixBuildings, client); // Not needed anymore
+			RequestFrame(FrameEngineerDeath, GetClientUserId(client));
 		}
 		else if( TF2_GetPlayerClass(client) == TFClass_Spy )
 		{
@@ -2573,6 +2723,18 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
 		rp.Carrier = false;
+		rp.ReloadingBarrage = false;
+		
+		int iActiveWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+		if(IsValidEntity(iActiveWeapon))
+		{
+			int iMaxClip = GetWeaponMaxClip(iActiveWeapon);
+			int iClip = GetWeaponClip(iActiveWeapon);
+			if(iClip < iMaxClip) // set weapon to full clip
+			{
+				SetWeaponClip(iActiveWeapon, iMaxClip);
+			}
+		}
 		
 		if( TFClass == TFClass_Spy && p_iBotAttrib[client] & BotAttrib_AutoDisguise )
 		{
@@ -2728,7 +2890,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				SetOwnAttributes(client ,false);
 				
 			TF2_RegeneratePlayer(client);
-			GiveGatebotHat(client, TFClass); // TF2_RegeneratePlayer will cause the hat to be removed, add it again.
+			if( rp.Gatebot ) { GiveGatebotHat(client, TFClass); } // TF2_RegeneratePlayer will cause the hat to be removed, add it again.
 		}
 	}
 	
@@ -3928,8 +4090,10 @@ void ResetRobotData(int client, bool bStrip = false)
 	p_BotClass[client] = TFClass_Unknown;
 	p_bInSpawn[client] = false;
 	g_bIsCarrier[client] = false;
+	p_bIsGatebot[client] = false;
 	g_bUpgradeStation[client] = false;
 	g_flLastForceBot[client] = 0.0;
+	g_flinstructiontime[client] = 0.0;
 	if( bStrip )
 		StripWeapons(client);
 }
