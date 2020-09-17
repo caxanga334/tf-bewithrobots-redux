@@ -1656,6 +1656,29 @@ void FrameEngineerDeath(int userid)
 	}
 }
 
+// checks if we can teleport a flag to the player upon spawning
+void FrameCheckFlagForPickUp(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if(client <= 0)
+		return;
+	
+	RoboPlayer rp = RoboPlayer(client);
+	int i = -1;
+	while((i = FindEntityByClassname(i, "item_teamflag")) != -1)
+	{
+		if(IsValidEntity(i) && GetEntProp(i, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Blue) && GetEntProp( i, Prop_Send, "m_bDisabled" ) == 0) // valid BLU team flag
+		{
+			if(TF2_IsFlagHome(i))
+			{
+				TF2_PickUpFlag(client, i);
+				rp.Carrier = true;
+				RequestFrame(UpdateBombHud, userid);
+			}
+		}
+	}
+}
+
 int GetWeaponMaxClip(int weapon)
 {
 	return SDKCall(g_hSDKGetMaxClip, weapon);
@@ -1670,4 +1693,14 @@ void SetWeaponClip(int weapon, int clip)
 {
 	int offset = FindSendPropInfo("CTFWeaponBase", "m_iClip1");
 	SetEntData(weapon, offset, clip, 4, true);
+}
+
+void TF2_PickUpFlag(int client, int flag)
+{
+	SDKCall(g_hSDKPickupFlag, flag, client, true);
+}
+
+bool TF2_IsFlagHome(int flag)
+{
+	return SDKCall(g_hSDKIsFlagHome, flag);
 }

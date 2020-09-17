@@ -104,6 +104,8 @@ Handle g_hCFilterTFBotHasTag;
 Handle g_hSDKRemoveObject;
 Handle g_hSDKGetMaxClip;
 Handle g_hSDKGetClip;
+Handle g_hSDKIsFlagHome;
+Handle g_hSDKPickupFlag;
 
 enum ParticleAttachment
 {
@@ -358,7 +360,6 @@ public void OnPluginStart()
 	HookEvent( "player_spawn", E_Pre_PlayerSpawn, EventHookMode_Pre );
 	HookEvent( "player_spawn", E_PlayerSpawn );
 	HookEvent( "teamplay_flag_event", E_Teamplay_Flag );
-	HookEvent( "teamplay_flag_event", E_Teamplay_Flag );
 	HookEvent( "post_inventory_application", E_Inventory );
 	HookEvent( "player_builtobject", E_BuildObject, EventHookMode_Pre );
 	
@@ -407,13 +408,26 @@ public void OnPluginStart()
 	StartPrepSDKCall(SDKCall_Player);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFPlayer::RemoveObject");
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);	//CBaseObject
-	if ((g_hSDKRemoveObject = EndPrepSDKCall()) == null) SetFailState("Failed To create SDKCall for CTFPlayer::RemoveObject signature");
+	if ((g_hSDKRemoveObject = EndPrepSDKCall()) == null) SetFailState("Failed To create SDKCall for CTFPlayer::RemoveObject signature!");
 	
 	// Used to get an entity center
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CBaseEntity::WorldSpaceCenter");
 	PrepSDKCall_SetReturnInfo(SDKType_Vector, SDKPass_ByRef);
 	if ((g_hSDKWorldSpaceCenter = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CBaseEntity::WorldSpaceCenter offset!");
+	
+	// Used to check if the bomb is at home
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CCaptureFlag::IsHome");
+	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_ByValue);
+	if((g_hSDKIsFlagHome = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CCaptureFlag::IsHome signature!");
+	
+	//This call forces a player to pickup the intel
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CCaptureFlag::PickUp");
+	PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_Pointer);	//CCaptureFlag
+	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//silent pickup? or maybe it doesnt exist im not sure.
+	if ((g_hSDKPickupFlag = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CCaptureFlag::PickUp offset!");
 	
 	// Used to allow humans to capture gates
 	int iOffset = GameConfGetOffset(hConf, "CFilterTFBotHasTag::PassesFilterImpl");	
@@ -2669,7 +2683,7 @@ public Action E_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast
 			else
 			{
 				rp.BombLevel = 0;
-				rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_1st_upgrade")); 
+				rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_1st_upgrade"));
 			}
 			RequestFrame(UpdateBombHud, GetClientUserId(client));
 		}
@@ -2759,9 +2773,14 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
 			}			
 		}
+		
 		if( rp.Attributes & BotAttrib_CannotCarryBomb )
 		{
 			BlockBombPickup(client);
+		}
+		else if(GameRules_GetRoundState() == RoundState_RoundRunning)
+		{
+			RequestFrame(FrameCheckFlagForPickUp, GetClientUserId(client));
 		}
 		
 		if(OR_IsHalloweenMission())

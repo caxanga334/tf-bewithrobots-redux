@@ -35,6 +35,12 @@
 				"windows"	"\x53\x8B\xDC\x83\xEC\x2A\x83\xE4\x2A\x83\xC4\x2A\x55\x8B\x6B\x2A\x89\x6C\x2A\x2A\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x8B\x43\x2A\x56\x50\x8B\xF1"	
 				"linux"		"@_ZN12CBaseTrigger13PointIsWithinERK6Vector"
 			}
+			"CCaptureFlag::IsHome" // CTFBotAttackFlagDefenders::Update // string --> "Flag was dropped"
+			{
+				"library"	"server"
+				"windows"	"\x83\xB9\x60\x06\x00\x00\x00"	
+				"linux"		"@_ZN12CCaptureFlag6IsHomeEv"
+			}
 		}
 		"Offsets"
 		{
@@ -57,6 +63,11 @@
 			{
 				"windows"	"337"
 				"linux"		"343"
+			}
+			"CCaptureFlag::PickUp"
+			{
+				"windows"	"224"
+				"linux"		"262"
 			}
 		}
 	}
