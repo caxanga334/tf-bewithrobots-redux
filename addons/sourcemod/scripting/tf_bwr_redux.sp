@@ -56,7 +56,6 @@ int g_iBusterIndex; // Index of a sentry buster player
 float g_flBusterVisionTimer; // timer for buster wallhack
 bool g_bLateLoad;
 float g_flinstructiontime[MAXPLAYERS + 1]; // Last time we gave an instruction to a player 
-int g_teamOverrides[4] = {0, 0, 3, 0}; // This is the m_nModelIndexOverrides index for each team.
 Handle g_hHUDReload;
 
 char g_strModelRobots[][] = {"", "models/bots/scout/bot_scout.mdl", "models/bots/sniper/bot_sniper.mdl", "models/bots/soldier/bot_soldier.mdl", "models/bots/demo/bot_demo.mdl", "models/bots/medic/bot_medic.mdl", "models/bots/heavy/bot_heavy.mdl", "models/bots/pyro/bot_pyro.mdl", "models/bots/spy/bot_spy.mdl", "models/bots/engineer/bot_engineer.mdl"};
@@ -748,6 +747,24 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		
 	RoboPlayer rp = RoboPlayer(client);
 	TFClassType class = TF2_GetPlayerClass(client);
+	
+	if(class == TFClass_Spy)
+	{
+		int iDisguisedClass = GetEntProp(client, Prop_Send, "m_nDisguiseClass");
+		int iDisguisedTeam = GetEntProp(client, Prop_Send, "m_nDisguiseTeam");
+		if(g_nDisguised[client].g_iDisguisedClass != iDisguisedClass || g_nDisguised[client].g_iDisguisedTeam != iDisguisedTeam)
+		{
+			if(iDisguisedClass == 0 && iDisguisedTeam == 0)
+			{
+				SpyDisguiseClear(client);
+			}else{
+				SpyDisguiseThink(client, iDisguisedClass, iDisguisedTeam);
+
+				g_nDisguised[client].g_iDisguisedClass = iDisguisedClass;
+				g_nDisguised[client].g_iDisguisedTeam = iDisguisedTeam;
+			}
+		}
+	}
 		
 	if(TF2_GetClientTeam(client) == TFTeam_Blue)
 	{
@@ -816,24 +833,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 						ShowSyncHudText(client, g_hHUDReload, "READY TO FIRE! (%i / %i)", iClip, iMaxClip);
 						rp.ReloadingBarrage = false;
 					}
-				}
-			}
-		}
-		
-		if(class == TFClass_Spy)
-		{
-			int iDisguisedClass = GetEntProp(client, Prop_Send, "m_nDisguiseClass");
-			int iDisguisedTeam = GetEntProp(client, Prop_Send, "m_nDisguiseTeam");
-			if(g_nDisguised[client].g_iDisguisedClass != iDisguisedClass || g_nDisguised[client].g_iDisguisedTeam != iDisguisedTeam)
-			{
-				if(iDisguisedClass == 0 && iDisguisedTeam == 0)
-				{
-					SpyDisguiseClear(client);
-				}else{
-					SpyDisguiseThink(client, iDisguisedClass, iDisguisedTeam);
-
-					g_nDisguised[client].g_iDisguisedClass = iDisguisedClass;
-					g_nDisguised[client].g_iDisguisedTeam = iDisguisedTeam;
 				}
 			}
 		}
@@ -1913,7 +1912,7 @@ public Action Command_BossInfo( int client, int nArgs )
 	ReplyToCommand(client, "Selected Boss: %s", bossname);
 	if( IsValidClient(iBossPlayer) && IsPlayerAlive(iBossPlayer) )
 	{
-		ReplyToCommand(client, "Active Boss: Controller: N || Health: %i", iBossPlayer, GetClientHealth(iBossPlayer));
+		ReplyToCommand(client, "Active Boss: Controller: %N || Health: %i", iBossPlayer, GetClientHealth(iBossPlayer));
 	}
 	
 	if( GetTeamClientCount(2) < g_BossMinRed )

@@ -1567,6 +1567,8 @@ void CreateAnnotation(float pos[3], int client, char[] message, int offset, floa
 
 void SpyDisguiseClear(int client)
 {
+	if(IsDebugging()) { CPrintToChatAll("{cyan}SpyDisguiseClear called for client {green}%N", client); }
+
 	for(int i=0; i<4; i++)
 	{
 		SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", 0, _, i);
@@ -1579,23 +1581,49 @@ void SpyDisguiseClear(int client)
 void SpyDisguiseThink(int client, int disguiseclass, int disguiseteam)
 {
 	int team = GetClientTeam(client);
-	int enemyteam = (team == view_as<int>(TFTeam_Red)) ? view_as<int>(TFTeam_Blue) : view_as<int>(TFTeam_Red);
+	
+	if(IsDebugging()) { CPrintToChatAll("{cyan}SpyDisguiseThink called for client {green}%N {cyan}Team: {orange}%i", client, team); }
+	
+	// m_nModelIndexOverrides works differently on MvM
+	// it seems index 0 is used for both RED and BLU teams.
 	
 	switch(team)
 	{
-		// RED
-		case 2:
+		case 2: // RED
 		{
 			if(disguiseteam == view_as<int>(TFTeam_Red))
 			{
-				// RED spy disguised as a RED team member, should look like a RED human to the BLU team
-				SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", g_iModelIndexHumans[disguiseclass], _, g_teamOverrides[enemyteam]);
+				// RED spy disguised as a RED team member, should look like a RED human
+				SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", g_iModelIndexHumans[disguiseclass], _, 0);
+			}
+			else if(OR_IsHalloweenMission())
+			{
+				// RED spy disguised as a BLU team member, should look like a BLU human on wave 666
+				SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", g_iModelIndexHumans[disguiseclass], _, 0);
 			}
 			else
 			{
-				// RED spy disguised as a BLU team member, should look like a BLU robot to the BLU team
-				SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", g_iModelIndexRobots[disguiseclass], _, g_teamOverrides[enemyteam]);
+				// RED spy disguised as a BLU team member, should look like a BLU robot
+				SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", g_iModelIndexRobots[disguiseclass], _, 0);					
 			}
+		}
+		case 3: // BLU
+		{
+			if(disguiseteam == view_as<int>(TFTeam_Red))
+			{
+				// BLU spy disguised as a RED team member, should look like a RED human
+				SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", g_iModelIndexHumans[disguiseclass], _, 0);
+			}
+			else if(OR_IsHalloweenMission())
+			{
+				// BLU spy disguised as a BLU team member, should look like a BLU human on wave 666
+				SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", g_iModelIndexHumans[disguiseclass], _, 0);				
+			}
+			else
+			{
+				// BLU spy disguised as a BLU team member, should look like a BLU robot
+				SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", g_iModelIndexRobots[disguiseclass], _, 0);
+			}			
 		}
 	}
 }
