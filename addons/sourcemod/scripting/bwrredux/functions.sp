@@ -276,8 +276,8 @@ int FindBestBluTeleporter()
 	{
 		if( IsValidEntity(i) )
 		{
-			if( GetEntProp( i, Prop_Send, "m_bHasSapper" ) == 0 && GetEntProp( i, Prop_Send, "m_iTeamNum" ) != view_as<int>(TFTeam_Red) && GetEntPropFloat(i, Prop_Send, "m_flPercentageConstructed") >= 0.99 )
-			{ // teleporters from spectator are also valid since we started moving dead blu players to spec
+			if( GetEntProp( i, Prop_Send, "m_bHasSapper" ) == 0 && GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) && GetEntPropFloat(i, Prop_Send, "m_flPercentageConstructed") >= 0.99 )
+			{
 				if( iBombOwner == -1 || iBombOwner > MaxClients)
 				{
 					GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
@@ -1131,9 +1131,20 @@ void BusterWallhack(int client)
 	
 	if(bestsentry != -1)
 	{
-		GetEntPropVector( bestsentry, Prop_Data, "m_vecOrigin", origin );
-		origin[2] += 15.0;
-		CreateAnnotation(origin, client, "Target Sentry", 0, 5.0);
+		if(GetEntProp(bestsentry, Prop_Send, "m_bCarried") == 1) // sentry gun is being carried
+		{
+			int owner = GetEntPropEnt(bestsentry, Prop_Send, "m_hBuilder");
+			if(owner > 0 && owner <= MaxClients && IsClientInGame(owner))
+			{
+				CreateAnnotation(NULL_VECTOR, client, "Target Sentry", 0, 5.0, owner);
+			}
+		}
+		else
+		{
+			GetEntPropVector(bestsentry, Prop_Data, "m_vecOrigin", origin);
+			origin[2] += 15.0;
+			CreateAnnotation(origin, client, "Target Sentry", 0, 5.0);			
+		}
 		if(IsDebugging()) { PrintToConsole(client, "BusterWallhack:: sentry at %.1f %.1f %.1f", origin[0],origin[1],origin[2]); }
 	}
 }
@@ -1703,4 +1714,122 @@ void TF2_PickUpFlag(int client, int flag)
 bool TF2_IsFlagHome(int flag)
 {
 	return SDKCall(g_hSDKIsFlagHome, flag);
+}
+
+void BWRR_InstructPlayer(int client)
+{
+	if(g_flinstructiontime[client] > GetGameTime()) { return; }
+
+	RoboPlayer rp = RoboPlayer(client);
+	float pos[3];
+	
+	if(rp.Type == Bot_Buster) { return; } // Ignore sentry busters
+	
+	g_flinstructiontime[client] = GetGameTime() + 30.0;
+	
+	if(rp.Carrier) // prove instructions to deploy the bomb
+	{
+		pos = TF2_GetBombHatchPosition();
+		CreateAnnotation(pos, client, "Deploy the bomb!", 1, 10.0);
+		return;
+	}
+	
+	if(rp.Gatebot)
+	{
+		int trigger = -1;
+		while ((trigger = FindEntityByClassname(trigger, "trigger_timer_door")) != -1)
+		{
+			bool bDisabled = !!GetEntProp(trigger, Prop_Data, "m_bDisabled");
+			if(!bDisabled)
+			{
+				GetEntityWorldCenter(trigger, pos);
+				CreateAnnotation(pos, client, "Capture!", 2, 10.0);
+				return;
+			}
+		}
+	}
+	
+	Address Addr = TF2Attrib_GetByName(client, "cannot pick up intelligence");
+	if(Addr == Address_Null) // player can pick up the bomb
+	{
+		int bomb = -1;
+		while ((bomb = FindEntityByClassname(bomb, "item_teamflag")) != -1)
+		{
+			// Ignore bomb if it is at home
+			if(TF2_IsFlagHome(bomb))
+				continue;
+			
+			// Ignore bombs from other teams
+			if(GetEntProp(bomb, Prop_Send, "m_iTeamNum") != view_as<int>(TFTeam_Blue))
+				continue;
+			
+			// Ignore disabled bombs
+			if(GetEntProp(bomb, Prop_Send, "m_bDisabled") == 1)
+				continue;
+				
+			int moveparent = GetEntPropEnt(bomb, Prop_Send, "moveparent");
+			if(moveparent != -1 && moveparent <= MaxClients)
+			{
+				CreateAnnotation(NULL_VECTOR, client, "Escort the bomb carrier!", 2, 10.0, moveparent);
+				return;
+			}
+			else
+			{
+				CreateAnnotation(NULL_VECTOR, client, "Pick up the bomb!", 2, 10.0, bomb);
+				return;				
+			}
+		}
+	}
+	
+	if(TF2_GetPlayerClass(client) == TFClass_Spy)
+	{
+		int bestplayer = -1;
+		float smallest_dist = 999999.0, distance;
+		float mypos[3], targetpos[3];
+		GetClientAbsOrigin(client, mypos);
+		for(int i = 1;i <= MaxClients;i++)
+		{
+			if(i == client) // skip self
+				continue;
+				
+			if(!IsClientInGame(i)) // skip if clients are not in game
+				continue;
+				
+			if(GetClientTeam(i) != 2) // skip if player is NOT RED
+				continue;
+				
+			if(!IsPlayerAlive(i)) // skip dead players
+				continue;
+				
+			GetClientAbsOrigin(i, targetpos);
+			distance = GetVectorDistance(mypos, targetpos);
+			
+			if(distance < smallest_dist)
+			{
+				smallest_dist = distance;
+				bestplayer = i;
+			}
+		}
+		
+		if(bestplayer != -1)
+		{
+			char msg[64];
+			FormatEx(msg, sizeof(msg), "Kill %N", bestplayer);
+			CreateAnnotation(NULL_VECTOR, client, msg, 4, 10.0, bestplayer);
+			return;
+		}
+	}
+}
+
+// List of weapon indexes that can be used while inside spawn
+bool CanWeaponBeUsedInsideSpawn(int index)
+{
+	switch( index )
+	{
+		case 46,163,1145,129,226,354,1001,42,159,311,433,863,1002,1190:
+		{
+			return true;
+		}
+		default: return false;
+	}
 }

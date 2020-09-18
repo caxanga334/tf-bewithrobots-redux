@@ -313,9 +313,6 @@ public void OnPluginStart()
 	LoadTranslations("bwrredux.phrases");
 	LoadTranslations("common.phrases");
 	
-	// timers
-	//CreateTimer(180.0, Timer_Announce, _, TIMER_REPEAT);
-	
 	// commands
 	RegConsoleCmd( "sm_joinred", Command_JoinRED, "Joins RED team." );
 	RegConsoleCmd( "sm_joinblu", Command_JoinBLU, "Joins BLU/Robot team." );
@@ -516,12 +513,11 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnConfigsExecuted()
 {
+	g_bDebugEnabled = c_bDebug.BoolValue;
 	RT_ClearArrays(); // load config calls needed to be moved here in order to properly load a custom file set in the convars
 	RT_LoadCfgNormal();
 	RT_LoadCfgGiant();
 	RT_PostLoad();
-	
-	g_bDebugEnabled = c_bDebug.BoolValue;
 }
 
 public void OnMapStart()
@@ -675,12 +671,13 @@ public void OnClientPostAdminCheck(int client)
 	}
 } */
 
-stock void TF2Spawn_EnterSpawn(int client,int entity)
+stock void TF2Spawn_TouchingSpawn(int client,int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
 		p_bInSpawn[client] = true;
 		TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
+		g_flinstructiontime[client] = GetGameTime() + 1.0;
 	}
 }
 
@@ -783,31 +780,21 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	if(TF2_GetClientTeam(client) == TFTeam_Blue)
 	{
 		int iActiveWeapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
+		BWRR_InstructPlayer(client);
 	
 		if(rp.InSpawn)
 		{
-			SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.5); // block attack
 			TF2_AddCondition(client, TFCond_UberchargedHidden, 0.255);
-			if( buttons & IN_ATTACK ) // block attack buttons when robot players are inside their spawn room.
+			int index;
+			
+			if(IsValidEntity(iActiveWeapon)) { index = GetEntProp(iActiveWeapon, Prop_Send, "m_iItemDefinitionIndex"); }
+			
+			// Block attack unless the player is a medic using the medigun
+			// or a soldier using The Buff Banner or The Battalion's Backup or The Concheror
+			// or a scout using Bonk! Atomic Punch or Crit-a-Cola or Festive Bonk!
+			if(!(class == TFClass_Medic && GetPlayerWeaponSlot(client, TFWeaponSlot_Secondary) == iActiveWeapon) && !CanWeaponBeUsedInsideSpawn(index))
 			{
-				buttons &= ~IN_ATTACK;
-				buttons &= ~IN_ATTACK2;
-				buttons &= ~IN_ATTACK3;
-				return Plugin_Changed;
-			}
-			else if( buttons & IN_ATTACK2 )
-			{
-				buttons &= ~IN_ATTACK;
-				buttons &= ~IN_ATTACK2;
-				buttons &= ~IN_ATTACK3;
-				return Plugin_Changed;
-			}
-			else if( buttons & IN_ATTACK3 )
-			{
-				buttons &= ~IN_ATTACK;
-				buttons &= ~IN_ATTACK2;
-				buttons &= ~IN_ATTACK3;
-				return Plugin_Changed;
+				SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.5);	
 			}
 		}
 		
@@ -876,7 +863,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 		
-		if( rp.Carrier && HT_BombDeployTimer == INVALID_HANDLE && !TF2_IsPlayerInCondition(client, TFCond_Taunting) && !TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden) )
+		if( rp.Carrier && HT_BombDeployTimer == null && !TF2_IsPlayerInCondition(client, TFCond_Taunting) && !TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden) )
 		{
 			if( TF2_IsGiant(client) )
 			{
@@ -1020,7 +1007,7 @@ public Action OnTouchCaptureZone(int entity, int other)
 			SetVariantInt(1);
 			AcceptEntityInput(other, "SetForcedTauntCam");
 			RequestFrame(DisableAnim, GetClientUserId(other));
-			if( HT_BombDeployTimer == INVALID_HANDLE )
+			if( HT_BombDeployTimer == null )
 			{
 				HT_BombDeployTimer = CreateTimer(2.1, Timer_DeployBomb, other);
 				if( rp.Type == Bot_Giant || rp.Type == Bot_Boss )
@@ -1051,10 +1038,10 @@ public Action OnEndTouchCaptureZone(int entity, int other)
 		RoboPlayer rp = RoboPlayer(other);
 		if( rp.Carrier )
 		{
-			if( HT_BombDeployTimer != INVALID_HANDLE )
+			if( HT_BombDeployTimer != null )
 			{
-				CloseHandle(HT_BombDeployTimer);
-				HT_BombDeployTimer = INVALID_HANDLE;
+				delete HT_BombDeployTimer;
+				HT_BombDeployTimer = null;
 				SetVariantInt(0);
 				AcceptEntityInput(other, "SetForcedTauntCam");
 				SetEntProp(other, Prop_Send, "m_bUseClassAnimations", 1);
@@ -1070,7 +1057,6 @@ public Action OnStartTouchRespawn(int entity, int other)
 {
 	if( IsValidClient(other) )
 	{
-		TF2Spawn_EnterSpawn(other, entity);
 		TF2Spawn_EnterSpawnOnce(other, entity);
 	}
 	
@@ -1082,7 +1068,7 @@ public Action OnTouchRespawn(int entity, int other)
 {
 	if( IsValidClient(other) )
 	{
-		TF2Spawn_EnterSpawn(other, entity);
+		TF2Spawn_TouchingSpawn(other, entity);
 	}
 	
 	return Plugin_Continue;
@@ -2737,6 +2723,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 	{
 		rp.Carrier = false;
 		rp.ReloadingBarrage = false;
+		g_flinstructiontime[client] = GetGameTime() + 2.0;
 		
 		int iActiveWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 		if(IsValidEntity(iActiveWeapon))
@@ -2773,12 +2760,12 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
 			}			
 		}
-		
+
 		if( rp.Attributes & BotAttrib_CannotCarryBomb )
 		{
 			BlockBombPickup(client);
 		}
-		else if(GameRules_GetRoundState() == RoundState_RoundRunning)
+		else if(GameRules_GetRoundState() == RoundState_RoundRunning && !rp.Gatebot)
 		{
 			RequestFrame(FrameCheckFlagForPickUp, GetClientUserId(client));
 		}
@@ -3109,23 +3096,20 @@ public Action Timer_DeployBomb(Handle timer, any client)
 {
 	if( !IsValidClient(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || IsFakeClient(client) )
 	{
-		//CloseHandle(HT_BombDeployTimer);
-		HT_BombDeployTimer = INVALID_HANDLE;
+		HT_BombDeployTimer = null;
 		return Plugin_Stop;
 	}
 		
 	if( IsFakeClient(client) )
 	{
 		LogError("Timer_DeployBomb called for Fake Client.");
-		//CloseHandle(HT_BombDeployTimer);
-		HT_BombDeployTimer = INVALID_HANDLE;
+		HT_BombDeployTimer = null;
 		return Plugin_Stop;
 	}
 	
 	if( !( GetEntityFlags(client) & FL_ONGROUND ) )
 	{
-		//CloseHandle(HT_BombDeployTimer);
-		HT_BombDeployTimer = INVALID_HANDLE;
+		HT_BombDeployTimer = null;
 		return Plugin_Stop;
 	}
 	
@@ -3135,16 +3119,9 @@ public Action Timer_DeployBomb(Handle timer, any client)
 	LogAction(client, -1, "Player \"%L\" deployed the bomb.", client);
 	TriggerHatchExplosion();
 	
-	//CloseHandle(HT_BombDeployTimer);
-	HT_BombDeployTimer = INVALID_HANDLE;
+	HT_BombDeployTimer = null;
 	return Plugin_Stop;
 }
-
-/**public Action Timer_Announce(Handle timer)
-{
-	PrintToChatAll("Be With Robots Redux By Anonymous Player.");
-	PrintToChatAll("https://github.com/caxanga334/tf-bewithrobots-redux");
-}**/
 
 public Action Timer_SentryBuster_Explode(Handle timer, any client)
 {
