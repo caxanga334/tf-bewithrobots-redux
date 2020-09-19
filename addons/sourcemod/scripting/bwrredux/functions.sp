@@ -1276,7 +1276,7 @@ void AddAdditionalSpawnRooms()
 			GetEntPropString(i, Prop_Data, "m_iName", targetname, sizeof(targetname));
 			if(strcmp(targetname, "bwrr_respawnroom") == 0)
 			{
-				if( IsDebugging ) { LogMessage("Skipping AddAdditionalSpawnRooms() because we've already created additional spawn rooms."); }
+				if(IsDebugging()) { LogMessage("Skipping AddAdditionalSpawnRooms() because we've already created additional spawn rooms."); }
 				return; // we've already created extras spawnrooms.
 			}
 		}
@@ -1306,7 +1306,10 @@ void AddAdditionalSpawnRooms()
 					FindSpawnRoomsInTheMap(); // update list so we don't create unnecessary spawnrooms
 					created = true;
 				}
-				else { LogMessage("Skipping info_player_teamspawn %i at %.1f %.1f %.1f because it's already inside the boundaries of a func_respawnroom", i, origin[0], origin[1], origin[2]); }
+				else
+				{
+					if(IsDebugging()) { LogMessage("Skipping info_player_teamspawn %i at %.1f %.1f %.1f because it's already inside the boundaries of a func_respawnroom", i, origin[0], origin[1], origin[2]); }
+				}
 			}
 		}
 	}
@@ -1508,17 +1511,17 @@ int BotNoticeBackstabChance(bool update = false)
 	return chance;
 }
 
-int BotTauntAfterKillChance(bool update = false)
+int BotNoticeBackstabMaxRange(bool update = false)
 {
-	static int chance;
+	static int range;
 	
 	if(update)
 	{
-		chance = GetConVarInt(FindConVar("tf_bot_taunt_victim_chance"));
-		return chance;
+		range = GetConVarInt(FindConVar("tf_bot_notice_backstab_max_range"));
+		return range;
 	}
 	
-	return chance;
+	return range;
 }
 
 // Add hook to entities on plugin late load
@@ -1665,6 +1668,49 @@ void FrameEngineerDeath(int userid)
 			}
 		}
 	}
+}
+
+// called when a BLU client ( bot or human ) is killed by backstab
+void FrameBLUBackstabbed(DataPack pack)
+{
+	pack.Reset();
+	int victim = GetClientOfUserId(pack.ReadCell());
+	int attacker = GetClientOfUserId(pack.ReadCell());
+	
+	float victimpos[3], attackerpos[3], testpos[3];
+	float distance;
+	
+	GetClientAbsOrigin(victim, victimpos);
+	GetClientAbsOrigin(attacker, attackerpos);
+	
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(i == victim || i == attacker) // skip victim & attacker
+			continue;
+			
+		if(!IsClientInGame(i)) // must be in game
+			continue;
+			
+		if(IsFakeClient(i)) // no need to alert bots
+			continue;
+			
+		if(GetClientTeam(i) != 3) // must be BLU
+			continue;
+			
+			
+		if(GetRandomInt(0,100) > BotNoticeBackstabChance()) // chance of detecting
+			continue;
+			
+		GetClientAbsOrigin(i, testpos);
+		distance = GetVectorDistance(victimpos, testpos);
+		
+		if(RoundToNearest(distance) > BotNoticeBackstabMaxRange()) // out of range
+			continue;
+			
+		CreateAnnotation(attackerpos, i, "Enemy Spy!", 9, 5.0);
+		g_flinstructiontime[i] = GetGameTime() + 7.0;
+	}
+	
 }
 
 // checks if we can teleport a flag to the player upon spawning

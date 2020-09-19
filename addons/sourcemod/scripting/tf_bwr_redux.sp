@@ -564,7 +564,7 @@ public void OnMapStart()
 	g_flBusterVisionTimer = 0.0;
 	g_bSkipSpawnRoom = false;
 	BotNoticeBackstabChance(true);
-	BotTauntAfterKillChance(true);
+	BotNoticeBackstabMaxRange(true);
 	
 	// add custom tag
 	AddPluginTag("BWRR");
@@ -1128,10 +1128,9 @@ public Action SDKOnPlayerTakeDamage(int victim, int& attacker, int& inflictor, f
 	
 	if(attacker <= 0 || attacker > MaxClients)
 		return Plugin_Continue;
-
-	bool announce = GetRandomInt(1,100) <= BotNoticeBackstabChance();
 	
-	if(damagecustom == TF_CUSTOM_BACKSTAB && damagetype & DMG_CRIT && announce && TF2_IsGiant(victim))
+	// Bots will always notice backstabs that doesn't kill them
+	if(damagecustom == TF_CUSTOM_BACKSTAB && damagetype & DMG_CRIT && TF2_IsGiant(victim))
 	{
 		// Alert giant players they're getting backstabbed
 		EmitSoundToClient(victim, "player/spy_shield_break.wav");
@@ -1371,8 +1370,6 @@ public Action Command_Debug( int client, int nArgs )
 	ReplyToCommand(client, "Class Array Size: %i", array_avclass.Length);
 	ReplyToCommand(client, "Giant Array Size: %i", array_avgiants.Length);
 	ReplyToCommand(client, "Client Data: RT: %d, RV: %d, RA: %d", p_iBotType[client], p_iBotVariant[client], p_iBotAttrib[client]);
-	ReplyToCommand(client, "Bot taunt after kill chance: %i", BotTauntAfterKillChance(true));
-	ReplyToCommand(client, "Bot notice backstab chance: %i", BotNoticeBackstabChance(true));
 	
 	return Plugin_Handled;
 }
@@ -2553,7 +2550,9 @@ public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadca
 public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	int attacker = GetClientOfUserId(event.GetInt("attacker"));
+	//int attacker = GetClientOfUserId(event.GetInt("attacker"));
+	int customkill = event.GetInt("customkill");
+	TFTeam clientteam = TF2_GetClientTeam(client);
 	
 	int deathflags = event.GetInt("death_flags");
 	if(deathflags & TF_DEATHFLAG_DEADRINGER)
@@ -2561,7 +2560,15 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		
 	DeleteParticleOnPlayerDeath(client); // Check and delete any particle effect we might have added to the player.
 	
-	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
+	if(clientteam == TFTeam_Blue && customkill == TF_CUSTOM_BACKSTAB) // victim is on BLU and was killed by backstab
+	{
+		DataPack pack = new DataPack();
+		pack.WriteCell(event.GetInt("userid"));
+		pack.WriteCell(event.GetInt("attacker"));
+		RequestFrame(FrameBLUBackstabbed, pack);
+	}
+	
+	if(clientteam == TFTeam_Blue && !IsFakeClient(client))
 	{
 		p_bIsGatebot[client] = false;
 	
@@ -2598,14 +2605,6 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		CreateTimer(c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client);
 		CreateTimer(1.0, Timer_PickRandomRobot, client);
 		StopRobotLoopSound(client);
-	}
-	else if( TF2_GetClientTeam(client) == TFTeam_Red )
-	{
-		if( IsValidClient(attacker) && !IsFakeClient(attacker) && TF2_GetClientTeam(attacker) == TFTeam_Blue && !TF2_IsGiant(attacker) )
-		{
-			bool taunt = GetRandomInt(1,100) <= BotTauntAfterKillChance();
-			if(taunt) { FakeClientCommand(attacker, "taunt"); }
-		}
 	}
 	
 	return Plugin_Continue;
