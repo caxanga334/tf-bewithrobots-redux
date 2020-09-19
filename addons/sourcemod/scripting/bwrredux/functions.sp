@@ -820,14 +820,18 @@ int CreateParticle( float flOrigin[3], const char[] strParticle, float flDuratio
 }
 
 // Creates a particle system and sets a client as it's owner.
-int CreateParticleOnPlayer( float flOrigin[3], const char[] strParticle, float flDuration = -1.0, int client)
+int CreateGateStunParticle(const char[] strParticle, float flDuration = -1.0, int client)
 {
 	int iParticle = CreateEntityByName( "info_particle_system" );
 	if( IsValidEntity( iParticle ) )
 	{
 		DispatchKeyValue( iParticle, "effect_name", strParticle );
 		DispatchKeyValue( iParticle, "targetname", "bwrr_player_particle" );
-		TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
+		SetVariantString("!activator");
+		AcceptEntityInput(iParticle, "SetParent", client, iParticle, 0);
+		SetVariantString("head");
+		AcceptEntityInput(iParticle, "SetParentAttachment", iParticle , iParticle, 0);
+		//TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
 		DispatchSpawn( iParticle );
 		ActivateEntity( iParticle );
 		AcceptEntityInput( iParticle, "Start" );
@@ -1464,7 +1468,6 @@ bool IsGatebotAvailable(bool update = false)
 // a gate has been taken by the robots
 void GateCapturedByRobots()
 {
-	float origin[3];
 	g_flGateStunTime = GetGameTime() + g_flGateStunDuration;
 	for(int i = 1;i <= MaxClients;i++)
 	{
@@ -1472,8 +1475,7 @@ void GateCapturedByRobots()
 		{
 			TF2_AddCondition(i, TFCond_MVMBotRadiowave, g_flGateStunDuration);
 			TF2_StunPlayer(i, g_flGateStunDuration, 0.0, TF_STUNFLAG_LIMITMOVEMENT|TF_STUNFLAG_BONKSTUCK|TF_STUNFLAG_THIRDPERSON|TF_STUNFLAG_NOSOUNDOREFFECT);
-			GetClientEyePosition(i, origin);
-			CreateParticleOnPlayer(origin, "bot_radio_waves", g_flGateStunDuration, i);
+			CreateGateStunParticle("bot_radio_waves", g_flGateStunDuration, i);
 			if(IsDebugging()) { CPrintToChat(i, "{green}[DEBUG] {cyan}GateCapturedByRobots() applying stun to client %N, stun time: %f", i, g_flGateStunDuration); }
 		}
 	}
@@ -1785,8 +1787,33 @@ void BWRR_InstructPlayer(int client)
 		int trigger = -1;
 		while ((trigger = FindEntityByClassname(trigger, "trigger_timer_door")) != -1)
 		{
+			bool bFound;
 			bool bDisabled = !!GetEntProp(trigger, Prop_Data, "m_bDisabled");
-			if(!bDisabled)
+			if(bDisabled)
+				continue;
+				
+			char cpname[32]; // some community maps doesn't disable trigger_timer_door when it's capped
+			GetEntPropString(trigger, Prop_Data, "m_iszCapPointName", cpname, sizeof(cpname));
+			
+			if(strlen(cpname) < 3) // trigger_timer_door without associated control point
+				continue;
+			
+			int controlpoint = -1;
+			while((controlpoint = FindEntityByClassname(controlpoint, "team_control_point")) != -1) // search for matching team_control_point
+			{
+				char targetname[32];
+				GetEntPropString(controlpoint, Prop_Data, "m_iName", targetname, sizeof(targetname));
+				if(strcmp(targetname, cpname, false) == 0)
+				{
+					if(GetEntProp(controlpoint, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red)) // RED owned control point
+					{
+						bFound = true;
+						break;
+					}
+				}
+			}
+			
+			if(bFound)
 			{
 				GetEntityWorldCenter(trigger, pos);
 				CreateAnnotation(pos, client, "Capture!", 2, 10.0);
