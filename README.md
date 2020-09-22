@@ -15,7 +15,6 @@ Plugin made to replace Be With Robots 2
 * [TF2Items](https://forums.alliedmods.net/showthread.php?p=1050170)
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556) (Optional)
 * [TF2Attributes](https://github.com/FlaminSarge/tf2attributes/releases)
-* [TF2 Is Player In Spawn?](https://forums.alliedmods.net/showthread.php?p=2196313)
 * [TF2Wearables](https://github.com/nosoop/sourcemod-tf2wearables)
 * [DHooks with dynamic detour](https://github.com/peace-maker/DHooks2/releases)
 * [MvM Visible Max Players](https://forums.alliedmods.net/showpost.php?p=1819270) (Optional,Recommended)
