@@ -7,9 +7,7 @@
 [![Discord](https://img.shields.io/discord/680494591585026113?label=discord&style=flat-square)](https://discord.gg/cSdu8Uf)
 
 # Be With Robots: Redux
-Allows players to play as a robot in MvM
-
-Plugin made to replace Be With Robots 2
+A plugin made for Team Fortress 2 that allow players to join BLU (robot) team in Mann vs Machine. This was made to replace Be With Robots 2.
 
 # Dependencies
 * [TF2Items](https://forums.alliedmods.net/showthread.php?p=1050170)
