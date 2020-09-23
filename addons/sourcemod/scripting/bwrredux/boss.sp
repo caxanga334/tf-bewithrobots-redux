@@ -189,7 +189,7 @@ void Boss_SelectRandom(float flDelay = 0.0)
 	iBossCount = ExplodeString(g_strBossList, ",", splitBossProfile, sizeof(splitBossProfile), sizeof(splitBossProfile[]));
 	g_BossTimer = GetGameTime() + flDelay;
 	
-	strcopy(strSelectedBoss, sizeof(strSelectedBoss), splitBossProfile[GetRandomInt(0, iBossCount - 1)]);
+	strcopy(strSelectedBoss, sizeof(strSelectedBoss), splitBossProfile[Math_GetRandomInt(0, iBossCount - 1)]);
 	Boss_LoadProfile(strSelectedBoss);
 }
 

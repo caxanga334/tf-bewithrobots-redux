@@ -1,5 +1,7 @@
 // functions that can be removed from the main file
 
+#define SIZE_OF_INT         2147483647 // without 0
+
 // Globals
 ArrayList g_aSpyTeleport;
 ArrayList g_aEngyTeleport;
@@ -63,7 +65,28 @@ stock int GetRandomClientFromTeam(const int iTeam, bool bBots = false)
 		}
 	}
 	
-	return players_available[GetRandomInt(0,(counter-1))];
+	return players_available[Math_GetRandomInt(0,(counter-1))];
+}
+
+/**
+ * Returns a random, uniform Integer number in the specified (inclusive) range.
+ * This is safe to use multiple times in a function.
+ * The seed is set automatically for each plugin.
+ * Rewritten by MatthiasVance, thanks.
+ *
+ * @param min			Min value used as lower border
+ * @param max			Max value used as upper border
+ * @return				Random Integer number between min and max
+ */
+stock int Math_GetRandomInt(int min, int max)
+{
+	int random = GetURandomInt();
+
+	if (random == 0) {
+		random++;
+	}
+
+	return RoundToCeil(float(random) / (float(SIZE_OF_INT) / float(max - min + 1))) + min - 1;
 }
 
 // selects a random player from a team
@@ -94,7 +117,7 @@ int GetRandomPlayer(TFTeam Team, bool bIncludeBots = false)
 	
 	// now we should have an array filled with user ids and exactly how many players we have in game.
 	int iRandomMax = counter - 1;
-	int iRandom = GetRandomInt(0,iRandomMax); // get a random number between 0 and counted players
+	int iRandom = Math_GetRandomInt(0,iRandomMax); // get a random number between 0 and counted players
 	// now we get the user id from the array cell selected via iRandom
 	return players_available[iRandom];
 }
@@ -1054,7 +1077,7 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 	}
 	else
 	{
-		g_aSpyTeleport.GetArray(GetRandomInt(0, (g_aSpyTeleport.Length - 1)), origin);
+		g_aSpyTeleport.GetArray(Math_GetRandomInt(0, (g_aSpyTeleport.Length - 1)), origin);
 		return true;
 	}
 }
@@ -1719,7 +1742,7 @@ void FrameBLUBackstabbed(DataPack pack)
 			continue;
 			
 			
-		if(GetRandomInt(0,100) > BotNoticeBackstabChance()) // chance of detecting
+		if(Math_GetRandomInt(0,100) > BotNoticeBackstabChance()) // chance of detecting
 			continue;
 			
 		GetClientAbsOrigin(i, testpos);
@@ -1978,5 +2001,15 @@ void BWRR_InstructPlayer(int client)
 			CreateAnnotation(NULL_VECTOR, client, msg, 4, 10.0, bestplayer);
 			return;
 		}
+	}
+	
+	int tankboss = -1;
+	while ((tankboss = FindEntityByClassname(tankboss, "tank_boss")) != -1)
+	{
+		if(GetEntProp(tankboss, Prop_Send, "m_iTeamNum") != 3)
+			continue;
+			
+		CreateAnnotation(NULL_VECTOR, client, "Protect the tank!", 2, 10.0, tankboss);
+		return;
 	}
 }

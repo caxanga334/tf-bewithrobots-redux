@@ -2382,7 +2382,7 @@ public int MenuHandler_SelectVariant(Menu menu, MenuAction action, int param1, i
 				{
 					g_flLastForceBot[param1] = GetGameTime() + 5.0; // small cooldown when the wave is not in progress
 				}
-				if( CheckCommandAccess(param1, "bwrr_gatebot", 0) && IsGatebotAvailable() && GetRandomInt(0,100) <= c_iGatebotChance.IntValue )
+				if( CheckCommandAccess(param1, "bwrr_gatebot", 0) && IsGatebotAvailable() && Math_GetRandomInt(0,100) <= c_iGatebotChance.IntValue )
 				{
 					p_bIsGatebot[param1] = true;
 				}
@@ -3587,13 +3587,13 @@ void PickRandomRobot(int client)
 		}
 	}
 	
-	if( CheckCommandAccess(client, "bwrr_gatebot", 0) && IsGatebotAvailable() && GetRandomInt(1,100) <= c_iGatebotChance.IntValue )
+	if( CheckCommandAccess(client, "bwrr_gatebot", 0) && IsGatebotAvailable() && Math_GetRandomInt(1,100) <= c_iGatebotChance.IntValue )
 	{
 		rp.Gatebot = true;
 	}
 	
 	// Checks if giants are allowed.
-	if( OR_IsGiantAvaiable && GetRandomInt(1, 100) <= c_iGiantChance.IntValue && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue && array_avgiants.Length >= 1 )
+	if( OR_IsGiantAvaiable && Math_GetRandomInt(1, 100) <= c_iGiantChance.IntValue && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue && array_avgiants.Length >= 1 )
 	{
 		bGiants = true;
 	}
@@ -3604,18 +3604,18 @@ void PickRandomRobot(int client)
 	if( bGiants && c_bLimitClasses.BoolValue ) // Spawn the player as a giant robot.
 	{
 		iSize = GetArraySize(array_avgiants) - 1;
-		iRandom = GetRandomInt(0, iSize);
+		iRandom = Math_GetRandomInt(0, iSize);
 		iClass = array_avgiants.Get(iRandom);
 	}
 	else if( c_bLimitClasses.BoolValue ) // Spawn the player as a normal robot.
 	{
 		iSize = GetArraySize(array_avclass) - 1;
-		iRandom = GetRandomInt(0, iSize);
+		iRandom = Math_GetRandomInt(0, iSize);
 		iClass = array_avclass.Get(iRandom);
 	}
 	else
 	{
-		iClass = GetRandomInt(1,9); // class limit disabled, pick a random one
+		iClass = Math_GetRandomInt(1,9); // class limit disabled, pick a random one
 	}
 	
 	
@@ -3681,47 +3681,47 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		{
 			case TFClass_Scout:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Scout;
 			}
 			case TFClass_Soldier:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Soldier;
 			}
 			case TFClass_Pyro:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Pyro;
 			}
 			case TFClass_DemoMan:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_DemoMan;
 			}
 			case TFClass_Heavy:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Heavy;
 			}
 			case TFClass_Engineer:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Engineer;
 			}
 			case TFClass_Medic:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Medic;
 			}
 			case TFClass_Sniper:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Sniper;
 			}
 			case TFClass_Spy:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(true, TFClass) - 1));
 				p_BotClass[client] = TFClass_Spy;
 			}
 		}
@@ -3735,47 +3735,47 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		{
 			case TFClass_Scout:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Scout;
 			}
 			case TFClass_Soldier:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Soldier;
 			}
 			case TFClass_Pyro:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Pyro;
 			}
 			case TFClass_DemoMan:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_DemoMan;
 			}
 			case TFClass_Heavy:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Heavy;
 			}
 			case TFClass_Engineer:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Engineer;
 			}
 			case TFClass_Medic:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Medic;
 			}
 			case TFClass_Sniper:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Sniper;
 			}
 			case TFClass_Spy:
 			{
-				p_iBotVariant[client] = GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
+				p_iBotVariant[client] = Math_GetRandomInt(iRandomMin, (RT_NumTemplates(false, TFClass) - 1));
 				p_BotClass[client] = TFClass_Spy;
 			}
 		}
@@ -4336,7 +4336,7 @@ int FindRandomSpawnPoint( SpawnType iType )
 	}
 	if( array_spawns.Length > 0 )
 	{
-		int iCell = GetRandomInt(0, (array_spawns.Length - 1));
+		int iCell = Math_GetRandomInt(0, (array_spawns.Length - 1));
 		return array_spawns.Get(iCell);
 	}
 		
@@ -4448,7 +4448,7 @@ int GetRandomBLUPlayer()
 	
 	// now we should have an array filled with user ids and exactly how many players we have in game.
 	int iRandomMax = counter - 1;
-	int iRandom = GetRandomInt(0,iRandomMax); // get a random number between 0 and counted players
+	int iRandom = Math_GetRandomInt(0,iRandomMax); // get a random number between 0 and counted players
 	// now we get the user id from the array cell selected via iRandom
 	return players_available[iRandom];
 }
