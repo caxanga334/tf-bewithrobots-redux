@@ -238,8 +238,10 @@ int SpawnWeapon(int client,char[] name,int index,int level,int qual,bool bWearab
 		}
 		else
 			EquipPlayerWeapon( client, entity );
-			
+
+#if defined VISIBLE_WEAPONS
 		SetEntProp(entity, Prop_Send, "m_bValidatedAttachedEntity", 1);
+#endif
 	}
 	
 	return entity;

@@ -18,6 +18,8 @@
 //#define DEBUG_PLAYER // player related debug 
 //#define DEBUG_GENERAL // general debug
 //#define DEBUG_CRASHFIX // crash fixes debug
+// visible weapons?
+//#define VISIBLE_WEAPONS
 
 #pragma semicolon 1
 
