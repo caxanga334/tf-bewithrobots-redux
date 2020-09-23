@@ -118,6 +118,10 @@ bool IsMvM(bool forceRecalc = false)
 	return ismvm;
 }
 
+/****************************************************
+					ROBOT SPY
+*****************************************************/
+
 // Teleports a spy near a RED player
 void TeleportSpyRobot(int client)
 {
@@ -158,6 +162,10 @@ void TeleportSpyRobot(int client)
 		}
 	}
 }
+
+/****************************************************
+					ROBOT ENGINEER
+*****************************************************/
 
 // searches for an engineer nest close to the bomb
 void FindEngineerNestNearBomb(int client)
@@ -303,72 +311,6 @@ int FindBestBluTeleporter()
 	return iTargetTele;
 }
 
-// TeleportPlayerToEntity but for teleporters
-void SpawnOnTeleporter(int teleporter,int client)
-{
-	float OriginVec[3];
-	float Scale = GetEntPropFloat(client, Prop_Send, "m_flModelScale");
-	if( IsValidEntity(teleporter) )
-	{
-		GetEntPropVector(teleporter, Prop_Send, "m_vecOrigin", OriginVec);
-		
-		if( Scale <= 1.0 )
-		{
-			OriginVec[2] += 16;
-		}
-		else if( Scale >= 1.1 && Scale <= 1.4 )
-		{
-			OriginVec[2] += 20;
-		}
-		else if( Scale >= 1.5 && Scale <= 1.6 )
-		{
-			OriginVec[2] += 23;
-		}		
-		else if( Scale >= 1.7 && Scale <= 1.8 )
-		{
-			OriginVec[2] += 26;
-		}
-		else if( Scale >= 1.9 )
-		{
-			OriginVec[2] += 50;
-		}
-		
-		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.1); // 0.1 sec to compensate for a small delay
-		TeleportEntity(client, OriginVec, NULL_VECTOR, NULL_VECTOR);
-		EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", teleporter, SND_NOFLAGS, teleporter, OriginVec);
-	}
-}
-
-// emits game sound to all players in RED
-void EmitGSToRed(const char[] gamesound)
-{
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if( IsClientInGame(i) && !IsFakeClient(i) )
-		{
-			if( TF2_GetClientTeam(i) == TFTeam_Red )
-			{
-				EmitGameSoundToClient(i, gamesound);
-			}
-		}
-	}
-}
-
-// emits sound to all players in RED
-/* void EmitSoundToRed(const char[] soundpath)
-{
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if( IsClientInGame(i) && !IsFakeClient(i) )
-		{
-			if( TF2_GetClientTeam(i) == TFTeam_Red )
-			{
-				EmitSoundToClient(i, soundpath);
-			}
-		}
-	}
-} */
-
 // announces when a robot engineer is killed.
 void AnnounceEngineerDeath(int client)
 {
@@ -404,75 +346,40 @@ void AnnounceEngineerDeath(int client)
 	}
 }
 
-// returns the number of classes in a team.
-int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false, bool bIncludeDead = true)
+// TeleportPlayerToEntity but for teleporters
+void SpawnOnTeleporter(int teleporter,int client)
 {
-	int iClassNum = 0;
-	for(int i = 1; i <= MaxClients; i++)
+	float OriginVec[3];
+	float Scale = GetEntPropFloat(client, Prop_Send, "m_flModelScale");
+	if( IsValidEntity(teleporter) )
 	{
-		if( IsClientInGame(i) )
+		GetEntPropVector(teleporter, Prop_Send, "m_vecOrigin", OriginVec);
+		
+		if( Scale <= 1.0 )
 		{
-			if( bIncludeBots )
-			{
-				if( TF2_GetClientTeam(i) == Team )
-				{
-					if( TF2_GetPlayerClass(i) == TFClass )
-					{
-						if( bIncludeDead )
-							iClassNum++;
-						else if( IsPlayerAlive(i) )
-							iClassNum++;
-					}
-				}
-			}
-			else
-			{
-				if( !IsFakeClient(i) )
-				{
-					if( TF2_GetClientTeam(i) == Team )
-					{
-						if( TF2_GetPlayerClass(i) == TFClass )
-						{
-							if( bIncludeDead )
-								iClassNum++;
-							else if( IsPlayerAlive(i) )
-								iClassNum++;
-						}
-					}
-				}
-			}
+			OriginVec[2] += 16;
 		}
-	}
-	
-	return iClassNum;
-}
-
-// returns the ent index of the first available weapon
-int GetFirstAvailableWeapon(int client)
-{
-	int iWeapon = -1;
-	int iSlot = 0;
-	
-	while( iSlot <= 5 )
-	{
-		iWeapon = GetPlayerWeaponSlot(client, iSlot);
-		iSlot++;
-		if( iWeapon != -1 )
+		else if( Scale >= 1.1 && Scale <= 1.4 )
 		{
-			break;
+			OriginVec[2] += 20;
 		}
+		else if( Scale >= 1.5 && Scale <= 1.6 )
+		{
+			OriginVec[2] += 23;
+		}		
+		else if( Scale >= 1.7 && Scale <= 1.8 )
+		{
+			OriginVec[2] += 26;
+		}
+		else if( Scale >= 1.9 )
+		{
+			OriginVec[2] += 50;
+		}
+		
+		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.1); // 0.1 sec to compensate for a small delay
+		TeleportEntity(client, OriginVec, NULL_VECTOR, NULL_VECTOR);
+		EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", teleporter, SND_NOFLAGS, teleporter, OriginVec);
 	}
-	
-	return iWeapon;
-}
-
-void BlockBombPickup(int client)
-{
-	if( IsFakeClient(client) )
-		return;
-	
-	// This attribute works when added to a client
-	TF2Attrib_SetByName(client, "cannot pick up intelligence", 1.0);
 }
 
 // add particle to the robot engineer teleporter
@@ -553,20 +460,18 @@ bool CheckTeleportClamping(int teleporter, int client)
 					return true;
 				}			
 			}
-			if(IsDebugging())
-			{
-				TE_SetupBeamPoints(VecTeleporter, RayEndPos, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 255, 255, 255}, 0); // if debug is enabled, create a white beam to visualize the rays
-				TE_SendToClient(client, 0.1);				
-			}
+#if defined DEBUG_GENERAL
+			TE_SetupBeamPoints(VecTeleporter, RayEndPos, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 255, 255, 255}, 0); // if debug is enabled, create a white beam to visualize the rays
+			TE_SendToClient(client, 0.1);
+#endif			
 		}
+#if defined DEBUG_GENERAL
 		else
 		{
-			if(IsDebugging())
-			{
-				PrintToConsole(client, "Ray ID: %i was null or did not hit something", i);
-				PrintToConsole(client, "Ray Angles for ray %d: %f %f %f", i, RayAngles[i][0], RayAngles[i][1], RayAngles[i][2]);
-			}
+			PrintToConsole(client, "Ray ID: %i was null or did not hit something", i);
+			PrintToConsole(client, "Ray Angles for ray %d: %f %f %f", i, RayAngles[i][0], RayAngles[i][1], RayAngles[i][2]);
 		}
+#endif
 		CloseHandle( Tracer );
 		Tracer = null;
 	}
@@ -586,59 +491,114 @@ bool TraceFilterIgnorePlayers(int ent, int contentsMask)
     return true;
 }
 
-// explodes the bomb hatch using the tank's logic_relay
-void TriggerHatchExplosion()
+/****************************************************
+					EMIT SOUND
+*****************************************************/
+
+// emits game sound to all players in RED
+void EmitGSToRed(const char[] gamesound)
 {
-	int i = -1;
-	
-	// Method 1: Trigger round win by exploding the hatch using the tank relay.
-	// At least on official MVM maps, the tank relay will also trigger game_round_win
-	while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
+	for(int i = 1; i <= MaxClients; i++)
 	{
-		if(IsValidEntity(i))
+		if( IsClientInGame(i) && !IsFakeClient(i) )
 		{
-			char strName[50];
-			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
-			if(strcmp(strName, g_strHatchTrigger, false) == 0)
+			if( TF2_GetClientTeam(i) == TFTeam_Red )
 			{
-				AcceptEntityInput(i, "Trigger");
-				return;
+				EmitGameSoundToClient(i, gamesound);
 			}
-		} 
+		}
+	}
+}
+
+// emits sound to all players in RED
+/* void EmitSoundToRed(const char[] soundpath)
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if( IsClientInGame(i) && !IsFakeClient(i) )
+		{
+			if( TF2_GetClientTeam(i) == TFTeam_Red )
+			{
+				EmitSoundToClient(i, soundpath);
+			}
+		}
+	}
+} */
+
+/****************************************************
+					UTILITY
+*****************************************************/
+
+// returns the number of classes in a team.
+int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false, bool bIncludeDead = true)
+{
+	int iClassNum = 0;
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if( IsClientInGame(i) )
+		{
+			if( bIncludeBots )
+			{
+				if( TF2_GetClientTeam(i) == Team )
+				{
+					if( TF2_GetPlayerClass(i) == TFClass )
+					{
+						if( bIncludeDead )
+							iClassNum++;
+						else if( IsPlayerAlive(i) )
+							iClassNum++;
+					}
+				}
+			}
+			else
+			{
+				if( !IsFakeClient(i) )
+				{
+					if( TF2_GetClientTeam(i) == Team )
+					{
+						if( TF2_GetPlayerClass(i) == TFClass )
+						{
+							if( bIncludeDead )
+								iClassNum++;
+							else if( IsPlayerAlive(i) )
+								iClassNum++;
+						}
+					}
+				}
+			}
+		}
 	}
 	
-	// Method 2: Tank trigger could not be found or can not be used ( eg: doesn't trigger game_round_win for some reason )
-	// So this time the plugin will search for the game_round_win itself and trigger it manually.
-	i = -1;
-	while ((i = FindEntityByClassname(i, "game_round_win")) != -1)
+	return iClassNum;
+}
+
+// returns the ent index of the first available weapon
+int GetFirstAvailableWeapon(int client)
+{
+	int iWeapon = -1;
+	int iSlot = 0;
+	
+	while( iSlot <= 5 )
 	{
-		if(IsValidEntity(i))
+		iWeapon = GetPlayerWeaponSlot(client, iSlot);
+		iSlot++;
+		if( iWeapon != -1 )
 		{
-			char strName[50];
-			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
-			if( GetEntProp(i, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Blue) )
-			{
-				AcceptEntityInput(i, "RoundWin");
-			}
-		} 
+			break;
+		}
 	}
 	
-	// Finally we check if we have a relay to trigger the cinematic explosion of the bomb hatch
-	// Make sure the relay used here doesn't trigger game_round_win again.
-	i = -1;
-	while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
-	{
-		if(IsValidEntity(i))
-		{
-			char strName[50];
-			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
-			if(strcmp(strName, g_strExploTrigger, false) == 0)
-			{
-				AcceptEntityInput(i, "Trigger"); // 
-				return;
-			}
-		} 
-	}
+	return iWeapon;
+}
+
+// Prevents the client from picking up the bomb/flag
+void BlockBombPickup(int client)
+{
+	if( IsFakeClient(client) )
+		return;
+	
+	// This attribute works when added to a client
+	TF2Attrib_SetByName(client, "cannot pick up intelligence", 1.0);
 }
 
 void CreateTEParticle(	char strParticle[64],
@@ -700,6 +660,177 @@ void CreateTEParticle(	char strParticle[64],
 	
 	TE_SendToAll(flDelay);
 }
+
+int CreateParticle( float flOrigin[3], const char[] strParticle, float flDuration = -1.0 )
+{
+	int iParticle = CreateEntityByName( "info_particle_system" );
+	if( IsValidEntity( iParticle ) )
+	{
+		DispatchKeyValue( iParticle, "effect_name", strParticle );
+		DispatchKeyValue( iParticle, "targetname", "bwrr_particle_effect" );
+		TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
+		DispatchSpawn( iParticle );
+		ActivateEntity( iParticle );
+		AcceptEntityInput( iParticle, "Start" );
+		if( flDuration >= 0.0 )
+			CreateTimer( flDuration, Timer_DeleteParticle, EntIndexToEntRef(iParticle) );
+	}
+	return iParticle;
+}
+
+// Creates a particle system and sets a client as it's owner.
+int CreateGateStunParticle(const char[] strParticle, float flDuration = -1.0, int client)
+{
+	int iParticle = CreateEntityByName( "info_particle_system" );
+	if( IsValidEntity( iParticle ) )
+	{
+		DispatchKeyValue( iParticle, "effect_name", strParticle );
+		DispatchKeyValue( iParticle, "targetname", "bwrr_player_particle" );
+		SetVariantString("!activator");
+		AcceptEntityInput(iParticle, "SetParent", client, iParticle, 0);
+		SetVariantString("head");
+		AcceptEntityInput(iParticle, "SetParentAttachment", iParticle , iParticle, 0);
+		//TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
+		DispatchSpawn( iParticle );
+		ActivateEntity( iParticle );
+		AcceptEntityInput( iParticle, "Start" );
+		SetEntPropEnt(iParticle, Prop_Send, "m_hOwnerEntity", client);
+		if( flDuration >= 0.0 )
+			CreateTimer( flDuration, Timer_DeleteParticle, EntIndexToEntRef(iParticle) );
+	}
+	return iParticle;
+}
+
+// removes particle attached to a player
+void DeleteParticleOnPlayerDeath(int client)
+{
+	int ent = -1;
+	int owner;
+	char targetname[32];
+	
+	while ((ent = FindEntityByClassname(ent, "info_particle_system")) != -1)
+	{
+		if(IsValidEntity(ent))
+		{
+			GetEntPropString( ent, Prop_Data, "m_iName", targetname, sizeof(targetname) );
+			if(strcmp(targetname, "bwrr_player_particle", false) == 0) // check targetname
+			{
+				owner = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
+				if(owner == client)
+				{
+					RemoveEntity(ent);
+					return;
+				}
+			}
+		}
+	}
+}
+
+// checks if a player is giant
+bool TF2_IsGiant(int client)
+{
+	return view_as<bool>(GetEntProp(client, Prop_Send, "m_bIsMiniBoss"));
+}
+
+// checks if the given origin is withing a trigger boundaries
+bool SDKIsPointWithIn(int trigger, float origin[3])
+{
+	return view_as<bool>(SDKCall(g_hSDKPointIsWithin, trigger, origin));
+}
+
+// remove objects from the given player
+void SDKTFPlayerRemoveObject(int client, int obj)
+{
+	SDKCall(g_hSDKRemoveObject, client, obj);
+}
+
+void Robot_GibGiant(int client, float OriginVec[3])
+{
+	if( IsFakeClient(client) )
+		return;
+
+	int Ent;
+
+	//Initialize:
+	Ent = CreateEntityByName("tf_ragdoll");
+
+	//Write:
+	SetEntPropVector(Ent, Prop_Send, "m_vecRagdollOrigin", OriginVec); 
+	SetEntProp(Ent, Prop_Send, "m_iPlayerIndex", client); 
+	SetEntPropVector(Ent, Prop_Send, "m_vecForce", NULL_VECTOR);
+	SetEntPropVector(Ent, Prop_Send, "m_vecRagdollVelocity", NULL_VECTOR);
+	SetEntProp(Ent, Prop_Send, "m_bGib", 1);
+
+	//Send:
+	DispatchSpawn(Ent);
+
+	//Remove Body:
+	CreateTimer(0.05, Timer_RemoveBody, client, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(8.0, Timer_RemoveGibs, Ent, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+/****************************************************
+					MAP RELATED
+*****************************************************/
+
+// explodes the bomb hatch using the tank's logic_relay
+void TriggerHatchExplosion()
+{
+	int i = -1;
+	
+	// Method 1: Trigger round win by exploding the hatch using the tank relay.
+	// At least on official MVM maps, the tank relay will also trigger game_round_win
+	while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			char strName[50];
+			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
+			if(strcmp(strName, g_strHatchTrigger, false) == 0)
+			{
+				AcceptEntityInput(i, "Trigger");
+				return;
+			}
+		} 
+	}
+	
+	// Method 2: Tank trigger could not be found or can not be used ( eg: doesn't trigger game_round_win for some reason )
+	// So this time the plugin will search for the game_round_win itself and trigger it manually.
+	i = -1;
+	while ((i = FindEntityByClassname(i, "game_round_win")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			char strName[50];
+			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
+			if( GetEntProp(i, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Blue) )
+			{
+				AcceptEntityInput(i, "RoundWin");
+			}
+		} 
+	}
+	
+	// Finally we check if we have a relay to trigger the cinematic explosion of the bomb hatch
+	// Make sure the relay used here doesn't trigger game_round_win again.
+	i = -1;
+	while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			char strName[50];
+			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
+			if(strcmp(strName, g_strExploTrigger, false) == 0)
+			{
+				AcceptEntityInput(i, "Trigger"); // 
+				return;
+			}
+		} 
+	}
+}
+
+/****************************************************
+					SENTRY BUSTER
+*****************************************************/
 
 void SentryBuster_Explode( client )
 {
@@ -802,94 +933,78 @@ void DealDamage(int ent, int inflictor, int attacker, float damage, int damageTy
 	}
 }
 
-int CreateParticle( float flOrigin[3], const char[] strParticle, float flDuration = -1.0 )
+// searches for red sentry guns
+// also checks for kill num
+bool ShouldDispatchSentryBuster()
 {
-	int iParticle = CreateEntityByName( "info_particle_system" );
-	if( IsValidEntity( iParticle ) )
+	int i = -1;
+	int iKills;
+	while ((i = FindEntityByClassname(i, "obj_sentrygun")) != -1)
 	{
-		DispatchKeyValue( iParticle, "effect_name", strParticle );
-		DispatchKeyValue( iParticle, "targetname", "bwrr_particle_effect" );
-		TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
-		DispatchSpawn( iParticle );
-		ActivateEntity( iParticle );
-		AcceptEntityInput( iParticle, "Start" );
-		if( flDuration >= 0.0 )
-			CreateTimer( flDuration, Timer_DeleteParticle, EntIndexToEntRef(iParticle) );
-	}
-	return iParticle;
-}
-
-// Creates a particle system and sets a client as it's owner.
-int CreateGateStunParticle(const char[] strParticle, float flDuration = -1.0, int client)
-{
-	int iParticle = CreateEntityByName( "info_particle_system" );
-	if( IsValidEntity( iParticle ) )
-	{
-		DispatchKeyValue( iParticle, "effect_name", strParticle );
-		DispatchKeyValue( iParticle, "targetname", "bwrr_player_particle" );
-		SetVariantString("!activator");
-		AcceptEntityInput(iParticle, "SetParent", client, iParticle, 0);
-		SetVariantString("head");
-		AcceptEntityInput(iParticle, "SetParentAttachment", iParticle , iParticle, 0);
-		//TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
-		DispatchSpawn( iParticle );
-		ActivateEntity( iParticle );
-		AcceptEntityInput( iParticle, "Start" );
-		SetEntPropEnt(iParticle, Prop_Send, "m_hOwnerEntity", client);
-		if( flDuration >= 0.0 )
-			CreateTimer( flDuration, Timer_DeleteParticle, EntIndexToEntRef(iParticle) );
-	}
-	return iParticle;
-}
-
-void DeleteParticleOnPlayerDeath(int client)
-{
-	int ent = -1;
-	int owner;
-	char targetname[32];
-	
-	while ((ent = FindEntityByClassname(ent, "info_particle_system")) != -1)
-	{
-		if(IsValidEntity(ent))
+		if( IsValidEntity(i) )
 		{
-			GetEntPropString( ent, Prop_Data, "m_iName", targetname, sizeof(targetname) );
-			if(strcmp(targetname, "bwrr_player_particle", false) == 0) // check targetname
+			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Red) )
 			{
-				owner = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
-				if(owner == client)
+				iKills = GetEntProp(i, Prop_Send, "SentrygunLocalData", _, 0);
+				if( iKills >= c_iBusterMinKills.IntValue ) // found threat
+					return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
+// gives wallhacks to sentry busters
+void BusterWallhack(int client)
+{
+	int i = -1;
+	int mostkills = 0, bestsentry = -1, currentkills;
+	float origin[3];
+	float start[3];
+	GetClientEyePosition(client, start);
+	
+	while ((i = FindEntityByClassname(i, "obj_sentrygun")) != -1)
+	{
+		if( IsValidEntity(i) )
+		{
+			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Red) )
+			{
+				currentkills = GetEntProp(i, Prop_Send, "SentrygunLocalData", _, 0);
+				if( currentkills >= c_iBusterMinKills.IntValue ) // found threat
 				{
-					RemoveEntity(ent);
-					return;
+					if( currentkills > mostkills ) // find the sentry with the most kills
+					{
+						bestsentry = i;
+						mostkills = currentkills;
+					}
 				}
 			}
 		}
 	}
+	
+	if(bestsentry != -1)
+	{
+		if(GetEntProp(bestsentry, Prop_Send, "m_bCarried") == 1) // sentry gun is being carried
+		{
+			int owner = GetEntPropEnt(bestsentry, Prop_Send, "m_hBuilder");
+			if(owner > 0 && owner <= MaxClients && IsClientInGame(owner))
+			{
+				CreateAnnotation(NULL_VECTOR, client, "Target Sentry", 0, 5.0, owner);
+			}
+		}
+		else
+		{
+			GetEntPropVector(bestsentry, Prop_Data, "m_vecOrigin", origin);
+			origin[2] += 15.0;
+			CreateAnnotation(origin, client, "Target Sentry", 0, 5.0);			
+		}
+	}
 }
 
-void Robot_GibGiant(int client, float OriginVec[3])
-{
-	if( IsFakeClient(client) )
-		return;
-
-	int Ent;
-
-	//Initialize:
-	Ent = CreateEntityByName("tf_ragdoll");
-
-	//Write:
-	SetEntPropVector(Ent, Prop_Send, "m_vecRagdollOrigin", OriginVec); 
-	SetEntProp(Ent, Prop_Send, "m_iPlayerIndex", client); 
-	SetEntPropVector(Ent, Prop_Send, "m_vecForce", NULL_VECTOR);
-	SetEntPropVector(Ent, Prop_Send, "m_vecRagdollVelocity", NULL_VECTOR);
-	SetEntProp(Ent, Prop_Send, "m_bGib", 1);
-
-	//Send:
-	DispatchSpawn(Ent);
-
-	//Remove Body:
-	CreateTimer(0.05, Timer_RemoveBody, client, TIMER_FLAG_NO_MAPCHANGE);
-	CreateTimer(8.0, Timer_RemoveGibs, Ent, TIMER_FLAG_NO_MAPCHANGE);
-}
+/****************************************************
+					CONFIG FILES
+*****************************************************/
 
 // Initialze config
 void Config_Init()
@@ -1075,83 +1190,12 @@ void Config_LoadMap()
 	g_iSplitSize[2] = ExplodeString(strSniperSpawns, ",", g_strSniperSplit, sizeof(g_strSniperSplit), sizeof(g_strSniperSplit[]));
 	g_iSplitSize[3] = ExplodeString(strSpySpawns, ",", g_strSpySplit, sizeof(g_strSpySplit), sizeof(g_strSpySplit[]));
 	
-	if(IsDebugging())
-	{
-		LogMessage("Finished parsing map config file. Found %i spy teleport points and %i engineer teleport points.", g_aSpyTeleport.Length, g_aEngyTeleport.Length);
-	}
+#if defined DEBUG_GENERAL
+	LogMessage("Finished parsing map config file. Found %i spy teleport points and %i engineer teleport points.", g_aSpyTeleport.Length, g_aEngyTeleport.Length);
+#endif
 }
 
 bool IsSmallMap() { return g_bLimitRobotScale; }
-
-// searches for red sentry guns
-// also checks for kill num
-bool ShouldDispatchSentryBuster()
-{
-	int i = -1;
-	int iKills;
-	while ((i = FindEntityByClassname(i, "obj_sentrygun")) != -1)
-	{
-		if( IsValidEntity(i) )
-		{
-			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Red) )
-			{
-				iKills = GetEntProp(i, Prop_Send, "SentrygunLocalData", _, 0);
-				if( iKills >= c_iBusterMinKills.IntValue ) // found threat
-					return true;
-			}
-		}
-	}
-	
-	return false;
-}
-
-// gives wallhacks to sentry busters
-void BusterWallhack(int client)
-{
-	int i = -1;
-	int mostkills = 0, bestsentry = -1, currentkills;
-	float origin[3];
-	float start[3];
-	GetClientEyePosition(client, start);
-	
-	while ((i = FindEntityByClassname(i, "obj_sentrygun")) != -1)
-	{
-		if( IsValidEntity(i) )
-		{
-			if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Red) )
-			{
-				currentkills = GetEntProp(i, Prop_Send, "SentrygunLocalData", _, 0);
-				if( currentkills >= c_iBusterMinKills.IntValue ) // found threat
-				{
-					if( currentkills > mostkills ) // find the sentry with the most kills
-					{
-						bestsentry = i;
-						mostkills = currentkills;
-					}
-				}
-			}
-		}
-	}
-	
-	if(bestsentry != -1)
-	{
-		if(GetEntProp(bestsentry, Prop_Send, "m_bCarried") == 1) // sentry gun is being carried
-		{
-			int owner = GetEntPropEnt(bestsentry, Prop_Send, "m_hBuilder");
-			if(owner > 0 && owner <= MaxClients && IsClientInGame(owner))
-			{
-				CreateAnnotation(NULL_VECTOR, client, "Target Sentry", 0, 5.0, owner);
-			}
-		}
-		else
-		{
-			GetEntPropVector(bestsentry, Prop_Data, "m_vecOrigin", origin);
-			origin[2] += 15.0;
-			CreateAnnotation(origin, client, "Target Sentry", 0, 5.0);			
-		}
-		if(IsDebugging()) { PrintToConsole(client, "BusterWallhack:: sentry at %.1f %.1f %.1f", origin[0],origin[1],origin[2]); }
-	}
-}
 
 void TF2_PlaySequence(int client, const char[] sequence)
 {
@@ -1243,6 +1287,10 @@ void HookRespawnRoom(int room)
 	SDKHook(room, SDKHook_EndTouch, OnEndTouchRespawn);
 }
 
+/****************************************************
+					SPAWN ROOMS
+*****************************************************/
+
 // Searches for spawnroom entities that already exists in the map
 void FindSpawnRoomsInTheMap()
 {
@@ -1280,7 +1328,9 @@ void AddAdditionalSpawnRooms()
 			GetEntPropString(i, Prop_Data, "m_iName", targetname, sizeof(targetname));
 			if(strcmp(targetname, "bwrr_respawnroom") == 0)
 			{
-				if(IsDebugging()) { LogMessage("Skipping AddAdditionalSpawnRooms() because we've already created additional spawn rooms."); }
+#if defined DEBUG_GENERAL
+				LogMessage("Skipping AddAdditionalSpawnRooms() because we've already created additional spawn rooms.");
+#endif
 				return; // we've already created extras spawnrooms.
 			}
 		}
@@ -1310,10 +1360,12 @@ void AddAdditionalSpawnRooms()
 					FindSpawnRoomsInTheMap(); // update list so we don't create unnecessary spawnrooms
 					created = true;
 				}
+#if defined DEBUG_GENERAL
 				else
 				{
-					if(IsDebugging()) { LogMessage("Skipping info_player_teamspawn %i at %.1f %.1f %.1f because it's already inside the boundaries of a func_respawnroom", i, origin[0], origin[1], origin[2]); }
+					LogMessage("Skipping info_player_teamspawn %i at %.1f %.1f %.1f because it's already inside the boundaries of a func_respawnroom", i, origin[0], origin[1], origin[2]);
 				}
+#endif
 			}
 		}
 	}
@@ -1356,32 +1408,9 @@ void CreateSpawnRoom(int spawnpoint)
 	GetEntPropVector(spawnpoint, Prop_Send, "m_vecOrigin", pos);
 	TeleportEntity(ent, pos, NULL_VECTOR, NULL_VECTOR);
 	HookRespawnRoom(ent);
-	
-	if( IsDebugging() )
-	{
-		LogMessage("Creating func_respawnroom at (%.1f %.1f %.1f) index %i", pos[0], pos[1], pos[2], ent);
-	}
-}
-
-bool TF2_IsGiant(int client)
-{
-	return view_as<bool>(GetEntProp(client, Prop_Send, "m_bIsMiniBoss"));
-}
-
-// code from Pelipoika's bot control
-// Updates the bomb level show on the HUD
-void UpdateBombHud(int userid)
-{
-	int client = GetClientOfUserId(userid);
-	if(client <= 0)
-		return;
-		
-	RoboPlayer rp = RoboPlayer(client);
-		
-	int iResource = FindEntityByClassname(-1, "tf_objective_resource");
-	SetEntProp(iResource,      Prop_Send, "m_nFlagCarrierUpgradeLevel", rp.BombLevel);
-	SetEntPropFloat(iResource, Prop_Send, "m_flMvMBaseBombUpgradeTime", (TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden)) ? -1.0 : GetGameTime());
-	SetEntPropFloat(iResource, Prop_Send, "m_flMvMNextBombUpgradeTime", (TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden)) ? -1.0 : rp.UpgradeTime);	
+#if defined DEBUG_GENERAL	
+	LogMessage("Creating func_respawnroom at (%.1f %.1f %.1f) index %i", pos[0], pos[1], pos[2], ent);
+#endif
 }
 
 float g_flNextCommand[MAXPLAYERS + 1];
@@ -1400,33 +1429,6 @@ bool FakeClientCommandThrottled(int client, const char[] command)
 	return true;
 }
 
-void KillReviveMaker(int entref)
-{
-	int ent = EntRefToEntIndex(entref);
-	if(ent == INVALID_ENT_REFERENCE)
-		return;
-		
-	int iTeam = GetEntProp(ent, Prop_Send, "m_iTeamNum");
-	if(iTeam != 3)
-		return;
-		
-	RemoveEntity(ent);
-}
-
-void KillAmmoPack(int entref)
-{
-	int ent = EntRefToEntIndex(entref);
-	if(ent == INVALID_ENT_REFERENCE)
-		return;
-		
-	int owner = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
-	
-	if(IsValidClient(owner) && GetClientTeam(owner) == 3)
-	{
-		RemoveEntity(ent);
-	}
-}
-
 void SetBLURespawnWaveTime(float time)
 {
 	int ent = FindEntityByClassname(-1, "tf_gamerules");
@@ -1436,6 +1438,10 @@ void SetBLURespawnWaveTime(float time)
 		AcceptEntityInput(ent, "SetBlueTeamRespawnWaveTime");
 	}
 }
+
+/****************************************************
+					GATEBOTS
+*****************************************************/
 
 // checks for RED owned team_control_point
 bool IsGatebotAvailable(bool update = false)
@@ -1451,14 +1457,17 @@ bool IsGatebotAvailable(bool update = false)
 			{
 				if(GetEntProp(ent, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
 				{
-					if(IsDebugging()) { CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Found {red}RED{cyan} owned {orange}team_control_point{cyan}."); }
+#if defined DEBUG_GENERAL
+					CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Found {red}RED{cyan} owned {orange}team_control_point{cyan}.");
+#endif
 					isavailable = true;
 					return isavailable;
 				}
 			}
 		}
-		
-		if(IsDebugging()) { CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Didn't found any {orange}team_control_point{cyan} owned by {red}RED{cyan} team."); }
+#if defined DEBUG_GENERAL
+		CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Didn't found any {orange}team_control_point{cyan} owned by {red}RED{cyan} team.");
+#endif
 		isavailable = false;
 	}
 	
@@ -1476,7 +1485,9 @@ void GateCapturedByRobots()
 			TF2_AddCondition(i, TFCond_MVMBotRadiowave, g_flGateStunDuration);
 			TF2_StunPlayer(i, g_flGateStunDuration, 0.0, TF_STUNFLAG_LIMITMOVEMENT|TF_STUNFLAG_BONKSTUCK|TF_STUNFLAG_THIRDPERSON|TF_STUNFLAG_NOSOUNDOREFFECT);
 			CreateGateStunParticle("bot_radio_waves", g_flGateStunDuration, i);
-			if(IsDebugging()) { CPrintToChat(i, "{green}[DEBUG] {cyan}GateCapturedByRobots() applying stun to client %N, stun time: %f", i, g_flGateStunDuration); }
+#if defined DEBUG_PLAYER
+			CPrintToChat(i, "{green}[DEBUG] {cyan}GateCapturedByRobots() applying stun to client %N, stun time: %f", i, g_flGateStunDuration);
+#endif
 		}
 	}
 }
@@ -1487,9 +1498,12 @@ void ApplyGateStunToClient(int client)
 	float stuntime = g_flGateStunTime - GetGameTime();
 	TF2_AddCondition(client, TFCond_MVMBotRadiowave, stuntime);
 	TF2_StunPlayer(client, stuntime, 0.0, TF_STUNFLAG_LIMITMOVEMENT|TF_STUNFLAG_BONKSTUCK|TF_STUNFLAG_THIRDPERSON|TF_STUNFLAG_NOSOUNDOREFFECT);
-	if(IsDebugging()) { CPrintToChat(client, "{green}[DEBUG] {cyan}ApplyGateStunToClient(%i) stuntime: %f", client, stuntime); }
+#if defined DEBUG_PLAYER
+	CPrintToChat(client, "{green}[DEBUG] {cyan}ApplyGateStunToClient(%i) stuntime: %f", client, stuntime);
+#endif
 }
 
+// checks if the gate stun is active
 bool IsGateStunActive()
 {
 	if(g_flGateStunTime > GetGameTime())
@@ -1499,6 +1513,39 @@ bool IsGateStunActive()
 	
 	return false;
 }
+
+/****************************************************
+					LATE LOAD
+*****************************************************/
+
+// Add hook to entities on plugin late load
+// Some entities are only hooked on OnEntityCreated which is not fired when you late load a plugin
+void HookEntitiesOnLateLoad()
+{
+	int ent = -1;
+	while((ent = FindEntityByClassname(ent, "func_capturezone")) != -1)
+	{
+		if(IsValidEntity(ent))
+		{
+			SDKUnhook(ent, SDKHook_StartTouch, OnTouchCaptureZone); // propably not needed but added just for safety
+			SDKUnhook(ent, SDKHook_EndTouch, OnEndTouchCaptureZone);
+			SDKHook(ent, SDKHook_StartTouch, OnTouchCaptureZone);
+			SDKHook(ent, SDKHook_EndTouch, OnEndTouchCaptureZone);			
+		}
+	}
+	ent = -1;
+	while((ent = FindEntityByClassname(ent, "func_respawnroom")) != -1)
+	{
+		if(IsValidEntity(ent))
+		{
+			HookRespawnRoom(ent);		
+		}
+	}
+}
+
+/****************************************************
+					CONVARS VALUES
+*****************************************************/
 
 int BotNoticeBackstabChance(bool update = false)
 {
@@ -1526,40 +1573,9 @@ int BotNoticeBackstabMaxRange(bool update = false)
 	return range;
 }
 
-// Add hook to entities on plugin late load
-// Some entities are only hooked on OnEntityCreated which is not fired when you late load a plugin
-void HookEntitiesOnLateLoad()
-{
-	int ent = -1;
-	while((ent = FindEntityByClassname(ent, "func_capturezone")) != -1)
-	{
-		if(IsValidEntity(ent))
-		{
-			SDKUnhook(ent, SDKHook_StartTouch, OnTouchCaptureZone); // propably not needed but added just for safety
-			SDKUnhook(ent, SDKHook_EndTouch, OnEndTouchCaptureZone);
-			SDKHook(ent, SDKHook_StartTouch, OnTouchCaptureZone);
-			SDKHook(ent, SDKHook_EndTouch, OnEndTouchCaptureZone);			
-		}
-	}
-	ent = -1;
-	while((ent = FindEntityByClassname(ent, "func_respawnroom")) != -1)
-	{
-		if(IsValidEntity(ent))
-		{
-			HookRespawnRoom(ent);		
-		}
-	}
-}
-
-bool SDKIsPointWithIn(int trigger, float origin[3])
-{
-	return view_as<bool>(SDKCall(g_hSDKPointIsWithin, trigger, origin));
-}
-
-void SDKTFPlayerRemoveObject(int client, int obj)
-{
-	SDKCall(g_hSDKRemoveObject, client, obj);
-}
+/****************************************************
+					CREATE EVENTS
+*****************************************************/
 
 void CreateAnnotation(float pos[3], int client, char[] message, int offset, float lifetime = 8.0, int followentity = -1)
 {
@@ -1581,10 +1597,12 @@ void CreateAnnotation(float pos[3], int client, char[] message, int offset, floa
 	}
 }
 
+/****************************************************
+					SPY DISGUISE OVERRIDE
+*****************************************************/
+
 void SpyDisguiseClear(int client)
 {
-	if(IsDebugging()) { CPrintToChatAll("{cyan}SpyDisguiseClear called for client {green}%N", client); }
-
 	for(int i=0; i<4; i++)
 	{
 		SetEntProp(client, Prop_Send, "m_nModelIndexOverrides", 0, _, i);
@@ -1597,8 +1615,6 @@ void SpyDisguiseClear(int client)
 void SpyDisguiseThink(int client, int disguiseclass, int disguiseteam)
 {
 	int team = GetClientTeam(client);
-	
-	if(IsDebugging()) { CPrintToChatAll("{cyan}SpyDisguiseThink called for client {green}%N {cyan}Team: {orange}%i", client, team); }
 	
 	// m_nModelIndexOverrides works differently on MvM
 	// it seems index 0 is used for both RED and BLU teams.
@@ -1644,6 +1660,10 @@ void SpyDisguiseThink(int client, int disguiseclass, int disguiseteam)
 	}
 }
 
+/****************************************************
+					REQUEST FRAME FUNCTIONS
+*****************************************************/
+
 // called when an engineer robot is killed
 void FrameEngineerDeath(int userid)
 {
@@ -1665,7 +1685,6 @@ void FrameEngineerDeath(int userid)
 				{
 					SDKTFPlayerRemoveObject(client, i);
 					SetEntPropEnt(i, Prop_Send, "m_hBuilder", -1);
-					if(IsDebugging()) { CPrintToChat(client, "{cyan}Removing object {orange}%s", strobjects[x]); }
 				}
 			}
 		}
@@ -1738,6 +1757,53 @@ void FrameCheckFlagForPickUp(int userid)
 	}
 }
 
+// code from Pelipoika's bot control
+// Updates the bomb level show on the HUD
+void UpdateBombHud(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if(client <= 0)
+		return;
+		
+	RoboPlayer rp = RoboPlayer(client);
+		
+	int iResource = FindEntityByClassname(-1, "tf_objective_resource");
+	SetEntProp(iResource,      Prop_Send, "m_nFlagCarrierUpgradeLevel", rp.BombLevel);
+	SetEntPropFloat(iResource, Prop_Send, "m_flMvMBaseBombUpgradeTime", (TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden)) ? -1.0 : GetGameTime());
+	SetEntPropFloat(iResource, Prop_Send, "m_flMvMNextBombUpgradeTime", (TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden)) ? -1.0 : rp.UpgradeTime);	
+}
+
+void KillReviveMaker(int entref)
+{
+	int ent = EntRefToEntIndex(entref);
+	if(ent == INVALID_ENT_REFERENCE)
+		return;
+		
+	int iTeam = GetEntProp(ent, Prop_Send, "m_iTeamNum");
+	if(iTeam != 3)
+		return;
+		
+	RemoveEntity(ent);
+}
+
+void KillAmmoPack(int entref)
+{
+	int ent = EntRefToEntIndex(entref);
+	if(ent == INVALID_ENT_REFERENCE)
+		return;
+		
+	int owner = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
+	
+	if(IsValidClient(owner) && GetClientTeam(owner) == 3)
+	{
+		RemoveEntity(ent);
+	}
+}
+
+/****************************************************
+					WEAPONS
+*****************************************************/
+
 int GetWeaponMaxClip(int weapon)
 {
 	return SDKCall(g_hSDKGetMaxClip, weapon);
@@ -1754,6 +1820,23 @@ void SetWeaponClip(int weapon, int clip)
 	SetEntData(weapon, offset, clip, 4, true);
 }
 
+// List of weapon indexes that can be used while inside spawn
+bool CanWeaponBeUsedInsideSpawn(int index)
+{
+	switch( index )
+	{
+		case 46,163,1145,129,226,354,1001,42,159,311,433,863,1002,1190:
+		{
+			return true;
+		}
+		default: return false;
+	}
+}
+
+/****************************************************
+					BOMB/FLAG
+*****************************************************/
+
 void TF2_PickUpFlag(int client, int flag)
 {
 	SDKCall(g_hSDKPickupFlag, flag, client, true);
@@ -1763,6 +1846,10 @@ bool TF2_IsFlagHome(int flag)
 {
 	return SDKCall(g_hSDKIsFlagHome, flag);
 }
+
+/****************************************************
+					INSTRUCTIONS
+*****************************************************/
 
 void BWRR_InstructPlayer(int client)
 {
@@ -1891,18 +1978,5 @@ void BWRR_InstructPlayer(int client)
 			CreateAnnotation(NULL_VECTOR, client, msg, 4, 10.0, bestplayer);
 			return;
 		}
-	}
-}
-
-// List of weapon indexes that can be used while inside spawn
-bool CanWeaponBeUsedInsideSpawn(int index)
-{
-	switch( index )
-	{
-		case 46,163,1145,129,226,354,1001,42,159,311,433,863,1002,1190:
-		{
-			return true;
-		}
-		default: return false;
 	}
 }

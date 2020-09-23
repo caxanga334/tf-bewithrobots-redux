@@ -397,7 +397,9 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", flHealth);
 				SetEntProp(client, Prop_Send, "m_iHealth", g_BNHealth[templateindex][iClass]);
 				SetEntProp(client, Prop_Data, "m_iHealth", g_BNHealth[templateindex][iClass]);
-				if(IsDebugging()) { PrintToConsole(client, "Setting Robot Health: %i (%i)", g_BNHealth[templateindex][iClass], iHealth); }
+#if defined DEBUG_PLAYER
+				PrintToConsole(client, "Setting Robot Health: %i (%i)", g_BNHealth[templateindex][iClass], iHealth);
+#endif
 			}
 			else
 			{
@@ -414,7 +416,9 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", flHealth);
 				SetEntProp(client, Prop_Send, "m_iHealth", g_BGHealth[templateindex][iClass]);
 				SetEntProp(client, Prop_Data, "m_iHealth", g_BGHealth[templateindex][iClass]);
-				if(IsDebugging()) { PrintToConsole(client, "Setting Robot Health: %i (%i)", g_BGHealth[templateindex][iClass], iHealth); }
+#if defined DEBUG_PLAYER
+				PrintToConsole(client, "Setting Robot Health: %i (%i)", g_BGHealth[templateindex][iClass], iHealth);
+#endif
 			}
 			else
 			{

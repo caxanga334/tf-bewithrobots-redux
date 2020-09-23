@@ -14,6 +14,11 @@
 #include <tf2items>
 #include <dhooks>
 
+// debug
+//#define DEBUG_PLAYER // player related debug 
+//#define DEBUG_GENERAL // general debug
+//#define DEBUG_CRASHFIX // crash fixes debug
+
 #pragma semicolon 1
 
 #define PLUGIN_VERSION "0.1.12"
@@ -46,16 +51,17 @@ ArrayList array_avgiants; // array containing available giant classes
 ArrayList array_spawns; // spawn points for human players
 
 // others
-bool g_bUpgradeStation[MAXPLAYERS + 1];
-float g_flNextBusterTime;
-float g_flLastForceBot[MAXPLAYERS + 1]; // Last time a player forced a bot
-bool g_bBotMenuIsGiant[MAXPLAYERS + 1];
-TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1];
+bool g_bUpgradeStation[MAXPLAYERS + 1]; // Player touched upgrade station
+bool g_bBotMenuIsGiant[MAXPLAYERS + 1]; // Player selected a giant robot on sm_robotmenu
 bool g_bWelcomeMsg[MAXPLAYERS + 1]; // Did we show the welcome message?
-int g_iBusterIndex; // Index of a sentry buster player
-float g_flBusterVisionTimer; // timer for buster wallhack
 bool g_bLateLoad;
+bool g_bFreezePlayers; // Should we freeze BLU players?
+int g_iBusterIndex; // Index of a sentry buster player
+float g_flNextBusterTime; // sentry buster time
+float g_flLastForceBot[MAXPLAYERS + 1]; // Last time a player forced a bot
+float g_flBusterVisionTimer; // timer for buster wallhack
 float g_flinstructiontime[MAXPLAYERS + 1]; // Last time we gave an instruction to a player 
+TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1]; // the class the player selected on sm_robotmenu
 Handle g_hHUDReload;
 
 char g_strModelRobots[][] = {"", "models/bots/scout/bot_scout.mdl", "models/bots/sniper/bot_sniper.mdl", "models/bots/soldier/bot_soldier.mdl", "models/bots/demo/bot_demo.mdl", "models/bots/medic/bot_medic.mdl", "models/bots/heavy/bot_heavy.mdl", "models/bots/pyro/bot_pyro.mdl", "models/bots/spy/bot_spy.mdl", "models/bots/engineer/bot_engineer.mdl"};
@@ -80,16 +86,12 @@ ConVar c_bAutoTeamBalance;
 ConVar c_flBusterDelay; // delay between human sentry buster spawns.
 ConVar c_iBusterMinKills; // minimum amount of kills a sentry needs to have before becoming a threat
 ConVar c_svTag; // server tags
-ConVar c_bDebug; // Enable debug mode
 ConVar c_flForceDelay; // Delay between force bot command usage
 ConVar c_flFDGiant; // Extra delay added when the forced bot is a giant
 ConVar c_strNBFile; // Normal bot template file
 ConVar c_strGBFile; // Giant bot template file
 ConVar c_bLimitClasses; // Limit playable classes to the ones used in the current wave
 ConVar c_iGatebotChance; // change to spawn as a gatebot
-
-// convar globals
-bool g_bDebugEnabled;
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -285,8 +287,6 @@ public void OnPluginStart()
 	c_flBusterDelay = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_delay", "60.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
 	c_iBusterMinKills = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
 	c_flBluRespawnTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Respawn Time for BLU Players.", FCVAR_NONE, true, 5.0, true, 30.0);
-	c_bDebug = AutoExecConfig_CreateConVar("sm_bwrr_debug_enabled", "0", "Enable/Disable the debug mode.", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_bDebug.AddChangeHook(OnDebugCvarChanged);
 	c_flForceDelay = AutoExecConfig_CreateConVar("sm_bwrr_force_delay", "30.0", "Base delay for sm_robotmenu usage (Normal Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
 	c_flFDGiant = AutoExecConfig_CreateConVar("sm_bwrr_force_giant_delay", "60.0", "Base delay for sm_robotmenu usage (Giant Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
 	c_strNBFile = AutoExecConfig_CreateConVar("sm_bwrr_botnormal_file", "robots_normal.cfg", "The file to load normal robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
@@ -329,6 +329,8 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_rm", Command_RobotMenu, "Opens the robot selection menu." );
 	RegConsoleCmd( "sm_bwrrhelp", Command_BWRRHelpMenu, "Opens the Be With Robots Redux help menu." );
 	RegAdminCmd( "sm_bwrr_debug", Command_Debug, ADMFLAG_ROOT, "Prints some debug messages." );
+	RegAdminCmd( "sm_bwrr_debug_spy", Command_Debug_Spy, ADMFLAG_ROOT, "Debug spy teleport." );
+	RegAdminCmd( "sm_bwrr_debug_engy", Command_Debug_Engy, ADMFLAG_ROOT, "Debug engineer teleport." );
 	RegAdminCmd( "sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
 	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
 	RegAdminCmd( "sm_bwrr_getorigin", Command_GetOrigin, ADMFLAG_ROOT, "Prints your current coordinates." );
@@ -486,8 +488,6 @@ public void OnPluginStart()
 	}
 }
 
-bool IsDebugging() { return g_bDebugEnabled; }
-
 char NormalBotsFile()
 {
 	char buffer[32];
@@ -513,7 +513,6 @@ public void OnLibraryAdded(const char[] name)
 
 public void OnConfigsExecuted()
 {
-	g_bDebugEnabled = c_bDebug.BoolValue;
 	RT_ClearArrays(); // load config calls needed to be moved here in order to properly load a custom file set in the convars
 	RT_LoadCfgNormal();
 	RT_LoadCfgGiant();
@@ -614,6 +613,12 @@ public void TF2_OnWaitingForPlayersStart()
 {
 	AddAdditionalSpawnRooms();
 	CreateTimer(1.0, Timer_CheckGates);
+	g_bFreezePlayers = true;
+}
+
+public void TF2_OnWaitingForPlayersEnd()
+{
+	g_bFreezePlayers = false;
 }
 
 public void OnClientPutInServer(int client)
@@ -838,9 +843,18 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 		
-		if(GameRules_GetRoundState() == RoundState_BetweenRounds)
+		if(g_bFreezePlayers) // Freeze players by changing move type instead of adding TFCond_FreezeInput. This allows players to look around.
 		{
-			TF2_AddCondition(client, TFCond_FreezeInput, 0.255);
+			SetEntityMoveType(client, MOVETYPE_NONE);
+			SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.5); // always block attack while frozen
+			buttons &= ~IN_ATTACK;
+			buttons &= ~IN_ATTACK2;
+			buttons &= ~IN_ATTACK3;
+		}
+		else
+		{
+			if(GetEntityMoveType(client) == MOVETYPE_NONE)
+				SetEntityMoveType(client, MOVETYPE_WALK);
 		}
 		
 		if(rp.Type == Bot_Buster)
@@ -852,7 +866,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 				BusterWallhack(client);
 			}
 		
-			if(buttons & IN_ATTACK && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1) // Allows sentry busters to detonate by pressing M1
+			if(buttons & IN_ATTACK && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1 && !rp.InSpawn) // Allows sentry busters to detonate by pressing M1
 			{
 				buttons &= ~IN_ATTACK;
 				if( !(TF2_IsPlayerInCondition(client, TFCond_Taunting)) )
@@ -956,11 +970,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 public void OnTagsChanged(ConVar convar, char[] oldValue, char[] newValue)
 {
 	AddPluginTag("BWRR");
-}
-
-public void OnDebugCvarChanged(ConVar convar, char[] oldValue, char[] newValue)
-{
-	g_bDebugEnabled = convar.BoolValue;
 }
 
 /****************************************************
@@ -1149,7 +1158,9 @@ public MRESReturn CTFBot_GetEventChangeAttributes(int pThis, Handle hReturn, Han
 {
 	if( IsValidClient(pThis) && !IsFakeClient(pThis) )
 	{
+#if defined DEBUG_CRASHFIX
 		LogMessage("CTFBot::CTFBot_GetEventChangeAttributes BLOCKED on client \"%L\"", pThis);
+#endif
 		
 		DHookSetReturn(hReturn, 0);
 		return MRES_Supercede;
@@ -1162,7 +1173,9 @@ public MRESReturn CTFBot_GetEventChangeAttributes_Post(int pThis, Handle hReturn
 {
 	if( IsValidClient(pThis) && !IsFakeClient(pThis) )
 	{
+#if defined DEBUG_CRASHFIX	
 		LogMessage("CTFBot::CTFBot_GetEventChangeAttributes_Post BLOCKED on client \"%L\"", pThis);
+#endif
 		
 		DHookSetReturn(hReturn, 0);
 		return MRES_Supercede;
@@ -1371,6 +1384,80 @@ public Action Command_Debug( int client, int nArgs )
 	ReplyToCommand(client, "Giant Array Size: %i", array_avgiants.Length);
 	ReplyToCommand(client, "Client Data: RT: %d, RV: %d, RA: %d", p_iBotType[client], p_iBotVariant[client], p_iBotAttrib[client]);
 	
+	return Plugin_Handled;
+}
+
+public Action Command_Debug_Spy( int client, int nArgs )
+{
+	if(client == 0)
+		return Plugin_Handled;
+		
+	if(g_aSpyTeleport.Length < 1)
+	{
+		ReplyToCommand(client, "Spy teleport array length is 0.");
+		return Plugin_Handled;
+	}
+	
+	if(nArgs < 1)
+	{
+		ReplyToCommand(client, "Usage: sm_bwrr_debug_spy <index>");
+		ReplyToCommand(client, "Array size is %i\nRemember arrays indexes starts at 0.", g_aSpyTeleport.Length);
+		return Plugin_Handled;
+	}
+	
+	char sArg1[4];
+	int iArg1;
+	GetCmdArg(1, sArg1, sizeof(sArg1));
+	iArg1 = StringToInt(sArg1);
+	
+	if(iArg1 < 0 || iArg1 >= g_aSpyTeleport.Length)
+	{
+		ReplyToCommand(client, "Index is out of bounds.");
+		return Plugin_Handled;
+	}
+	
+	float vecPos[3];
+	g_aSpyTeleport.GetArray(iArg1, vecPos);
+	TeleportEntity(client, vecPos, NULL_VECTOR, NULL_VECTOR);
+	ReplyToCommand(client, "Teleported to index %i at %.1f %.1f %.1f", iArg1, vecPos[0], vecPos[1], vecPos[2]);
+
+	return Plugin_Handled;
+}
+
+public Action Command_Debug_Engy( int client, int nArgs )
+{
+	if(client == 0)
+		return Plugin_Handled;
+		
+	if(g_aEngyTeleport.Length < 1)
+	{
+		ReplyToCommand(client, "Engineer teleport array length is 0.");
+		return Plugin_Handled;
+	}
+	
+	if(nArgs < 1)
+	{
+		ReplyToCommand(client, "Usage: sm_bwrr_debug_engy <index>");
+		ReplyToCommand(client, "Array size is %i\nRemember arrays indexes starts at 0.", g_aEngyTeleport.Length);
+		return Plugin_Handled;
+	}
+	
+	char sArg1[4];
+	int iArg1;
+	GetCmdArg(1, sArg1, sizeof(sArg1));
+	iArg1 = StringToInt(sArg1);
+	
+	if(iArg1 < 0 || iArg1 >= g_aEngyTeleport.Length)
+	{
+		ReplyToCommand(client, "Index is out of bounds.");
+		return Plugin_Handled;
+	}
+	
+	float vecPos[3];
+	g_aEngyTeleport.GetArray(iArg1, vecPos);
+	TeleportEntity(client, vecPos, NULL_VECTOR, NULL_VECTOR);
+	ReplyToCommand(client, "Teleported to index %i at %.1f %.1f %.1f", iArg1, vecPos[0], vecPos[1], vecPos[2]);
+
 	return Plugin_Handled;
 }
 
@@ -2897,15 +2984,15 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			if( rp.Gatebot ) { GiveGatebotHat(client, TFClass); } // TF2_RegeneratePlayer will cause the hat to be removed, add it again.
 		}
 	}
-	
-	if(c_bDebug.BoolValue && TF2_GetClientTeam(client) == TFTeam_Blue)
+#if defined DEBUG_PLAYER
+	if(TF2_GetClientTeam(client) == TFTeam_Blue)
 	{
 		PrintToChat(client, "Robot Type: %d", p_iBotType[client]);
 		PrintToChat(client, "Robot Variant: %d", p_iBotVariant[client]);
 		PrintToChat(client, "Robot Attributes: %d", p_iBotAttrib[client]);
 		LogMessage("OnPlayerSpawn: \"%N\" Type: %d, Variant: %d, Attributes: %d", client, p_iBotType[client], p_iBotVariant[client], p_iBotAttrib[client]);
 	}
-	
+#endif
 	return Plugin_Stop;
 }
 

@@ -224,7 +224,6 @@ void Boss_LoadWaveConfig()
 {
 	char mapname[64], buffer[256], wavenum[16];
 	float flDelay;
-	bool bDebug = IsDebugging();
 	
 	g_BossState = BossState_Unavailable;
 	Boss_ClearArrays();
@@ -243,7 +242,7 @@ void Boss_LoadWaveConfig()
 	
 	if(!FileExists(g_strConfigFile))
 	{
-		if( bDebug ) { LogMessage("Boss Wave Config file not found for map %s ( %s )", mapname, g_strConfigFile); }
+		LogMessage("Boss Wave Config file not found for map %s ( %s )", mapname, g_strConfigFile);
 		return;
 	}
 	
@@ -275,11 +274,15 @@ void Boss_LoadWaveConfig()
 			flDelay = kv.GetFloat("delay", 60.0);
 			g_BossRespawnDelay = kv.GetFloat("respawn_delay", 0.0);
 			kv.GetString("bosses", g_strBossList, sizeof(g_strBossList));
-			if( bDebug ) { LogMessage("Found config for wave %i. Mission: %s", iWave, buffer); }
+#if defined DEBUG_GENERAL
+			LogMessage("Found config for wave %i. Mission: %s", iWave, buffer);
+#endif
 		}
 		else
 		{
-			if( bDebug ) { LogMessage("Couldn't find config for wave %i. Mission: %s", iWave, buffer); }
+#if defined DEBUG_GENERAL
+			LogMessage("Couldn't find config for wave %i. Mission: %s", iWave, buffer);
+#endif
 			delete kv;
 			return;
 		}
@@ -295,7 +298,9 @@ void Boss_LoadWaveConfig()
 			flDelay = kv.GetFloat("delay", 60.0);
 			g_BossRespawnDelay = kv.GetFloat("respawn_delay", 0.0);
 			kv.GetString("bosses", g_strBossList, sizeof(g_strBossList));
-			if( bDebug ) { LogMessage("Using default config. Wave: %i Mission: %s", iWave, buffer); }
+#if defined DEBUG_GENERAL
+			LogMessage("Using default config. Wave: %i Mission: %s", iWave, buffer);
+#endif
 		}
 		else
 		{
