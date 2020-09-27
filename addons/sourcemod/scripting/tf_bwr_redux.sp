@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "0.1.12"
+#define PLUGIN_VERSION "1.0.0"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -782,6 +782,10 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 				g_nDisguised[client].g_iDisguisedTeam = iDisguisedTeam;
 			}
 		}
+	}
+	else
+	{
+		SpyDisguiseClear(client);
 	}
 		
 	if(TF2_GetClientTeam(client) == TFTeam_Blue)
