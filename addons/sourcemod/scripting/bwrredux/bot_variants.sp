@@ -658,6 +658,7 @@ void SetOwnAttributes(int client , bool bGiant)
 		return;
 		
 	TF2Attrib_RemoveAll(client); // bug fix
+	RequestFrame(FrameShouldBlockBombPickUp, GetClientUserId(client));
 
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	int iWeapon;

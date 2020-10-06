@@ -115,9 +115,10 @@ int GetRandomPlayer(TFTeam Team, bool bIncludeBots = false)
 
 	}
 	
-	// now we should have an array filled with user ids and exactly how many players we have in game.
-	int iRandomMax = counter - 1;
-	int iRandom = Math_GetRandomInt(0,iRandomMax); // get a random number between 0 and counted players
+	if(counter == 0)
+		return -1;
+	
+	int iRandom = Math_GetRandomInt(0,counter - 1); // get a random number between 0 and counted players
 	// now we get the user id from the array cell selected via iRandom
 	return players_available[iRandom];
 }
@@ -194,63 +195,70 @@ void TeleportSpyRobot(int client)
 void FindEngineerNestNearBomb(int client)
 {
 	float nVec[3], bVec[3], tVec[3]; // nest pos, bomb pos, tele pos
-	float current_dist, min_dist = 750.0;
-	float smallest_dist = 15000.0;
+	float hatchpos[3];
+	float current_dist;
+	float min_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_hint_min_distance_from_bomb"));
+	float max_back_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_sentry_hint_bomb_backward_range"));
+	float max_forw_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_sentry_hint_bomb_forward_range"));
+	float smallest_dist = 999999.0;
 	int iTargetNest = -1; // the closest nest found.
-	int i = -1;
-	int iBomb = -1; // the bomb we're going to use to check distance.
-	int iBombOwner = -1; // bomb carrier
-	
-	// find the bomb current position
-	while( (i = FindEntityByClassname(i, "item_teamflag" )) != -1 )
-	{
-		if( IsValidEntity(i) && GetEntProp( i, Prop_Send, "m_bDisabled" ) == 0 ) // ignore disabled bombs
-		{
-			iBomb = i; // use the first bomb found.
-			iBombOwner = GetEntPropEnt( i, Prop_Send, "m_hOwnerEntity" );
-			break;
-		}
-	}
+	int iBomb = FindBestBomb();
+	int iBombOwner;
 	
 	if( iBomb == -1 )
 		return; // no bomb found
 	
-	// search for bot hints
-	i = -1;
-	while( (i = FindEntityByClassname(i, "bot_hint_engineer_nest" )) != -1 )
+	hatchpos = TF2_GetBombHatchPosition();
+	iBombOwner = GetEntPropEnt(iBomb, Prop_Send, "m_hOwnerEntity");
+	if( iBombOwner == -1 || iBombOwner > MaxClients)
 	{
-		if( IsValidEntity(i) )
+		GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
+	}
+	else // if the bomb is carried by a player, use the eye position of the carrier instead
+	{
+		GetClientEyePosition(iBombOwner, bVec);
+	}
+	
+	// search for bot hints
+	int i = -1;
+	ArrayList anests;
+	anests = new ArrayList();
+	while((i = FindEntityByClassname(i, "bot_hint_engineer_nest" )) != -1)
+	{
+		if(IsValidEntity(i))
 		{
-			if( iBombOwner == -1 || iBombOwner > MaxClients)
-			{
-				GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
-			}
-			else // if the bomb is carried by a player, use the eye position of the carrier instead
-			{
-				GetClientEyePosition(iBombOwner, bVec);
-			}
 			GetEntPropVector(i, Prop_Send, "m_vecOrigin", nVec); // nest
 			
 			current_dist = GetVectorDistance(bVec, nVec);
 			
-			if( current_dist < smallest_dist && current_dist > min_dist )
+			// if the nest is closer to the hatch than the bomb itself, it's a forward nest
+			if(GetVectorDistance(nVec, hatchpos) < GetVectorDistance(bVec, hatchpos)) // forward
 			{
-				iTargetNest = i;
-				smallest_dist = current_dist;
+				if( current_dist < smallest_dist && current_dist > min_dist && current_dist < max_forw_dist )
+				{
+					anests.Push(i);
+					smallest_dist = current_dist;
+				}				
+			}
+			else // backward
+			{
+				if( current_dist < smallest_dist && current_dist > min_dist && current_dist < max_back_dist )
+				{
+					anests.Push(i);
+					smallest_dist = current_dist;
+				}
 			}
 		}
 	}
 	
+	if(anests.Length > 0)
+	{
+		iTargetNest = anests.Get(Math_GetRandomInt(0,anests.Length - 1));
+		delete anests;
+	}
+	
 	if( iTargetNest == -1 ) // no bot_hint_engineer_nest found
 	{
-		if( iBombOwner == -1 || iBombOwner > MaxClients)
-		{
-			GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
-		}
-		else // if the bomb is carried by a player, use the eye position of the carrier instead
-		{
-			GetClientEyePosition(iBombOwner, bVec);
-		}
 		if( GetEngyTeleportFromConfig(tVec, bVec) )
 		{
 			TeleportEngineerToPosition(tVec, client);
@@ -261,6 +269,43 @@ void FindEngineerNestNearBomb(int client)
 		GetEntPropVector(iTargetNest, Prop_Send, "m_vecOrigin", tVec);
 		TeleportEngineerToPosition(tVec, client);
 	}
+}
+
+// returns an entity index of the best bomb
+int FindBestBomb()
+{
+	int index = -1, owner;
+	float bombpos[3], hatchpos[3];
+	float bestdist = 999999.0;
+	float searchdist;
+	
+	hatchpos = TF2_GetBombHatchPosition();
+	
+	int i = -1;
+	while((i = FindEntityByClassname(i, "item_teamflag" )) != -1)
+	{
+		if(IsValidEntity(i) && GetEntProp( i, Prop_Send, "m_bDisabled" ) == 0 && !TF2_IsFlagHome(i)) // ignore disabled bombs
+		{
+			owner = GetEntPropEnt(i, Prop_Send, "m_hOwnerEntity");
+			if(owner > 0 && owner < MaxClients)
+			{
+				GetClientAbsOrigin(owner, bombpos);
+			}
+			else
+			{
+				GetEntPropVector(i, Prop_Send, "m_vecOrigin", bombpos);
+			}
+			
+			searchdist = GetVectorDistance(bombpos, hatchpos);
+			if(searchdist < bestdist)
+			{
+				bestdist = searchdist;
+				index = i;
+			}
+		}
+	}
+	
+	return index;
 }
 
 // teleports a client to the ent origin.
@@ -1048,6 +1093,9 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 	
 	if( g_aSpyTeleport.Length < 1 )
 		return false;
+		
+	ArrayList aPos;
+	aPos = new ArrayList();
 	
 	if( IsValidClient(target_player) )
 	{
@@ -1060,11 +1108,17 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 			
 			current_dist = GetVectorDistance(rVec, tVec);
 			
-			if( current_dist < smallest_dist && current_dist > 256.0 ) 
+			if( current_dist < smallest_dist && current_dist > 256.0 && current_dist < 1500.0 ) 
 			{
 				smallest_dist = current_dist;
-				iBestCell = i;
+				aPos.Push(i);
 			}
+		}
+		
+		if(aPos.Length > 0)
+		{
+			iBestCell = aPos.Get(Math_GetRandomInt(0,aPos.Length - 1));
+			delete aPos;
 		}
 		
 		if( iBestCell != -1 )
@@ -1086,13 +1140,19 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 // returns true if a spot is found
 bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
 {
-	float rVec[3];
+	float rVec[3], hatchpos[3];
 	int iBestCell = -1;
-	float current_dist, min_dist = 750.0, smallest_dist = 999999.0;
-	
+	float current_dist, smallest_dist = 999999.0;
+	float min_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_hint_min_distance_from_bomb"));
+	float max_back_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_sentry_hint_bomb_backward_range"));
+	float max_forw_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_sentry_hint_bomb_forward_range"));
 	
 	if( g_aEngyTeleport.Length < 1 )
 		return false;
+		
+	ArrayList aPos;
+	aPos = new ArrayList();
+	hatchpos = TF2_GetBombHatchPosition();
 	
 	for(int i = 0;i < g_aEngyTeleport.Length;i++)
 	{
@@ -1101,11 +1161,29 @@ bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
 		
 		current_dist = GetVectorDistance(rVec, bombpos);
 		
-		if( current_dist < smallest_dist && current_dist > min_dist ) 
+		// if the nest is closer to the hatch than the bomb itself, it's a forward nest
+		if(GetVectorDistance(rVec, hatchpos) < GetVectorDistance(bombpos, hatchpos)) // forward
 		{
-			smallest_dist = current_dist;
-			iBestCell = i;
+			if( current_dist < smallest_dist && current_dist > min_dist && current_dist < max_forw_dist )
+			{
+				aPos.Push(i);
+				smallest_dist = current_dist;
+			}				
 		}
+		else // backward
+		{
+			if( current_dist < smallest_dist && current_dist > min_dist && current_dist < max_back_dist )
+			{
+				aPos.Push(i);
+				smallest_dist = current_dist;
+			}
+		}
+	}
+	
+	if(aPos.Length > 0)
+	{
+		iBestCell = aPos.Get(Math_GetRandomInt(0,aPos.Length - 1));
+		delete aPos;
 	}
 	
 	if( iBestCell != -1 )
@@ -1577,7 +1655,6 @@ int BotNoticeBackstabChance(bool update = false)
 	if(update)
 	{
 		chance = GetConVarInt(FindConVar("tf_bot_notice_backstab_chance"));
-		return chance;
 	}
 	
 	return chance;
@@ -1590,7 +1667,6 @@ int BotNoticeBackstabMaxRange(bool update = false)
 	if(update)
 	{
 		range = GetConVarInt(FindConVar("tf_bot_notice_backstab_max_range"));
-		return range;
 	}
 	
 	return range;
@@ -1765,6 +1841,10 @@ void FrameCheckFlagForPickUp(int userid)
 		return;
 	
 	RoboPlayer rp = RoboPlayer(client);
+	
+	if(rp.Attributes & BotAttrib_CannotCarryBomb)
+		return;
+	
 	int i = -1;
 	while((i = FindEntityByClassname(i, "item_teamflag")) != -1)
 	{
@@ -1777,6 +1857,21 @@ void FrameCheckFlagForPickUp(int userid)
 				RequestFrame(UpdateBombHud, userid);
 			}
 		}
+	}
+}
+
+// checks if this client should be blocked from picking up the bomb
+void FrameShouldBlockBombPickUp(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if(client <= 0)
+		return;
+	
+	RoboPlayer rp = RoboPlayer(client);
+	
+	if(rp.Attributes & BotAttrib_CannotCarryBomb)
+	{
+		BlockBombPickup(client);
 	}
 }
 

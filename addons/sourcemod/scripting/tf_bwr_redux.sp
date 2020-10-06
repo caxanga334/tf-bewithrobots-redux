@@ -2838,7 +2838,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 		
 		// TO DO: pyro's gas passer and phlog
-		if( rp.Attributes & BotAttrib_FullCharge )
+		if(rp.Attributes & BotAttrib_FullCharge)
 		{
 			if( TFClass == TFClass_Medic )
 			{
@@ -2853,7 +2853,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}			
 		}
 
-		if( rp.Attributes & BotAttrib_CannotCarryBomb )
+		if(rp.Attributes & BotAttrib_CannotCarryBomb)
 		{
 			BlockBombPickup(client);
 		}
