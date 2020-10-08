@@ -4452,9 +4452,10 @@ int GetRandomBLUPlayer()
 		}
 	}
 	
-	// now we should have an array filled with user ids and exactly how many players we have in game.
-	int iRandomMax = counter - 1;
-	int iRandom = Math_GetRandomInt(0,iRandomMax); // get a random number between 0 and counted players
+	if(counter == 0)
+		return -1;
+	
+	int iRandom = Math_GetRandomInt(0,counter - 1); // get a random number between 0 and counted players
 	// now we get the user id from the array cell selected via iRandom
 	return players_available[iRandom];
 }
