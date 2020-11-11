@@ -2058,6 +2058,9 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 
 public Action Listener_Ready(int client, const char[] command, int argc)
 {
+	if( !IsClientInGame(client) )
+		return Plugin_Continue;
+
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{ // todo: add translated message
 		return Plugin_Handled;
@@ -2068,6 +2071,9 @@ public Action Listener_Ready(int client, const char[] command, int argc)
 
 public Action Listener_Suicide(int client, const char[] command, int argc)
 {
+	if( !IsClientInGame(client) )
+		return Plugin_Continue;
+
 	if( !IsValidClient(client) )
 		return Plugin_Handled;
 		
@@ -2084,6 +2090,9 @@ public Action Listener_Suicide(int client, const char[] command, int argc)
 
 public Action Listener_Build(int client, const char[] command, int argc)
 {
+	if( !IsClientInGame(client) )
+		return Plugin_Continue;
+
 	if( TF2_GetClientTeam(client) != TFTeam_Blue )
 		return Plugin_Continue;
 		
@@ -2126,6 +2135,9 @@ public Action Listener_CallVote(int client, const char[] command, int argc)
 
 public Action Listener_Taunt(int client, const char[] command, int argc)
 {
+	if( !IsClientInGame(client) )
+		return Plugin_Continue;
+
 	if( IsFakeClient(client) )
 		return Plugin_Continue;
 	
