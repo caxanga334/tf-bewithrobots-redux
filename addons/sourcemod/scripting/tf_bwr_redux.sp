@@ -645,6 +645,17 @@ public void OnClientDisconnect(int client)
 		g_iBusterIndex = -1;
 }
 
+public void OnClientDisconnect_Post(int client)
+{
+	if(GameRules_GetRoundState() == RoundState_BetweenRounds)
+	{
+		if(AreTeamsUnbalanced())
+		{
+			CPrintToChatAll("Unbalance_Warning");
+		}
+	}
+}
+
 public void OnClientPostAdminCheck(int client)
 {
 	CreateTimer(20.0, Timer_HelpUnstuck, GetClientUserId(client)); // unstuck players from spectator team.
@@ -2431,7 +2442,7 @@ public Action Command_BWRRHelpMenu( int client, int nArgs )
 		
 	Menu menu = new Menu(MenuHandler_HelpMenu, MENU_ACTIONS_ALL);
 	
-	menu.SetTitle("%T", "Menu_Help", LANG_SERVER);
+	menu.SetTitle("%T", "Menu_Help", client);
 	menu.AddItem("helpm1", "Joining BLU");
 	menu.AddItem("helpm2", "Selecting a Robot");
 	menu.AddItem("helpm3", "Sentry Busters");
@@ -2528,6 +2539,47 @@ void MenuFunc_PrintHelp(int fid, int client)
 	}
 }
 
+// Create the select team menu
+void Menu_ShowJoinTeam(int client)
+{
+	Menu menu = new Menu(MenuHandler_JoinTeam, MENU_ACTIONS_ALL);
+	menu.SetTitle("%T", "Menu_Team_Title", client);
+	menu.AddItem("teamred","RED");
+	menu.AddItem("teamblu","BLU");
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+	
+	return;
+}
+
+// Handler for the select team menu
+public int MenuHandler_JoinTeam(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			char info[32];
+			bool bFound = menu.GetItem(param2, info, sizeof(info));
+			if(bFound)
+			{
+				if(strcmp(info, "teamred") == 0)
+				{
+					Command_JoinRED(param1, 0);
+				}
+				else if(strcmp(info, "teamblu") == 0)
+				{
+					Command_JoinBLU(param1, 0);
+				}
+			}			
+		}
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}	
+}
+
 /****************************************************
 					EVENTS
 *****************************************************/
@@ -2542,6 +2594,13 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	Boss_LoadWaveConfig();
 	SetBLURespawnWaveTime(2.0);
 	CreateTimer(1.0, Timer_CheckGates);
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) <= 1)
+		{ // Help players that may be stuck on spectator/unassigned team
+			CreateTimer(5.0, Timer_HelpUnstuck, GetClientUserId(i));
+		}
+	}
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
@@ -3366,6 +3425,7 @@ public Action Timer_HelpUnstuck(Handle timer, any userid)
 		// moving players automatically to RED causes them to be unable to close the MOTD with the mouse
 		// to avoid issues, print a message telling players to type the join team command in chat.
 		CPrintToChat(client, "%t", "Spec_Stuck");
+		Menu_ShowJoinTeam(client);
 	}
 	
 	return Plugin_Stop;
@@ -4420,6 +4480,14 @@ void CheckTeams()
 			}
 		}
 	}
+}
+
+bool AreTeamsUnbalanced()
+{
+	if( c_iMinRed.IntValue - (GetTeamClientCount(2) + 1) < c_iMinRed.IntValue )
+		return true;
+
+	return false;
 }
 
 // applies giant robot loop sounds to clients

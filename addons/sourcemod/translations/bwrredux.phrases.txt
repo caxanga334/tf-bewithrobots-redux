@@ -119,4 +119,13 @@
 	{
 		"en"	"{cyan}If you're stuck in spectator, type {green}!joinred{cyan} in chat."
 	}
+	"Unbalance_Warning"
+	{
+		"en"	"{red}[BWRR]{yellow} Warning! Teams are unbalanced, random player(s) will be moved to {red}RED{yellow} team when the wave starts."
+	}
+	// === JOIN TEAM MENU ===
+	"Menu_Team_Title"
+	{
+		"en"	"Select a Team"
+	}
 }

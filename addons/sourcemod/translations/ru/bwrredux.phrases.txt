@@ -112,4 +112,13 @@
 	{
 		"ru"	"{cyan}Если вы застряли в наблюдателях, введите {green}!joinred{cyan} в чат."
 	}
+	"Unbalance_Warning"
+	{
+		"ru"	"{red}[BWRR]{yellow} Warning! Teams are unbalanced, random player(s) will be moved to {red}RED{yellow} team when the wave starts."
+	}
+	// === JOIN TEAM MENU ===
+	"Menu_Team_Title"
+	{
+		"ru"	"Select a Team"
+	}
 }

@@ -119,4 +119,13 @@
 	{
 		"pt"	"{cyan}Se você estiver preso no espectador, digite {green}!joinred{cyan} no chat."
 	}
+	"Unbalance_Warning"
+	{
+		"pt"	"{red}[BWRR]{yellow} Alerta! As equipes estão desbalanceadas, jogadores aleatorios serão movidos para a equipe {red}RED{yellow} quando a onda iniciar."
+	}
+	// === JOIN TEAM MENU ===
+	"Menu_Team_Title"
+	{
+		"pt"	"Selecione uma Equipe"
+	}
 }
