@@ -14,7 +14,12 @@
 	}
 	"Blu Full"
 	{
-		"en"	"{yellow}[BWRR]{cyan} You can't join BLU BLU team is full."
+		"en"	"{yellow}[BWRR]{cyan} You can't join BLU because BLU team is full."
+	}
+	"Blu_Banned"
+	{
+		"#format"	"{1:.1f}"
+		"en"	"{yellow}[BWRR]{cyan} You can't join BLU while on cooldown, please wait for {green}{1}{cyan} seconds."
 	}
 	"Num Red"
 	{
@@ -61,7 +66,7 @@
 	}
 	"Wait Secs to Use"
 	{
-		"#format"	"{1:d}"
+		"#format"	"{1:.1f}"
 		"en"	"{cyan}You must wait {yellow}{1}{cyan} seconds before using this command again."
 	}
 	"Menu_Help" // this is not a chat message, don't add color tags

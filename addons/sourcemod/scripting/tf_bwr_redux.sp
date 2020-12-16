@@ -63,6 +63,7 @@ float g_flNextBusterTime; // sentry buster time
 float g_flLastForceBot[MAXPLAYERS + 1]; // Last time a player forced a bot
 float g_flBusterVisionTimer; // timer for buster wallhack
 float g_flinstructiontime[MAXPLAYERS + 1]; // Last time we gave an instruction to a player 
+float g_flJoinRobotBanTime[MAXPLAYERS + 1]; // Join blu/robot ban time
 TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1]; // the class the player selected on sm_robotmenu
 Handle g_hHUDReload;
 
@@ -94,6 +95,7 @@ ConVar c_strNBFile; // Normal bot template file
 ConVar c_strGBFile; // Giant bot template file
 ConVar c_bLimitClasses; // Limit playable classes to the ones used in the current wave
 ConVar c_iGatebotChance; // change to spawn as a gatebot
+ConVar c_bAntiJoinSpam; // Anti-spam
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -294,7 +296,8 @@ public void OnPluginStart()
 	c_strNBFile = AutoExecConfig_CreateConVar("sm_bwrr_botnormal_file", "robots_normal.cfg", "The file to load normal robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
 	c_strGBFile = AutoExecConfig_CreateConVar("sm_bwrr_botgiant_file", "robots_giant.cfg", "The file to load giant robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
 	c_bLimitClasses = AutoExecConfig_CreateConVar("sm_bwrr_limit_classes", "1", "Limit playable classes on the BLU team to classes that are used in the current wave", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_iGatebotChance = AutoExecConfig_CreateConVar("sm_bwrr_gatebot_chance", "25", "Chance to spawn as a gatebot on gate maps. 0 = Disabled", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_iGatebotChance = AutoExecConfig_CreateConVar("sm_bwrr_gatebot_chance", "25", "Chance to spawn as a gatebot on gate maps. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_bAntiJoinSpam = AutoExecConfig_CreateConVar("sm_bwrr_antispam", "1.0", "Apply anti-spam to join blu command. 1 = Enabled, 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 1.0);
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
@@ -336,6 +339,7 @@ public void OnPluginStart()
 	RegAdminCmd( "sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
 	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
 	RegAdminCmd( "sm_bwrr_getorigin", Command_GetOrigin, ADMFLAG_ROOT, "Prints your current coordinates." );
+	RegAdminCmd( "sm_bwrr_add_cooldown", Command_BanBLU, ADMFLAG_BAN, "Add joinblu cooldown to the target." );
 	
 	// listener
 	AddCommandListener( Listener_JoinTeam, "jointeam" );
@@ -363,6 +367,7 @@ public void OnPluginStart()
 	HookEvent( "teamplay_flag_event", E_Teamplay_Flag );
 	HookEvent( "post_inventory_application", E_Inventory );
 	HookEvent( "player_builtobject", E_BuildObject, EventHookMode_Pre );
+	HookEvent( "pve_win_panel", E_MVM_WinPanel );
 	
 	// Entities
 	HookEntityOutput("team_control_point", "OnCapTeam1", OnGateCaptureRED);
@@ -627,6 +632,7 @@ public void OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_OnTakeDamage, SDKOnPlayerTakeDamage);
 	g_flinstructiontime[client] = 0.0;
+	g_flJoinRobotBanTime[client] = 0.0;
 }
 
 public void OnClientDisconnect(int client)
@@ -643,6 +649,13 @@ public void OnClientDisconnect(int client)
 	
 	if( client == g_iBusterIndex )
 		g_iBusterIndex = -1;
+	
+	// if the client disconnects while having more than 10 seconds remaining on the cooldown
+	float flcooldowntime = g_flJoinRobotBanTime[client] - GetGameTime();
+	if( flcooldowntime > 10.0 )
+	{
+		LogMessage("Client \"%L\" disconnected while on cooldown. (Time remaining: %.1f).", flcooldowntime);
+	}
 }
 
 public void OnClientDisconnect_Post(int client)
@@ -1313,6 +1326,19 @@ public Action Command_JoinBLU( int client, int nArgs )
 		OR_Update();
 		UpdateClassArray();
 		return Plugin_Handled;
+	}
+	
+	// Denied: Player is banned/on cooldown
+	if( c_bAntiJoinSpam.BoolValue && g_flJoinRobotBanTime[client] > GetGameTime() )
+	{
+		float fltime = g_flJoinRobotBanTime[client] - GetGameTime();
+		CPrintToChat(client, "%t", "Blu_Banned", fltime);
+		g_flJoinRobotBanTime[client] += 0.5; // Add 0.5 second to annony spammers
+		return Plugin_Handled;
+	}
+	else
+	{
+		g_flJoinRobotBanTime[client] = GetGameTime() + 5.0; // Anti-spam
 	}
 	
 	// Denied: Not enough players in RED to join while a wave is running.
@@ -2029,6 +2055,55 @@ public Action Command_BossInfo( int client, int nArgs )
 		{
 			ReplyToCommand(client, "Boss will be able to spawn in %i seconds", iSpawnTime);
 		}
+	}
+	
+	return Plugin_Handled;
+}
+
+public Action Command_BanBLU( int client, int nArgs )
+{
+	if( nArgs < 1 )
+	{
+		ReplyToCommand(client, "Usage: sm_bwrr_add_cooldown <target> <time>");
+		return Plugin_Handled;
+	}
+	
+	char arg1[MAX_NAME_LENGTH];
+	GetCmdArg(1, arg1, sizeof(arg1));
+	
+	char target_name[MAX_TARGET_LENGTH];
+	int target_list[MAXPLAYERS], target_count;
+	bool tn_is_ml;
+	
+	if((target_count = ProcessTargetString(arg1, client, target_list, MAXPLAYERS, COMMAND_FILTER_NO_BOTS, target_name, sizeof(target_name), tn_is_ml)) <= 0)
+	{
+		ReplyToTargetError(client, target_count);
+		return Plugin_Handled;
+	}
+	
+	if( nArgs == 1 )
+	{
+		ReplyToCommand(client, "No time specified.");
+		return Plugin_Handled;
+	}
+	
+	char arg2[8];
+	GetCmdArg(2, arg2, sizeof(arg2));
+	float bantime = StringToFloat(arg2);
+	
+	for(int i = 0; i < target_count; i++)
+	{
+		g_flJoinRobotBanTime[target_list[i]] = GetGameTime() + bantime;
+		LogAction(client, target_list[i], "\"%L\" add %.1f join BLU cooldown time to \"%L\".", client, bantime, target_list[i]);
+	}
+	
+	if (tn_is_ml)
+	{
+		ShowActivity2(client, "[SM] ", "Added %.1f join BLU cooldown time to %t.", bantime, target_name);
+	}
+	else
+	{
+		ShowActivity2(client, "[SM] ", "Added %.1f join BLU cooldown time to %s.", bantime, target_name);
 	}
 	
 	return Plugin_Handled;
@@ -2855,6 +2930,24 @@ public Action E_BuildObject(Event event, const char[] name, bool dontBroadcast)
 	if( !IsFakeClient(client) && GetEntProp( index, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) )
 	{
 		CreateTimer(0.1, Timer_BuildObject, index);
+	}
+}
+
+// Event: MvM Win Panel
+public Action E_MVM_WinPanel(Event event, const char[] name, bool dontBroadcast)
+{
+	int winningteam = event.GetInt("winning_team");
+
+	if(winningteam == view_as<int>(TFTeam_Blue) && c_bAntiJoinSpam.BoolValue)
+	{
+		for(int i = 1;i <= MaxClients;i++)
+		{
+			if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue)
+			{ // Apply cooldown on BLU players when they win
+				g_flJoinRobotBanTime[i] = GetGameTime() + 75.0;
+				LogMessage("Applying join blu cooldown on \"%L\". Reason: ROBOT Victory.", i);
+			}
+		}
 	}
 }
 

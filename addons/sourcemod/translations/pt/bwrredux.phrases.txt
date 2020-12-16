@@ -16,6 +16,11 @@
 	{
 		"pt"	"{yellow}[BWRR]{cyan} Você não pode entrar na equipe BLU. A equipe BLU está cheia."
 	}
+	"Blu_Banned"
+	{
+		"#format"	"{1:.1f}"
+		"pt"	"{yellow}[BWRR]{cyan} Você deve esperar por {green}{1}{cyan} segundos antes de entrar na equipe BLU."
+	}
 	"Num Red"
 	{
 		"#format"	"{1:d}"

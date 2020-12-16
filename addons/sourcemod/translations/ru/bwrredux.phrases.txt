@@ -16,6 +16,11 @@
 	{
 		"ru"	"{yellow}[BWRR]{cyan} Вы не можете присоединиться к Синим, команда Синих заполнена."
 	}
+	"Blu_Banned"
+	{
+		"#format"	"{1:.1f}"
+		"ru"	"{yellow}[BWRR]{cyan} You can't join BLU while on cooldown, please wait for {green}{1}{cyan} seconds."
+	}
 	"Num Red"
 	{
 		"ru"	"{cyan}Должно быть как минимум {yellow}{1}{cyan} игроков в команде {red}Красных{cyan}."
