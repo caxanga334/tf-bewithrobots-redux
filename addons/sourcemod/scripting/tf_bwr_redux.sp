@@ -651,7 +651,7 @@ public void OnClientDisconnect_Post(int client)
 	{
 		if(AreTeamsUnbalanced())
 		{
-			CPrintToChatAll("Unbalance_Warning");
+			CPrintToChatAll("%t", "Unbalance_Warning");
 		}
 	}
 }
@@ -4484,7 +4484,7 @@ void CheckTeams()
 
 bool AreTeamsUnbalanced()
 {
-	if( c_iMinRed.IntValue - (GetTeamClientCount(2) + 1) < c_iMinRed.IntValue )
+	if( GetHumanRobotCount() > 0 && c_iMinRed.IntValue - (GetTeamClientCount(2) + 1) < c_iMinRed.IntValue )
 		return true;
 
 	return false;
