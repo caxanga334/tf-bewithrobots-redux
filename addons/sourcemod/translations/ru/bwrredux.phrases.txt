@@ -119,11 +119,11 @@
 	}
 	"Unbalance_Warning"
 	{
-		"ru"	"{red}[BWRR]{yellow} Warning! Teams are unbalanced, random player(s) will be moved to {red}RED{yellow} team when the wave starts."
+		"ru"	"{red}[BWRR]{yellow} Внимание! Команды не сбалансированы, случайные игроки будут перемещены в {red}Красную{yellow} команду, когда волна начнётся."
 	}
 	// === JOIN TEAM MENU ===
 	"Menu_Team_Title"
 	{
-		"ru"	"Select a Team"
+		"ru"	"Выберите команду"
 	}
 }
