@@ -656,7 +656,7 @@ public void OnClientDisconnect(int client)
 	float flcooldowntime = g_flJoinRobotBanTime[client] - GetGameTime();
 	if( flcooldowntime > 10.0 )
 	{
-		LogMessage("Client \"%L\" disconnected while on cooldown. (Time remaining: %.1f).", flcooldowntime);
+		LogMessage("Client \"%L\" disconnected while on cooldown. (Time remaining: %.1f).", client, flcooldowntime);
 	}
 }
 
