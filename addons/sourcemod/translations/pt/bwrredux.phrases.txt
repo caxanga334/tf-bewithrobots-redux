@@ -66,7 +66,7 @@
 	}
 	"Wait Secs to Use"
 	{
-		"#format" "{1:d}"
+		"#format"	"{1:.1f}"
 		"pt" "{cyan}Você deve esperar {yellow}{1}{cyan} segundos para usar esse comando novamente."
 	}
 	"Menu_Help"

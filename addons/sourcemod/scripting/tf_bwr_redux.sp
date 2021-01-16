@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_VERSION "1.0.1"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -892,7 +892,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			if(g_flBusterVisionTimer < GetGameTime())
 			{
 				g_flBusterVisionTimer = GetGameTime() + 6.0;
-				PrintToConsole(client, "Calling BusterWallhack %.1f", g_flBusterVisionTimer);
+				//PrintToConsole(client, "Calling BusterWallhack %.1f", g_flBusterVisionTimer);
 				BusterWallhack(client);
 			}
 		
@@ -2268,8 +2268,8 @@ public Action Command_RobotMenu( int client, int nArgs )
 
 	if( GetGameTime() < g_flLastForceBot[client] )
 	{
-		int iWaitTime = RoundToNearest(g_flLastForceBot[client] - GetGameTime());
-		CReplyToCommand(client, "%t", "Wait Secs to Use", iWaitTime);
+		float flWaitTime = g_flLastForceBot[client] - GetGameTime();
+		CReplyToCommand(client, "%t", "Wait Secs to Use", flWaitTime);
 		return Plugin_Handled;
 	}
 		
@@ -4577,7 +4577,15 @@ void CheckTeams()
 
 bool AreTeamsUnbalanced()
 {
-	if( GetHumanRobotCount() > 0 && c_iMinRed.IntValue - (GetTeamClientCount(2) + 1) < c_iMinRed.IntValue )
+	// FALSE: BLU is empty
+	if( GetHumanRobotCount() == 0 )
+		return false;
+		
+	int minred = c_iMinRed.IntValue;
+	int inred = GetTeamClientCount(view_as<int>(TFTeam_Red)) + 1;
+
+	// TRUE: There are less players on RED than the minimum amount
+	if( inred < minred )
 		return true;
 
 	return false;

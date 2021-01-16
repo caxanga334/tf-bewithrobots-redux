@@ -23,10 +23,12 @@
 	}
 	"Num Red"
 	{
+		"#format"	"{1:d}"
 		"ru"	"{cyan}Должно быть как минимум {yellow}{1}{cyan} игроков в команде {red}Красных{cyan}."
 	}
 	"Bot Spawn"
 	{
+		"#format"	"{1:s}"
 		"ru"	"{yellow}[BWRR]{cyan} Вы появились как {springgreen}{1}{cyan}."
 	}
 	"Unready"
@@ -43,6 +45,7 @@
 	}
 	"Bomb Deploy"
 	{
+		"#format"	"{1:s}"
 		"ru"	"{yellow}[BWRR]{blue} {1} {cyan}заложил бомбу."
 	}
 	"BotClassFailMsg"
@@ -63,6 +66,7 @@
 	}
 	"Wait Secs to Use"
 	{
+		"#format"	"{1:.1f}"
 		"ru"	"{cyan}Вы должны подождать {yellow}{1}{cyan} сек., прежде чем снова использовать эту команду."
 	}
 	"Menu_Help" // this is not a chat message, don't add color tags
@@ -83,6 +87,7 @@
 	}
 	"Help_SentryBusterP2"
 	{
+		"#format"	"{1:d},{2:d}" // delay between busters, sentry kills
 		"ru"	"{cyan}Прошло более {yellow}{1}{cyan} сек. с момента создания последнего (управляемого человеком) разрушителя. У любой турели в команде Красных есть {yellow}{2}{cyan} или больше убийств."
 	}
 	"Help_Spies"
@@ -107,10 +112,12 @@
 	}
 	"Spy_Teleported"
 	{
+		"#format"	"{1:s}"
 		"ru"	"{cyan}Вы появились рядом с {yellow}{1}"
 	}
 	"Boss_Spawn"
 	{
+		"#format"	"{1:s},{2:s},{3:d}"
 		"ru"	"{red}[БОСС]{cyan} Игрок {yellow}{1}{cyan} появился как {yellow}{2}{cyan} с {yellow}{3}{cyan} ед. здоровья."
 	}
 	"Spec_Stuck"
