@@ -64,6 +64,7 @@ float g_flLastForceBot[MAXPLAYERS + 1]; // Last time a player forced a bot
 float g_flBusterVisionTimer; // timer for buster wallhack
 float g_flinstructiontime[MAXPLAYERS + 1]; // Last time we gave an instruction to a player 
 float g_flJoinRobotBanTime[MAXPLAYERS + 1]; // Join blu/robot ban time
+float g_flNextCommand[MAXPLAYERS + 1]; // delayed command timer
 TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1]; // the class the player selected on sm_robotmenu
 Handle g_hHUDReload;
 
@@ -640,6 +641,7 @@ public void OnClientDisconnect(int client)
 	ResetRobotData(client);
 	StopRobotLoopSound(client);
 	g_bWelcomeMsg[client] = false;
+	g_flNextCommand[client] = 0.0;
 	
 	if( client == Boss_GetClient() )
 	{

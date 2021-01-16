@@ -1514,8 +1514,6 @@ void CreateSpawnRoom(int spawnpoint)
 #endif
 }
 
-float g_flNextCommand[MAXPLAYERS + 1];
-
 // code from Pelipoika's bot control
 // executes a delayed command on the client
 bool FakeClientCommandThrottled(int client, const char[] command)
