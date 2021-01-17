@@ -1828,7 +1828,6 @@ void FrameBLUBackstabbed(DataPack pack)
 		CreateAnnotation(attackerpos, i, "Enemy Spy!", 9, 5.0);
 		g_flinstructiontime[i] = GetGameTime() + 7.0;
 	}
-	
 }
 
 // checks if we can teleport a flag to the player upon spawning
@@ -1913,6 +1912,23 @@ void KillAmmoPack(int entref)
 	if(IsValidClient(owner) && GetClientTeam(owner) == 3)
 	{
 		RemoveEntity(ent);
+	}
+}
+
+void FrameCheckForUnbalance(int client)
+{
+	// Balanced: BLU is empty
+	if( GetHumanRobotCount() == 0 )
+		return;
+		
+	int minred = c_iMinRed.IntValue - 1;
+	int inred = GetTeamClientCount(view_as<int>(TFTeam_Red));
+
+	// Unbalanced: There are less players on RED than the minimum amount
+	if( inred < minred )
+	{
+		CPrintToChatAll("%t", "Unbalance_Warning");
+		LogMessage("Unbalance detected! Players in RED Team: %i || Players in BLU Team: %i || Min RED Players: %i", inred, GetHumanRobotCount(), minred);
 	}
 }
 

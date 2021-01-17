@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.1"
+#define PLUGIN_VERSION "1.0.2"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -664,10 +664,7 @@ public void OnClientDisconnect_Post(int client)
 {
 	if(GameRules_GetRoundState() == RoundState_BetweenRounds)
 	{
-		if(AreTeamsUnbalanced())
-		{
-			CPrintToChatAll("%t", "Unbalance_Warning");
-		}
+		RequestFrame(FrameCheckForUnbalance, client);
 	}
 }
 
@@ -4575,22 +4572,6 @@ void CheckTeams()
 			}
 		}
 	}
-}
-
-bool AreTeamsUnbalanced()
-{
-	// FALSE: BLU is empty
-	if( GetHumanRobotCount() == 0 )
-		return false;
-		
-	int minred = c_iMinRed.IntValue;
-	int inred = GetTeamClientCount(view_as<int>(TFTeam_Red)) + 1;
-
-	// TRUE: There are less players on RED than the minimum amount
-	if( inred < minred )
-		return true;
-
-	return false;
 }
 
 // applies giant robot loop sounds to clients
