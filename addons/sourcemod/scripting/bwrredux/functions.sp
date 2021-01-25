@@ -192,7 +192,7 @@ void TeleportSpyRobot(int client)
 *****************************************************/
 
 // searches for an engineer nest close to the bomb
-void FindEngineerNestNearBomb(int client)
+bool FindEngineerNestNearBomb(int client)
 {
 	float nVec[3], bVec[3], tVec[3]; // nest pos, bomb pos, tele pos
 	float hatchpos[3];
@@ -206,7 +206,7 @@ void FindEngineerNestNearBomb(int client)
 	int iBombOwner;
 	
 	if( iBomb == -1 )
-		return; // no bomb found
+		return false; // no bomb found
 	
 	hatchpos = TF2_GetBombHatchPosition();
 	iBombOwner = GetEntPropEnt(iBomb, Prop_Send, "m_hOwnerEntity");
@@ -263,12 +263,18 @@ void FindEngineerNestNearBomb(int client)
 		{
 			TeleportEngineerToPosition(tVec, client);
 		}
+		else // No nest was found to teleport an engineer
+		{
+			return false;
+		}
 	}
 	else
 	{
 		GetEntPropVector(iTargetNest, Prop_Send, "m_vecOrigin", tVec);
 		TeleportEngineerToPosition(tVec, client);
 	}
+	
+	return true;
 }
 
 // returns an entity index of the best bomb

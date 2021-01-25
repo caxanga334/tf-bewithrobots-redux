@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.2"
+#define PLUGIN_VERSION "1.0.3"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -3072,7 +3072,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}
 		}
 		
-		if( rp.Gatebot )
+		if( rp.Gatebot && (rp.Type != Bot_Buster || rp.Type != Bot_Boss) )
 		{
 			Format(strBotName, sizeof(strBotName), "Gatebot %s", strBotName); // add Gatebot prefix to robot name
 			GiveGatebotHat(client, TFClass);
@@ -3089,7 +3089,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			switch( TFClass )
 			{
-				case TFClass_Spy: // spies should always spawn on their hints
+				case TFClass_Spy: // spies should always spawn near RED players
 				{
 					TF2_AddCondition(client, TFCond_Stealthed, 7.0);
 					TeleportSpyRobot(client);
@@ -3104,16 +3104,18 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 					}
 					else // no teleporter found
 					{
-						if( (p_iBotAttrib[client] & BotAttrib_TeleportToHint) ) // found nest
+						if( (p_iBotAttrib[client] & BotAttrib_TeleportToHint) ) // Check if we should teleport this engineer
 						{
-							FindEngineerNestNearBomb(client);
-							if( GetClassCount(TFClass_Engineer, TFTeam_Blue, true, false) > 1 )
+							if( FindEngineerNestNearBomb(client) ) // Returns true if a valid teleport position was found
 							{
-								EmitGSToRed("Announcer.MVM_Another_Engineer_Teleport_Spawned");
-							}
-							else
-							{
-								EmitGSToRed("Announcer.MVM_First_Engineer_Teleport_Spawned");
+								if( GetClassCount(TFClass_Engineer, TFTeam_Blue, true, false) > 1 )
+								{
+									EmitGSToRed("Announcer.MVM_Another_Engineer_Teleport_Spawned");
+								}
+								else
+								{
+									EmitGSToRed("Announcer.MVM_First_Engineer_Teleport_Spawned");
+								}
 							}
 						}
 						else

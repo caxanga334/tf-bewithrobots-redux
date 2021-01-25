@@ -17,5 +17,11 @@ A plugin made for Team Fortress 2 that allow players to join BLU (robot) team in
 * [DHooks with dynamic detour](https://github.com/peace-maker/DHooks2/releases)
 * [MvM Visible Max Players](https://forums.alliedmods.net/showpost.php?p=1819270) (Optional,Recommended)
 
+# Documentation
+* [Wiki](https://github.com/caxanga334/tf-bewithrobots-redux/wiki)
+* [Compile Instructions](https://github.com/caxanga334/tf-bewithrobots-redux/blob/master/COMPILE.md)
 
-[Compile Instructions](https://github.com/caxanga334/tf-bewithrobots-redux/blob/master/COMPILE.md)
+# Contact
+If you need help using the plugin, feel free to contact me.
+* [Discussions](https://github.com/caxanga334/tf-bewithrobots-redux/discussions)
+* [Discord](https://discord.gg/cSdu8Uf)
