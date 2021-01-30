@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.3"
+#define PLUGIN_VERSION "1.0.4"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -2226,9 +2226,15 @@ public Action Listener_Taunt(int client, const char[] command, int argc)
 	if( IsFakeClient(client) )
 		return Plugin_Continue;
 	
-	if( TF2_GetClientTeam(client) == TFTeam_Blue && p_iBotType[client] == Bot_Buster )
+	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
-		SentryBuster_Explode(client);
+		if( p_bInSpawn[client] == true ) // Block taunts while inside spawn
+			return Plugin_Handled;
+		
+		if( p_iBotType[client] == Bot_Buster )
+		{
+			SentryBuster_Explode(client);
+		}
 		return Plugin_Continue;
 	}
 	
