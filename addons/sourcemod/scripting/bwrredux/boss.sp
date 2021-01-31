@@ -315,7 +315,8 @@ void Boss_LoadWaveConfig()
 }
 
 // Load the selected boss profile
-void Boss_LoadProfile(char[] bossfile)
+// Returns false on error.
+bool Boss_LoadProfile(char[] bossfile)
 {
 	char filename[64];
 	char strBits[12][MAXLEN_CONFIG_STRING];
@@ -335,6 +336,7 @@ void Boss_LoadProfile(char[] bossfile)
 		OR_GetMissionName(mission, sizeof(mission));
 		LogError("File for boss \"%s\" at wave %i for mission \"%s\" could not be found. ( %s )", bossfile, OR_GetCurrentWave(), mission, g_strConfigFile);
 		g_BossState = BossState_Unavailable;
+		return false;
 	}
 	
 	KeyValues kv = new KeyValues("BossTemplate");
@@ -344,7 +346,7 @@ void Boss_LoadProfile(char[] bossfile)
 	if (!kv.GotoFirstSubKey())
 	{
 		delete kv;
-		return;
+		return false;
 	}
 	kv.GoBack();
 	
@@ -417,4 +419,5 @@ void Boss_LoadProfile(char[] bossfile)
 	}
 	
 	delete kv;
+	return true;
 }

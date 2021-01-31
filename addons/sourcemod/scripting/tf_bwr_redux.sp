@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.4"
+#define PLUGIN_VERSION "1.0.5"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -338,6 +338,7 @@ public void OnPluginStart()
 	RegAdminCmd( "sm_bwrr_debug_spy", Command_Debug_Spy, ADMFLAG_ROOT, "Debug spy teleport." );
 	RegAdminCmd( "sm_bwrr_debug_engy", Command_Debug_Engy, ADMFLAG_ROOT, "Debug engineer teleport." );
 	RegAdminCmd( "sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
+	RegAdminCmd( "sm_bwrr_forceboss", Command_ForceBoss, ADMFLAG_ROOT, "Forces a specific boss on the target." );
 	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
 	RegAdminCmd( "sm_bwrr_getorigin", Command_GetOrigin, ADMFLAG_ROOT, "Prints your current coordinates." );
 	RegAdminCmd( "sm_bwrr_add_cooldown", Command_BanBLU, ADMFLAG_BAN, "Add joinblu cooldown to the target." );
@@ -1651,6 +1652,61 @@ public Action Command_ForceBot( int client, int nArgs )
 	else
 	{
 		ShowActivity2(client, "[SM] ", "Forced a robot variant (%s|%s) on %s.", arg2, strBotName, target_name);
+	}
+	return Plugin_Handled;
+}
+
+public Action Command_ForceBoss( int client, int nArgs )
+{
+	char arg1[MAX_NAME_LENGTH], arg2[64];
+	
+	if( nArgs < 2 )
+	{
+		ReplyToCommand(client, "Usage: sm_bwrr_forceboss <target> <boss profile>>");
+		return Plugin_Handled;
+	}
+	
+	GetCmdArg(1, arg1, sizeof(arg1));
+	
+	char target_name[MAX_TARGET_LENGTH];
+	int target_list[MAXPLAYERS], target_count;
+	bool tn_is_ml;
+	
+	if((target_count = ProcessTargetString(arg1, client, target_list, MAXPLAYERS, COMMAND_FILTER_NO_BOTS, target_name, sizeof(target_name), tn_is_ml)) <= 0)
+	{
+		ReplyToTargetError(client, target_count);
+		return Plugin_Handled;
+	}
+	
+	GetCmdArg(2, arg2, sizeof(arg2));
+	
+	if(!Boss_LoadProfile(arg2)) // Attempts to load the given boss profile
+	{
+		ReplyToCommand(client, "Invalid boss profile.");
+		return Plugin_Handled;
+	}
+	
+	for(int i = 0; i < target_count; i++)
+	{
+		if( TF2_GetClientTeam(target_list[i]) == TFTeam_Blue )
+		{
+			SetBossOnPlayer(target_list[i]); // This function doesn't load the boss profile, we must always call Boss_LoadProfile before this
+			LogAction(client, target_list[i], "\"%L\" Forced a boss robot (%s) on \"%L\".", client, arg2, target_list[i]);
+		}
+		else
+		{
+			ReplyToCommand(client, "ERROR: This command can only be used on BLU team.");
+			return Plugin_Handled;
+		}
+	}
+	
+	if (tn_is_ml)
+	{
+		ShowActivity2(client, "[SM] ", "Forced a boss robot on (%s) on %t.", arg2, target_name);
+	}
+	else
+	{
+		ShowActivity2(client, "[SM] ", "Forced a boss robot on (%s) on %s.", arg2, target_name);
 	}
 	return Plugin_Handled;
 }
@@ -3996,6 +4052,13 @@ void SetRobotOnPlayer(int client, int iVariant, int type, TFClassType TFClass)
 		
 	CreateTimer(0.1, Timer_SetRobotClass, client);
 	CreateTimer(0.5, Timer_Respawn, client);
+}
+
+void SetBossOnPlayer(int client)
+{
+	Boss_SetupPlayer(client);
+	CreateTimer(0.1, Timer_SetRobotClass, client);
+	CreateTimer(0.5, Timer_Respawn, client);	
 }
 
 /**
