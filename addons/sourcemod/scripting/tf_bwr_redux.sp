@@ -80,6 +80,7 @@ int g_iLaserSprite;
 int g_iHaloSprite;
 
 // convars
+ConVar c_PluginVersion; // Plugin version
 ConVar c_iMinRed; // minimum red players to join BLU
 ConVar c_iMinRedinProg; // minimum red players to join BLU while the wave is in progress.
 ConVar c_iGiantChance; // change to spawn as a giant robot
@@ -282,7 +283,7 @@ public void OnPluginStart()
 	AutoExecConfig_SetFile("plugin.bwrredux");
 
 	// convars
-	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
+	c_PluginVersion = CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
 	c_iMinRed = AutoExecConfig_CreateConVar("sm_bwrr_minred", "5", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
 	c_iMinRedinProg = AutoExecConfig_CreateConVar("sm_bwrr_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
 	c_iGiantChance = AutoExecConfig_CreateConVar("sm_bwrr_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
@@ -616,6 +617,9 @@ public void OnMapStart()
 	
 	for(int x = 1;x < sizeof(g_iModelIndexHumans);x++) { g_iModelIndexHumans[x] = PrecacheModel(g_strModelHumans[x]); }
 	for(int x = 1;x < sizeof(g_iModelIndexRobots);x++) { g_iModelIndexRobots[x] = PrecacheModel(g_strModelRobots[x]); }
+	
+	// Update plugin version convar
+	c_PluginVersion.SetString(PLUGIN_VERSION);
 }
 
 public void TF2_OnWaitingForPlayersStart()
