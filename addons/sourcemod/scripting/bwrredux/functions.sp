@@ -1599,6 +1599,9 @@ bool IsGatebotAvailable(bool update = false)
 // a gate has been taken by the robots
 void GateCapturedByRobots()
 {
+	if(g_bDisableGateBots)
+		return; // Do nothing on gate capture if gatebots are disabled via config
+
 	g_flGateStunTime = GetGameTime() + g_flGateStunDuration;
 	for(int i = 1;i <= MaxClients;i++)
 	{
