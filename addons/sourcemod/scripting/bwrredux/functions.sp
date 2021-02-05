@@ -16,6 +16,7 @@ char g_strSpySplit[16][64];
 int g_iSplitSize[4];
 
 float g_flGateStunDuration;
+bool g_bDisableGateBots; // Force gatebots to be unavailable
 bool g_bLimitRobotScale;
 bool g_bSkipSpawnRoom; // Should we skip creating additional spawn rooms?
 
@@ -854,18 +855,21 @@ void TriggerHatchExplosion()
 	
 	// Method 1: Trigger round win by exploding the hatch using the tank relay.
 	// At least on official MVM maps, the tank relay will also trigger game_round_win
-	while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
+	if(strlen(g_strHatchTrigger) > 3)
 	{
-		if(IsValidEntity(i))
+		while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
 		{
-			char strName[50];
-			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
-			if(strcmp(strName, g_strHatchTrigger, false) == 0)
+			if(IsValidEntity(i))
 			{
-				AcceptEntityInput(i, "Trigger");
-				return;
-			}
-		} 
+				char strName[50];
+				GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
+				if(strcmp(strName, g_strHatchTrigger, false) == 0)
+				{
+					AcceptEntityInput(i, "Trigger");
+					return;
+				}
+			} 
+		}
 	}
 	
 	// Method 2: Tank trigger could not be found or can not be used ( eg: doesn't trigger game_round_win for some reason )
@@ -887,18 +891,21 @@ void TriggerHatchExplosion()
 	// Finally we check if we have a relay to trigger the cinematic explosion of the bomb hatch
 	// Make sure the relay used here doesn't trigger game_round_win again.
 	i = -1;
-	while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
+	if(strlen(g_strExploTrigger) > 3)
 	{
-		if(IsValidEntity(i))
+		while ((i = FindEntityByClassname(i, "logic_relay")) != -1)
 		{
-			char strName[50];
-			GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
-			if(strcmp(strName, g_strExploTrigger, false) == 0)
+			if(IsValidEntity(i))
 			{
-				AcceptEntityInput(i, "Trigger"); // 
-				return;
-			}
-		} 
+				char strName[50];
+				GetEntPropString(i, Prop_Data, "m_iName", strName, sizeof(strName));
+				if(strcmp(strName, g_strExploTrigger, false) == 0)
+				{
+					AcceptEntityInput(i, "Trigger"); // 
+					return;
+				}
+			} 
+		}
 	}
 }
 
@@ -1229,6 +1236,7 @@ void Config_LoadMap()
 	
 	// reset some globals
 	g_flGateStunDuration = 0.0;
+	g_bDisableGateBots = false;
 	g_bLimitRobotScale = false;
 	
 	KeyValues kv = new KeyValues("MapConfig");
@@ -1259,6 +1267,7 @@ void Config_LoadMap()
 		else if( strcmp(buffer, "Gatebot", false) == 0 )
 		{
 			g_flGateStunDuration = kv.GetFloat("stun_duration", 22.0);
+			g_bDisableGateBots = !!kv.GetNum("force_disabled", 0);
 		}
 		else if( strcmp(buffer, "RobotScaling", false) == 0 )
 		{
@@ -1552,6 +1561,14 @@ void SetBLURespawnWaveTime(float time)
 bool IsGatebotAvailable(bool update = false)
 {
 	static bool isavailable;
+	
+	if(g_bDisableGateBots)
+	{
+#if defined DEBUG_GENERAL
+		CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Gatebot disabled by config file.");
+#endif
+		return false;
+	}
 	
 	if(update)
 	{

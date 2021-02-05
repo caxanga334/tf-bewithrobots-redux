@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.5"
+#define PLUGIN_VERSION "1.0.6"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
