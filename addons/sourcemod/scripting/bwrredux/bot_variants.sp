@@ -1040,6 +1040,11 @@ void RT_LoadCfgNormal()
 							}			
 						}
 						iCounter++;
+						// Limit check
+						if(iCounter >= MAX_TEMPLATE_TYPE)
+						{
+							SetFailState("FATAL ERROR: Template limit reached for normal %s robot.", strClassKey[j]);
+						}
 					} while(kv.GotoNextKey());
 					g_nBotTemplate[TemplateType_Normal].numtemplates[j] = iCounter;
 					kv.GoBack();
@@ -1151,6 +1156,11 @@ void RT_LoadCfgGiant()
 							}			
 						}
 						iCounter++;
+						// Limit check
+						if(iCounter >= MAX_TEMPLATE_TYPE)
+						{
+							SetFailState("FATAL ERROR: Template limit reached for giant %s robot.", strClassKey[j]);
+						}
 					} while(kv.GotoNextKey());
 					g_nBotTemplate[TemplateType_Giant].numtemplates[j] = iCounter;
 					kv.GoBack();
