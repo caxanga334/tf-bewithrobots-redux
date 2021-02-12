@@ -150,19 +150,10 @@ bool IsMvM(bool forceRecalc = false)
 // Teleports a spy near a RED player
 void TeleportSpyRobot(int client)
 {
-	int target = GetRandomClientFromTeam( view_as<int>(TFTeam_Red), false);
-	int oldtarget = target;
+	if(GetTeamClientCount(view_as<int>(TFTeam_Red)) == 0)
+		return; // No players in RED team.
 	
-	int i = 0;
-	while( i < 20)
-	{
-		target = GetRandomClientFromTeam( view_as<int>(TFTeam_Red), false);
-		if( target != oldtarget )
-			break;
-			
-		i++;
-	}
-	
+	int target = GetRandomClientFromTeam(view_as<int>(TFTeam_Red), false);
 	float TargetPos[3];
 	
 	if(!IsValidClient(target))
