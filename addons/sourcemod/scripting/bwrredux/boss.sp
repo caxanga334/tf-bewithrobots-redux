@@ -339,6 +339,8 @@ bool Boss_LoadProfile(char[] bossfile)
 		return false;
 	}
 	
+	Boss_ClearArrays(); // Need to clear arrays due to the new force boss command.
+	
 	KeyValues kv = new KeyValues("BossTemplate");
 	kv.ImportFromFile(g_strConfigFile);
 	
