@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.9"
+#define PLUGIN_VERSION "1.0.10"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -806,7 +806,8 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			if(iDisguisedClass == 0 && iDisguisedTeam == 0)
 			{
 				SpyDisguiseClear(client);
-			}else{
+			}
+			else {
 				SpyDisguiseThink(client, iDisguisedClass, iDisguisedTeam);
 
 				g_nDisguised[client].g_iDisguisedClass = iDisguisedClass;
@@ -4445,38 +4446,45 @@ void SetRobotModel(int client, TFClassType TFClass)
 		case TFClass_Pyro: strcopy( strModel, sizeof(strModel), "pyro" );
 		case TFClass_Spy: strcopy( strModel, sizeof(strModel), "spy" );
 		case TFClass_Engineer: strcopy( strModel, sizeof(strModel), "engineer" );
+		default: return;
 	}
 	
-	if( strlen(strModel) > 0 )
+	if(OR_IsHalloweenMission() && p_iBotType[client] != Bot_Buster)
 	{
-		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss )
+		SetVariantString( "" );
+		AcceptEntityInput( client, "SetCustomModel" );
+		return;
+	}
+
+	switch(p_iBotType[client])
+	{
+		case Bot_Giant, Bot_Boss:
 		{
-			if( TFClass == TFClass_DemoMan || TFClass == TFClass_Heavy || TFClass == TFClass_Pyro || TFClass == TFClass_Scout || TFClass == TFClass_Soldier )
-				Format( strModel, sizeof( strModel ), "models/bots/%s_boss/bot_%s_boss.mdl", strModel, strModel );
-			else
-				Format( strModel, sizeof( strModel ), "models/bots/%s/bot_%s.mdl", strModel, strModel );
+			switch(TFClass)
+			{
+				case TFClass_Scout, TFClass_Soldier, TFClass_DemoMan, TFClass_Heavy, TFClass_Pyro:
+				{
+					Format( strModel, sizeof( strModel ), "models/bots/%s_boss/bot_%s_boss.mdl", strModel, strModel );
+				}
+				default:
+				{
+					Format( strModel, sizeof( strModel ), "models/bots/%s/bot_%s.mdl", strModel, strModel );
+				}
+			}
 		}
-		else if( p_iBotType[client] == Bot_Buster )
+		case Bot_Buster:
 		{
 			FormatEx( strModel, sizeof( strModel ), "models/bots/demo/bot_sentry_buster.mdl" );
 		}
-		else
+		default:
 		{
 			Format( strModel, sizeof( strModel ), "models/bots/%s/bot_%s.mdl", strModel, strModel );
 		}
-		
-		if( OR_IsHalloweenMission() && p_iBotType[client] != Bot_Buster )
-		{
-			SetVariantString( "" );
-			AcceptEntityInput( client, "SetCustomModel" );
-		}
-		else
-		{
-			SetVariantString( strModel );
-			AcceptEntityInput( client, "SetCustomModel" );
-			SetEntProp( client, Prop_Send, "m_bUseClassAnimations", 1 );
-		}
 	}
+
+	SetVariantString( strModel );
+	AcceptEntityInput( client, "SetCustomModel" );
+	SetEntProp( client, Prop_Send, "m_bUseClassAnimations", 1 );
 }
 
 // teleports robot players to random spawn points
