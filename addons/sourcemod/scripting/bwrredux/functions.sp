@@ -90,6 +90,12 @@ stock int Math_GetRandomInt(int min, int max)
 	return RoundToCeil(float(random) / (float(SIZE_OF_INT) / float(max - min + 1))) + min - 1;
 }
 
+// Random Chance
+stock bool Math_RandomChance(int chance)
+{
+	return Math_GetRandomInt(1, 100) <= chance;
+}
+
 // selects a random player from a team
 int GetRandomPlayer(TFTeam Team, bool bIncludeBots = false)
 {
@@ -1985,6 +1991,18 @@ bool CanWeaponBeUsedInsideSpawn(int index)
 /****************************************************
 					BOMB/FLAG
 *****************************************************/
+
+bool TF2_HasFlag(int client)
+{
+	int iFlag = GetEntPropEnt(client, Prop_Send, "m_hItem");
+	
+	if(iFlag != INVALID_ENT_REFERENCE && GetEntPropEnt(iFlag, Prop_Send, "moveparent") == client)
+	{
+		return true;
+	}
+	
+	return false;
+}
 
 void TF2_PickUpFlag(int client, int flag)
 {

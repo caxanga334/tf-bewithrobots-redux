@@ -24,6 +24,7 @@ int g_BNWeaponIndex[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS
 int g_BNBitsAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BNHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BNType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+int g_BNCritChance[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BNScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BNCooldown[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BNWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
@@ -39,6 +40,7 @@ int g_BGWeaponIndex[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS
 int g_BGBitsAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+int g_BGCritChance[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BGScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BGCooldown[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BGWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
@@ -429,6 +431,20 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 			}
 		}
 	}	
+}
+
+int RT_GetFullCritsChance(TFClassType TFClass, int templateindex, int type = 0)
+{
+	int iClass = view_as<int>(TFClass);
+	switch( type )
+	{
+		case 0: // Normal
+			return g_BNCritChance[templateindex][iClass];
+		case 1: // Giant
+			return g_BNCritChance[templateindex][iClass];
+		default:
+			return 0;
+	}
 }
 
 // Returns the robot name
@@ -994,6 +1010,7 @@ void RT_LoadCfgNormal()
 						g_BNType[iCounter][j] = kv.GetNum("type", 0);
 						g_BNScale[iCounter][j] = kv.GetFloat("scale", 0.0);
 						g_BNCooldown[iCounter][j] = kv.GetFloat("cooldown", 0.0);
+						g_BNCritChance[iCounter][j] = kv.GetNum("fullcritchance", 0);
 						KvGetString(kv, "description", g_BNDescription[iCounter][j], MAXLEN_CONFIG_STRING);
 						
 						if(kv.JumpToKey("playerattributes"))
@@ -1111,6 +1128,7 @@ void RT_LoadCfgGiant()
 						g_BGType[iCounter][j] = kv.GetNum("type", 0);
 						g_BGScale[iCounter][j] = kv.GetFloat("scale", 0.0);
 						g_BGCooldown[iCounter][j] = kv.GetFloat("cooldown", 0.0);
+						g_BGCritChance[iCounter][j] = kv.GetNum("fullcritchance", 0);
 						KvGetString(kv, "description", g_BGDescription[iCounter][j], MAXLEN_CONFIG_STRING);
 						
 						if(kv.JumpToKey("playerattributes"))

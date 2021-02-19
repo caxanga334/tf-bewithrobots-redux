@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.8"
+#define PLUGIN_VERSION "1.0.9"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -34,19 +34,20 @@
 #define ROBOT_SND_SENTRY_BUSTER "mvm/sentrybuster/mvm_sentrybuster_loop.wav"
 
 // player robot variants prefix: p_
-int p_iBotType[MAXPLAYERS + 1];
-int p_iBotVariant[MAXPLAYERS + 1];
-int p_iBotAttrib[MAXPLAYERS + 1];
-TFClassType p_BotClass[MAXPLAYERS + 1];
+int p_iBotType[MAXPLAYERS + 1]; // Robot type
+int p_iBotVariant[MAXPLAYERS + 1]; // Robot variant
+int p_iBotAttrib[MAXPLAYERS + 1]; // Special robot attributes
+TFClassType p_BotClass[MAXPLAYERS + 1]; // Robot class
 bool p_bInSpawn[MAXPLAYERS + 1]; // Local cache to know if a player is in spawn
 bool p_bIsGatebot[MAXPLAYERS + 1]; // Is the player a gatebot
 bool p_bIsReloadingBarrage[MAXPLAYERS + 1]; // Is loading a barrage?
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
-int g_iBombCarrierUpgradeLevel[MAXPLAYERS + 1];
-float g_flNextBombUpgradeTime[MAXPLAYERS + 1];
-Handle HT_BombDeployTimer;
+bool g_bIsDeploying[MAXPLAYERS + 1]; // Is the player deploying the bomb?
+int g_iBombCarrierUpgradeLevel[MAXPLAYERS + 1]; // Bomb upgrade level
+float g_flNextBombUpgradeTime[MAXPLAYERS + 1]; // Bomb upgrade timer
+float g_flBombDeployTime[MAXPLAYERS + 1]; // Bomb deploy timer
 
 ArrayList array_avclass; // array containing available classes
 ArrayList array_avgiants; // array containing available giant classes
@@ -56,7 +57,7 @@ ArrayList array_spawns; // spawn points for human players
 bool g_bUpgradeStation[MAXPLAYERS + 1]; // Player touched upgrade station
 bool g_bBotMenuIsGiant[MAXPLAYERS + 1]; // Player selected a giant robot on sm_robotmenu
 bool g_bWelcomeMsg[MAXPLAYERS + 1]; // Did we show the welcome message?
-bool g_bLateLoad;
+bool g_bLateLoad; // Late load check
 bool g_bFreezePlayers; // Should we freeze BLU players?
 int g_iBusterIndex; // Index of a sentry buster player
 float g_flNextBusterTime; // sentry buster time
@@ -98,6 +99,7 @@ ConVar c_strGBFile; // Giant bot template file
 ConVar c_bLimitClasses; // Limit playable classes to the ones used in the current wave
 ConVar c_iGatebotChance; // change to spawn as a gatebot
 ConVar c_bAntiJoinSpam; // Anti-spam
+ConVar c_fl666CritChance; // Wave 666 100% Crits chance.
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -300,6 +302,7 @@ public void OnPluginStart()
 	c_bLimitClasses = AutoExecConfig_CreateConVar("sm_bwrr_limit_classes", "1", "Limit playable classes on the BLU team to classes that are used in the current wave", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_iGatebotChance = AutoExecConfig_CreateConVar("sm_bwrr_gatebot_chance", "25", "Chance to spawn as a gatebot on gate maps. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
 	c_bAntiJoinSpam = AutoExecConfig_CreateConVar("sm_bwrr_antispam", "1.0", "Apply anti-spam to join blu command. 1 = Enabled, 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_fl666CritChance = AutoExecConfig_CreateConVar("sm_bwrr_wave666_fullcrit_chance", "75.0", "Chance to spawn with full crits on Wave 666 missions.", FCVAR_NONE, true, 0.0, true, 100.0);
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
@@ -911,84 +914,100 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 		
-		if( rp.Carrier && HT_BombDeployTimer == null && !TF2_IsPlayerInCondition(client, TFCond_Taunting) && !TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden) )
+		if( rp.Carrier && TF2_HasFlag(client) )
 		{
-			if( TF2_IsGiant(client) )
+			// Bomb deploy
+			if( g_bIsDeploying[client] )
 			{
-				if( rp.BombLevel != 4 )
+				if( g_flBombDeployTime[client] <= GetGameTime() )
 				{
-					rp.BombLevel = 4;
-					RequestFrame(UpdateBombHud, GetClientUserId(client));
+					char strPlrName[MAX_NAME_LENGTH];
+					GetClientName(client, strPlrName, sizeof(strPlrName));
+					CPrintToChatAll("%t", "Bomb Deploy", strPlrName);
+					LogAction(client, -1, "Player \"%L\" deployed the bomb.", client);
+					TriggerHatchExplosion();
 				}
 			}
-			else
+			
+			if( !TF2_IsPlayerInCondition(client, TFCond_Taunting) && !TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden) && !g_bIsDeploying[client] )
 			{
-				if( rp.BombLevel > 0 ) // apply defensive buff to nearby robots
+				if( TF2_IsGiant(client) )
 				{
-					float pPos[3];
-					GetClientAbsOrigin(client, pPos);
-					for(int i = 1; i <= MaxClients; i++)
+					if( rp.BombLevel != 4 )
 					{
-						if(i == client)
-							continue;
-					
-						if(!IsClientInGame(i))
-							continue;
-							
-						if(GetClientTeam(i) != GetClientTeam(client))
-							continue;
-						
-						if(rp.BombLevel < 1)
-							continue;
-							
-						float iPos[3];
-						GetClientAbsOrigin(i, iPos);
-						
-						float flDistance = GetVectorDistance(pPos, iPos);
-						
-						if(flDistance <= 450.0)
-						{
-							TF2_AddCondition(i, TFCond_DefenseBuffNoCritBlock, 0.125);
-						}
+						rp.BombLevel = 4;
+						RequestFrame(UpdateBombHud, GetClientUserId(client));
 					}
 				}
-				
-				if(rp.UpgradeTime <= GetGameTime() && rp.BombLevel < 3 && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1) // time to upgrade
+				else
 				{
-					FakeClientCommandThrottled(client, "taunt");
-					
-					if(TF2_IsPlayerInCondition(client, TFCond_Taunting))
+					if( rp.BombLevel > 0 ) // apply defensive buff to nearby robots
 					{
-						rp.BombLevel += 1;
-						
-						switch( rp.BombLevel )
+						float pPos[3];
+						GetClientAbsOrigin(client, pPos);
+						for(int i = 1; i <= MaxClients; i++)
 						{
-							case 1:
-							{
-								rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_2nd_upgrade"));
-								TF2_AddCondition(client, TFCond_DefenseBuffNoCritBlock, TFCondDuration_Infinite);
-								SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup1", PATTACH_POINT_FOLLOW, client, "head", 0);
-							}
-							case 2:
-							{
-								rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_3rd_upgrade"));
+							if(i == client)
+								continue;
+						
+							if(!IsClientInGame(i))
+								continue;
 								
-								Address pRegen = TF2Attrib_GetByName(client, "health regen");
-								float flRegen = 0.0;
-								if(pRegen != Address_Null)
-									flRegen = TF2Attrib_GetValue(pRegen);
+							if(GetClientTeam(i) != GetClientTeam(client))
+								continue;
+							
+							if(rp.BombLevel < 1)
+								continue;
 								
-								TF2Attrib_SetByName(client, "health regen", flRegen + 45.0);
-								SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup2", PATTACH_POINT_FOLLOW, client, "head", 0);
-							}
-							case 3:
+							float iPos[3];
+							GetClientAbsOrigin(i, iPos);
+							
+							float flDistance = GetVectorDistance(pPos, iPos);
+							
+							if(flDistance <= 450.0)
 							{
-								TF2_AddCondition(client, TFCond_CritOnWin, TFCondDuration_Infinite);
-								SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup3", PATTACH_POINT_FOLLOW, client, "head", 0);
+								TF2_AddCondition(i, TFCond_DefenseBuffNoCritBlock, 0.125);
 							}
 						}
-						EmitGameSoundToAll("MVM.Warning", SOUND_FROM_WORLD);
-						RequestFrame(UpdateBombHud, GetClientUserId(client));
+					}
+					
+					if(rp.UpgradeTime <= GetGameTime() && rp.BombLevel < 3 && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1) // time to upgrade
+					{
+						FakeClientCommandThrottled(client, "taunt");
+						
+						if(TF2_IsPlayerInCondition(client, TFCond_Taunting))
+						{
+							rp.BombLevel += 1;
+							
+							switch( rp.BombLevel )
+							{
+								case 1:
+								{
+									rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_2nd_upgrade"));
+									TF2_AddCondition(client, TFCond_DefenseBuffNoCritBlock, TFCondDuration_Infinite);
+									SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup1", PATTACH_POINT_FOLLOW, client, "head", 0);
+								}
+								case 2:
+								{
+									rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_3rd_upgrade"));
+									
+									Address pRegen = TF2Attrib_GetByName(client, "health regen");
+									float flRegen = 0.0;
+									if(pRegen != Address_Null)
+										flRegen = TF2Attrib_GetValue(pRegen);
+									
+									TF2Attrib_SetByName(client, "health regen", flRegen + 45.0);
+									SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup2", PATTACH_POINT_FOLLOW, client, "head", 0);
+								}
+								case 3:
+								{
+									TF2_AddCondition(client, TFCond_CritOnWin, TFCondDuration_Infinite);
+									SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup3", PATTACH_POINT_FOLLOW, client, "head", 0);
+								}
+							}
+							EmitGameSoundToAll("MVM.Warning", SOUND_FROM_WORLD);
+							RequestFrame(UpdateBombHud, GetClientUserId(client));
+						}
 					}
 				}
 			}
@@ -1028,37 +1047,39 @@ public Action OnTouchUpgradeStation(int entity, int other)
 
 // Called when an entity touches the capture zone
 public Action OnTouchCaptureZone(int entity, int other)
-{		
-	if( IsValidClient(other) && IsFakeClient(other) )
+{
+	if( !IsValidClient(other) )
+		return Plugin_Continue;
+
+	if( IsFakeClient(other) )
 		return Plugin_Continue;
 		
-	if( IsValidClient(other) && TF2_GetClientTeam(other) != TFTeam_Blue )
+	if( TF2_GetClientTeam(other) != TFTeam_Blue )
 		return Plugin_Continue;
 		
 	if( GameRules_GetRoundState() == RoundState_TeamWin )
-		return Plugin_Stop;
+		return Plugin_Handled;
+		
+	if(!TF2_HasFlag(other))
+		return Plugin_Handled;
 
-	if(IsValidClient(other))
+	RoboPlayer rp = RoboPlayer(other);
+	if( rp.Carrier )
 	{
-		RoboPlayer rp = RoboPlayer(other);
-		if( rp.Carrier )
-		{
-			float CarrierPos[3];
-			GetClientAbsOrigin(other, CarrierPos);
-			TF2_AddCondition(other, TFCond_FreezeInput, 2.3);
-			TF2_PlaySequence(other, "primary_deploybomb");
-			SetVariantInt(1);
-			AcceptEntityInput(other, "SetForcedTauntCam");
-			RequestFrame(DisableAnim, GetClientUserId(other));
-			if( HT_BombDeployTimer == null )
-			{
-				HT_BombDeployTimer = CreateTimer(2.1, Timer_DeployBomb, other);
-				if( rp.Type == Bot_Giant || rp.Type == Bot_Boss )
-					EmitGameSoundToAll("MVM.DeployBombGiant", other, SND_NOFLAGS, other, CarrierPos);
-				else
-					EmitGameSoundToAll("MVM.DeployBombSmall", other, SND_NOFLAGS, other, CarrierPos);
-			}
-		}
+		float CarrierPos[3];
+		float flConVarTime = GetConVarFloat(FindConVar("tf_deploying_bomb_time")) + 0.5;
+		GetClientAbsOrigin(other, CarrierPos);
+		TF2_AddCondition(other, TFCond_FreezeInput, flConVarTime);
+		TF2_PlaySequence(other, "primary_deploybomb");
+		SetVariantInt(1);
+		AcceptEntityInput(other, "SetForcedTauntCam");
+		RequestFrame(DisableAnim, GetClientUserId(other));
+		g_bIsDeploying[other] = true;
+		g_flBombDeployTime[other] = GetGameTime() + flConVarTime;
+		if( rp.Type == Bot_Giant || rp.Type == Bot_Boss )
+			EmitGameSoundToAll("MVM.DeployBombGiant", other, SND_NOFLAGS, other, CarrierPos);
+		else
+			EmitGameSoundToAll("MVM.DeployBombSmall", other, SND_NOFLAGS, other, CarrierPos);
 	}
 	
 	return Plugin_Continue;
@@ -1067,29 +1088,30 @@ public Action OnTouchCaptureZone(int entity, int other)
 // Called when an entity stop touching the flag capture zone
 public Action OnEndTouchCaptureZone(int entity, int other)
 {
-	if( IsValidClient(other) && IsFakeClient(other) )
+	if( !IsValidClient(other) )
+		return Plugin_Continue;
+
+	if( IsFakeClient(other) )
 		return Plugin_Continue;
 		
-	if( IsValidClient(other) && TF2_GetClientTeam(other) != TFTeam_Blue )
+	if( TF2_GetClientTeam(other) != TFTeam_Blue )
 		return Plugin_Continue;
 		
 	if( GameRules_GetRoundState() == RoundState_TeamWin )
-		return Plugin_Stop;
+		return Plugin_Handled;
+	
+	if(!TF2_HasFlag(other))
+		return Plugin_Handled;
 		
-	if(IsValidClient(other))
+	RoboPlayer rp = RoboPlayer(other);
+	if( rp.Carrier )
 	{
-		RoboPlayer rp = RoboPlayer(other);
-		if( rp.Carrier )
-		{
-			if( HT_BombDeployTimer != null )
-			{
-				delete HT_BombDeployTimer;
-				HT_BombDeployTimer = null;
-				SetVariantInt(0);
-				AcceptEntityInput(other, "SetForcedTauntCam");
-				SetEntProp(other, Prop_Send, "m_bUseClassAnimations", 1);
-			}
-		}
+		SetVariantInt(0);
+		AcceptEntityInput(other, "SetForcedTauntCam");
+		SetEntProp(other, Prop_Send, "m_bUseClassAnimations", 1);
+		TF2_RemoveCondition(other, TFCond_FreezeInput);
+		g_bIsDeploying[other] = false;
+		g_flBombDeployTime[other] = -1.0;
 	}
 	
 	return Plugin_Continue;
@@ -2984,6 +3006,8 @@ public Action E_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast
 		if( !IsFakeClient(client) )
 		{
 			rp.Carrier = false;
+			g_bIsDeploying[client] = false;
+			g_flBombDeployTime[client] = -1.0;
 		}
 	}
 }
@@ -3093,7 +3117,8 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		
 		if(OR_IsHalloweenMission())
 		{
-			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
+			if(Math_RandomChance(c_fl666CritChance.IntValue))
+				TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 		}
 		
 		switch( rp.Type )
@@ -3104,7 +3129,10 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				RT_GetDescription(strBotDesc, sizeof(strBotDesc), TFClass, p_iBotVariant[client], 1);
 				SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 ); // has nothing to do with variant name but same condition
 				ApplyRobotLoopSound(client);
-				RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 1);				
+				RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 1);	
+				if(Math_RandomChance(RT_GetFullCritsChance(p_BotClass[client], p_iBotVariant[client], 1))) {
+					TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
+				}
 			}
 			case Bot_Boss:
 			{
@@ -3131,10 +3159,13 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			default:
 			{
 				RT_GetTemplateName(strBotName, sizeof(strBotName), TFClass, p_iBotVariant[client], 0);
-				RT_GetDescription(strBotDesc, sizeof(strBotDesc), TFClass, p_iBotVariant[client], 1);
+				RT_GetDescription(strBotDesc, sizeof(strBotDesc), TFClass, p_iBotVariant[client], 0);
 				StopRobotLoopSound(client);
 				RT_SetHealth(client, p_BotClass[client], p_iBotVariant[client], 0);
 				if( IsGateStunActive() ) { ApplyGateStunToClient(client); }
+				if(Math_RandomChance(RT_GetFullCritsChance(p_BotClass[client], p_iBotVariant[client], 1))) {
+					TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
+				}
 			}
 		}
 		
@@ -3413,37 +3444,6 @@ public Action Timer_OnTeleporterFinished(Handle timer, any index)
 	}
 	
 	return Plugin_Continue;
-}
-
-public Action Timer_DeployBomb(Handle timer, any client)
-{
-	if( !IsValidClient(client) || !IsClientInGame(client) || !IsPlayerAlive(client) || IsFakeClient(client) )
-	{
-		HT_BombDeployTimer = null;
-		return Plugin_Stop;
-	}
-		
-	if( IsFakeClient(client) )
-	{
-		LogError("Timer_DeployBomb called for Fake Client.");
-		HT_BombDeployTimer = null;
-		return Plugin_Stop;
-	}
-	
-	if( !( GetEntityFlags(client) & FL_ONGROUND ) )
-	{
-		HT_BombDeployTimer = null;
-		return Plugin_Stop;
-	}
-	
-	char strPlrName[MAX_NAME_LENGTH];
-	GetClientName(client, strPlrName, sizeof(strPlrName));
-	CPrintToChatAll("%t", "Bomb Deploy", strPlrName);
-	LogAction(client, -1, "Player \"%L\" deployed the bomb.", client);
-	TriggerHatchExplosion();
-	
-	HT_BombDeployTimer = null;
-	return Plugin_Stop;
 }
 
 public Action Timer_SentryBuster_Explode(Handle timer, any client)
@@ -4420,6 +4420,8 @@ void ResetRobotData(int client, bool bStrip = false)
 	g_bUpgradeStation[client] = false;
 	g_flLastForceBot[client] = 0.0;
 	g_flinstructiontime[client] = 0.0;
+	g_bIsDeploying[client] = false;
+	g_flBombDeployTime[client] = 0.0;
 	if( bStrip )
 		StripWeapons(client);
 }
