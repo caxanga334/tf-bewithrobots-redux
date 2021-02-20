@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.10"
+#define PLUGIN_VERSION "1.0.11"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -2934,6 +2934,8 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		StopRobotLoopSound(client);
 	}
 	
+	SpyDisguiseClear(client);
+	
 	return Plugin_Continue;
 }
 
@@ -3067,6 +3069,13 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
+#if defined DEBUG_PLAYER
+		if(TFClass != p_BotClass[client])
+		{
+			LogError("ERROR: Player class is not the same as selected variant class! TFClass %i p_BotClass %i p_iBotVariant %i \"%L\"", view_as<int>(TFClass), view_as<int>(p_BotClass[client]), p_iBotVariant[client], client);
+		}
+#endif
+	
 		rp.Carrier = false;
 		rp.ReloadingBarrage = false;
 		g_flinstructiontime[client] = GetGameTime() + 2.0;
@@ -3259,6 +3268,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		PrintToChat(client, "Robot Type: %d", p_iBotType[client]);
 		PrintToChat(client, "Robot Variant: %d", p_iBotVariant[client]);
 		PrintToChat(client, "Robot Attributes: %d", p_iBotAttrib[client]);
+		PrintToChat(client, "Robot Class: %d (%d)", view_as<int>(p_BotClass[client]), view_as<int>(TFClass));
 		LogMessage("OnPlayerSpawn: \"%N\" Type: %d, Variant: %d, Attributes: %d", client, p_iBotType[client], p_iBotVariant[client], p_iBotAttrib[client]);
 	}
 #endif

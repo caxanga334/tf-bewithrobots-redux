@@ -26,6 +26,7 @@ If applicable, add screenshots to help explain your problem.
 **Version:**
 - Plugin version:
 - Sourcemod version:
+- Output of `sm exts list`:
 
 **Additional context**
 Add any other context about the problem here.

@@ -435,6 +435,9 @@ void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type =
 
 int RT_GetFullCritsChance(TFClassType TFClass, int templateindex, int type = 0)
 {
+	if(templateindex < 0)
+		return 0;
+
 	int iClass = view_as<int>(TFClass);
 	switch( type )
 	{
