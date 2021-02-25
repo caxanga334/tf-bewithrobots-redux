@@ -2,13 +2,16 @@
 
 // defines
 #define MAX_TEMPLATE_TYPE 2
-#define MAX_ROBOTS_TEMPLATE 50
+#define MAX_ROBOTS_TEMPLATE 40
 #define MAX_ROBOTS_WEAPONS 6
 #define CONST_ROBOT_CLASSES 10
 #define MAXLEN_CONFIG_STRING 128
 
 // Globals
-char g_strConfigFile[PLATFORM_MAX_PATH];
+char g_strClassKey[10][16] = {"unknownclass" ,"scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"};
+char g_strWeaponsKey[MAX_ROBOTS_WEAPONS][32] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
+char g_strValidAttribs[10][32] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire"};
+int g_AttribValue[10] = {1,2,4,8,16,32,64,128,256,512};
 
 // Big list of arrays
 /**
@@ -839,6 +842,8 @@ void GiveBusterInventory(int client)
 	TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.5);
 	TF2Attrib_SetByName(iWeapon, "override footstep sound set", 7.0);
 	TF2Attrib_SetByName(iWeapon, "cannot be backstabbed", 1.0);
+	TF2Attrib_SetByName(iWeapon, "no_jump", 1.0);
+	TF2Attrib_SetByName(iWeapon, "no_duck", 1.0);
 }
 
 // ==== ROBOT TEMPLATE CONFIG FILES ====
@@ -907,8 +912,6 @@ void RT_ClearArrays()
 void RT_PostLoad()
 {
 	char strBits[12][MAXLEN_CONFIG_STRING];
-	char strValidAttribs[][] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire"};
-	int AttribValue[] = {1,2,4,8,16,32,64,128,256,512};
 	int iNum, iBits;
 
 	for(int i = 0;i < MAX_ROBOTS_TEMPLATE;i++)
@@ -921,11 +924,11 @@ void RT_PostLoad()
 				iNum = ExplodeString(g_BNRobotAttribs[i][y], ",", strBits, sizeof(strBits), sizeof(strBits[]));
 				for(int x = 0;x < iNum;x++)
 				{
-					for(int z = 0;z < sizeof(strValidAttribs);z++)
+					for(int z = 0;z < sizeof(g_strValidAttribs);z++)
 					{
-						if(strcmp(strBits[x], strValidAttribs[z], false) == 0)
+						if(strcmp(strBits[x], g_strValidAttribs[z], false) == 0)
 						{
-							iBits += AttribValue[z];
+							iBits += g_AttribValue[z];
 							break;
 						}
 					}
@@ -945,11 +948,11 @@ void RT_PostLoad()
 				iNum = ExplodeString(g_BGRobotAttribs[i][y], ",", strBits, sizeof(strBits), sizeof(strBits[]));
 				for(int x = 0;x < iNum;x++)
 				{
-					for(int z = 0;z < sizeof(strValidAttribs);z++)
+					for(int z = 0;z < sizeof(g_strValidAttribs);z++)
 					{
-						if(strcmp(strBits[x], strValidAttribs[z], false) == 0)
+						if(strcmp(strBits[x], g_strValidAttribs[z], false) == 0)
 						{
-							iBits += AttribValue[z];
+							iBits += g_AttribValue[z];
 							break;
 						}
 					}
@@ -963,24 +966,23 @@ void RT_PostLoad()
 // Stock Normal Robots
 void RT_LoadCfgNormal()
 {
-	char filename[32];
+	char filename[32], configfile[PLATFORM_MAX_PATH];
 	
 	FormatEx(filename, sizeof(filename), "%s", NormalBotsFile());
 
-	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/");
+	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/");
 	
-	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s", g_strConfigFile, filename);
+	Format(configfile, sizeof(configfile), "%s%s", configfile, filename);
 	
-	if(!FileExists(g_strConfigFile))
+	if(!FileExists(configfile))
 	{
-		SetFailState("Failed to load config file %s", g_strConfigFile);
+		SetFailState("Failed to load config file %s", configfile);
 	}
 	
 	
 	KeyValues kv = new KeyValues("RobotTemplate");
-	kv.ImportFromFile(g_strConfigFile);
+	kv.ImportFromFile(configfile);
 	int iCounter = 0;
-	char strClassKey[10][] = {"unknownclass" ,"scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"}; // must be the same as TFClassType enum
 	
 	// Jump into the first subsection
 	if (!kv.GotoFirstSubKey())
@@ -996,10 +998,10 @@ void RT_LoadCfgNormal()
 	char buffer[255];
 	do
 	{
-		for(int j = 1;j < sizeof(strClassKey);j++)
+		for(int j = 1;j < sizeof(g_strClassKey);j++)
 		{
 			kv.GetSectionName(buffer, sizeof(buffer));
-			if(kv.JumpToKey(strClassKey[j]))
+			if(kv.JumpToKey(g_strClassKey[j]))
 			{
 				kv.GetSectionName(buffer, sizeof(buffer));
 				if(kv.GotoFirstSubKey(true))
@@ -1032,11 +1034,9 @@ void RT_LoadCfgNormal()
 							kv.GoBack();
 						}
 						
-						char strWeaponsKey[MAX_ROBOTS_WEAPONS][] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
-						
-						for(int i = 0;i < sizeof(strWeaponsKey);i++) // Read Weapons
+						for(int i = 0;i < sizeof(g_strWeaponsKey);i++) // Read Weapons
 						{
-							if(kv.JumpToKey(strWeaponsKey[i]))
+							if(kv.JumpToKey(g_strWeaponsKey[i]))
 							{
 								kv.GetString("classname", buffer, sizeof(buffer), "");
 								g_BNWeaponClass[iCounter][j].SetString(i, buffer); // Store Weapon Classname
@@ -1063,7 +1063,7 @@ void RT_LoadCfgNormal()
 						// Limit check
 						if(iCounter >= MAX_ROBOTS_TEMPLATE)
 						{
-							LogError("FATAL ERROR: Template limit (%i) reached for normal %s robot. The last valid robot is: %s", MAX_ROBOTS_TEMPLATE, strClassKey[j], g_BNTemplateName[MAX_ROBOTS_TEMPLATE-1][j]);
+							LogError("FATAL ERROR: Template limit (%i) reached for normal %s robot. The last valid robot is: %s", MAX_ROBOTS_TEMPLATE, g_strClassKey[j], g_BNTemplateName[MAX_ROBOTS_TEMPLATE-1][j]);
 							break;
 						}
 					} while(kv.GotoNextKey());
@@ -1081,24 +1081,23 @@ void RT_LoadCfgNormal()
 // Stock Giant Robots
 void RT_LoadCfgGiant()
 {
-	char filename[32];
+	char filename[32], configfile[PLATFORM_MAX_PATH];
 	
 	FormatEx(filename, sizeof(filename), "%s", GiantBotsFile());
 
-	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/");
+	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/");
 	
-	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s", g_strConfigFile, filename);
+	Format(configfile, sizeof(configfile), "%s%s", configfile, filename);
 	
-	if(!FileExists(g_strConfigFile))
+	if(!FileExists(configfile))
 	{
-		SetFailState("Failed to load config file %s", g_strConfigFile);
+		SetFailState("Failed to load config file %s", configfile);
 	}
 	
 	
 	KeyValues kv = new KeyValues("RobotTemplate");
-	kv.ImportFromFile(g_strConfigFile);
+	kv.ImportFromFile(configfile);
 	int iCounter = 0;
-	char strClassKey[10][] = {"unknownclass" ,"scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"}; // must be the same as TFClassType enum
 	
 	// Jump into the first subsection
 	if (!kv.GotoFirstSubKey())
@@ -1114,10 +1113,10 @@ void RT_LoadCfgGiant()
 	char buffer[255];
 	do
 	{
-		for(int j = 1;j < sizeof(strClassKey);j++)
+		for(int j = 1;j < sizeof(g_strClassKey);j++)
 		{
 			kv.GetSectionName(buffer, sizeof(buffer));
-			if(kv.JumpToKey(strClassKey[j]))
+			if(kv.JumpToKey(g_strClassKey[j]))
 			{
 				kv.GetSectionName(buffer, sizeof(buffer));
 				if(kv.GotoFirstSubKey(true))
@@ -1150,11 +1149,9 @@ void RT_LoadCfgGiant()
 							kv.GoBack();
 						}
 						
-						char strWeaponsKey[MAX_ROBOTS_WEAPONS][] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
-						
-						for(int i = 0;i < sizeof(strWeaponsKey);i++) // Read Weapons
+						for(int i = 0;i < sizeof(g_strWeaponsKey);i++) // Read Weapons
 						{
-							if(kv.JumpToKey(strWeaponsKey[i]))
+							if(kv.JumpToKey(g_strWeaponsKey[i]))
 							{
 								kv.GetString("classname", buffer, sizeof(buffer), "");
 								g_BGWeaponClass[iCounter][j].SetString(i, buffer); // Store Weapon Classname
@@ -1181,7 +1178,7 @@ void RT_LoadCfgGiant()
 						// Limit check
 						if(iCounter >= MAX_ROBOTS_TEMPLATE)
 						{
-							LogError("FATAL ERROR: Template limit (%i) reached for normal %s robot. The last valid robot is: %s", MAX_ROBOTS_TEMPLATE, strClassKey[j], g_BGTemplateName[MAX_ROBOTS_TEMPLATE-1][j]);
+							LogError("FATAL ERROR: Template limit (%i) reached for normal %s robot. The last valid robot is: %s", MAX_ROBOTS_TEMPLATE, g_strClassKey[j], g_BGTemplateName[MAX_ROBOTS_TEMPLATE-1][j]);
 							break;
 						}
 					} while(kv.GotoNextKey());

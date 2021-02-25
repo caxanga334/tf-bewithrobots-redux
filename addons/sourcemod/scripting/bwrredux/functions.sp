@@ -1208,7 +1208,7 @@ bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
 // map specific config
 void Config_LoadMap()
 {
-	char mapname[64], buffer[256], strNormalSpawns[512], strGiantSpawns[512], strSniperSpawns[512], strSpySpawns[512];
+	char mapname[64], buffer[256], strNormalSpawns[512], strGiantSpawns[512], strSniperSpawns[512], strSpySpawns[512], configfile[PLATFORM_MAX_PATH];
 	float origin[3];
 	
 	g_aSpyTeleport.Clear();
@@ -1222,11 +1222,11 @@ void Config_LoadMap()
 		strcopy(mapname, sizeof(mapname), buffer); // use the result from GetCurrentMap if this fails.
 	}
 
-	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/map/");
+	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/map/");
 	
-	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s.cfg", g_strConfigFile, mapname);
+	Format(configfile, sizeof(configfile), "%s%s.cfg", configfile, mapname);
 	
-	if(!FileExists(g_strConfigFile))
+	if(!FileExists(configfile))
 	{
 		SetFailState("Map \"%s\" configuration not found.", mapname);
 	}
@@ -1237,7 +1237,7 @@ void Config_LoadMap()
 	g_bLimitRobotScale = false;
 	
 	KeyValues kv = new KeyValues("MapConfig");
-	kv.ImportFromFile(g_strConfigFile);
+	kv.ImportFromFile(configfile);
 	
 	// Jump into the first subsection
 	if (!kv.GotoFirstSubKey())

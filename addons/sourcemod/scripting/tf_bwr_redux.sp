@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.11"
+#define PLUGIN_VERSION "1.0.12"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -2207,12 +2207,12 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 	GetCmdArg(1, strTeam, sizeof(strTeam));
 	if( strcmp( strTeam, "red", false ) == 0 )
 	{
-		FakeClientCommand(client, "sm_joinred");
+		Command_JoinRED(client, 0);
 		return Plugin_Handled;
 	}
 	else if( strcmp( strTeam, "blue", false ) == 0 )
 	{
-		FakeClientCommand(client, "sm_joinblue");
+		Command_JoinBLU(client, 0);
 		return Plugin_Handled;
 	}
 	else if( strcmp( strTeam, "spectate", false ) == 0 || strcmp( strTeam, "spectator", false ) == 0 )
@@ -2230,7 +2230,7 @@ public Action Listener_Ready(int client, const char[] command, int argc)
 		return Plugin_Continue;
 
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
-	{ // todo: add translated message
+	{
 		return Plugin_Handled;
 	}
 	
@@ -2241,9 +2241,6 @@ public Action Listener_Suicide(int client, const char[] command, int argc)
 {
 	if( !IsClientInGame(client) )
 		return Plugin_Continue;
-
-	if( !IsValidClient(client) )
-		return Plugin_Handled;
 		
 	if( IsFakeClient(client) )
 		return Plugin_Continue;

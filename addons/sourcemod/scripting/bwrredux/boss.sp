@@ -222,7 +222,7 @@ void Boss_ClearArrays()
 
 void Boss_LoadWaveConfig()
 {
-	char mapname[64], buffer[256], wavenum[16];
+	char mapname[64], buffer[256], wavenum[16], configfile[PLATFORM_MAX_PATH];
 	float flDelay;
 	
 	g_BossState = BossState_Unavailable;
@@ -236,18 +236,18 @@ void Boss_LoadWaveConfig()
 		strcopy(mapname, sizeof(mapname), buffer); // use the result from GetCurrentMap if this fails.
 	}
 
-	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/bosswaves/");
+	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/bosswaves/");
 	
-	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s.cfg", g_strConfigFile, mapname);
+	Format(configfile, sizeof(configfile), "%s%s.cfg", configfile, mapname);
 	
-	if(!FileExists(g_strConfigFile))
+	if(!FileExists(configfile))
 	{
-		LogMessage("Boss Wave Config file not found for map %s ( %s )", mapname, g_strConfigFile);
+		LogMessage("Boss Wave Config file not found for map %s ( %s )", mapname, configfile);
 		return;
 	}
 	
 	KeyValues kv = new KeyValues("BossWaveConfig");
-	kv.ImportFromFile(g_strConfigFile);
+	kv.ImportFromFile(configfile);
 	
 	// Jump into the first subsection
 	if (!kv.GotoFirstSubKey())
@@ -318,23 +318,21 @@ void Boss_LoadWaveConfig()
 // Returns false on error.
 bool Boss_LoadProfile(char[] bossfile)
 {
-	char filename[64];
+	char filename[64], configfile[PLATFORM_MAX_PATH];
 	char strBits[12][MAXLEN_CONFIG_STRING];
-	char strValidAttribs[][] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire"};
-	int AttribValue[] = {1,2,4,8,16,32,64,128,256,512};
 	int iNum, iBits = 0;
 	
 	FormatEx(filename, sizeof(filename), "%s.cfg", bossfile);
 
-	BuildPath(Path_SM, g_strConfigFile, sizeof(g_strConfigFile), "configs/bwrr/bosses/");
+	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/bosses/");
 	
-	Format(g_strConfigFile, sizeof(g_strConfigFile), "%s%s", g_strConfigFile, filename);
+	Format(configfile, sizeof(configfile), "%s%s", configfile, filename);
 	
-	if(!FileExists(g_strConfigFile))
+	if(!FileExists(configfile))
 	{
 		char mission[64];
 		OR_GetMissionName(mission, sizeof(mission));
-		LogError("File for boss \"%s\" at wave %i for mission \"%s\" could not be found. ( %s )", bossfile, OR_GetCurrentWave(), mission, g_strConfigFile);
+		LogError("File for boss \"%s\" at wave %i for mission \"%s\" could not be found. ( %s )", bossfile, OR_GetCurrentWave(), mission, configfile);
 		g_BossState = BossState_Unavailable;
 		return false;
 	}
@@ -342,7 +340,7 @@ bool Boss_LoadProfile(char[] bossfile)
 	Boss_ClearArrays(); // Need to clear arrays due to the new force boss command.
 	
 	KeyValues kv = new KeyValues("BossTemplate");
-	kv.ImportFromFile(g_strConfigFile);
+	kv.ImportFromFile(configfile);
 	
 	// Jump into the first subsection
 	if (!kv.GotoFirstSubKey())
@@ -365,11 +363,11 @@ bool Boss_LoadProfile(char[] bossfile)
 	iNum = ExplodeString(buffer, ",", strBits, sizeof(strBits), sizeof(strBits[]));
 	for(int x = 0;x < iNum;x++)
 	{
-		for(int z = 0;z < sizeof(strValidAttribs);z++)
+		for(int z = 0;z < sizeof(g_strValidAttribs);z++)
 		{
-			if(strcmp(strBits[x], strValidAttribs[z], false) == 0)
+			if(strcmp(strBits[x], g_strValidAttribs[z], false) == 0)
 			{
-				iBits += AttribValue[z];
+				iBits += g_AttribValue[z];
 				break;
 			}
 		}
@@ -392,11 +390,9 @@ bool Boss_LoadProfile(char[] bossfile)
 		kv.GoBack();
 	}
 	
-	char strWeaponsKey[MAX_ROBOTS_WEAPONS][] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
-	
-	for(int i = 0;i < sizeof(strWeaponsKey);i++) // Read Weapons
+	for(int i = 0;i < sizeof(g_strWeaponsKey);i++) // Read Weapons
 	{
-		if(kv.JumpToKey(strWeaponsKey[i]))
+		if(kv.JumpToKey(g_strWeaponsKey[i]))
 		{
 			kv.GetString("classname", buffer, sizeof(buffer), "");
 			g_TBossWeaponClass.SetString(i, buffer); // Store Weapon Classname
