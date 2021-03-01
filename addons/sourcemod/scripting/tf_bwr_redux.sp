@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.12"
+#define PLUGIN_VERSION "1.0.13"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -237,6 +237,11 @@ methodmap RoboPlayer
 	{
 		public get() { return p_bIsReloadingBarrage[this.index]; }
 		public set( bool value ) { p_bIsReloadingBarrage[this.index] = value; }
+	}
+	property bool Deploying
+	{
+		public get() { return g_bIsDeploying[this.index]; }
+		public set( bool value ) { g_bIsDeploying[this.index] = value; }
 	}
 	public void MiniBoss(bool value)
 	{
@@ -927,6 +932,8 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 					CPrintToChatAll("%t", "Bomb Deploy", strPlrName);
 					LogAction(client, -1, "Player \"%L\" deployed the bomb.", client);
 					TriggerHatchExplosion();
+					rp.Deploying = false;
+					rp.Carrier = false;
 				}
 			}
 			

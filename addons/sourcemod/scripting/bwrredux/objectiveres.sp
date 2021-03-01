@@ -195,10 +195,7 @@ int OR_GetAvailableClasses()
 
 bool OR_IsHalloweenMission()
 {
-	if(g_iPopFileType == 1)
-		return true;
-	else
-		return false;
+	return g_iPopFileType == 1;
 }
 
 int OR_GetCurrentWave()
