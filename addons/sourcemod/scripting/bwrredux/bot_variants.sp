@@ -691,91 +691,82 @@ void SetOwnAttributes(int client , bool bGiant)
 		{
 			case TFClass_Scout:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1475.0);
-				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.7);
-				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.7);
-				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 5.0);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 1475.0);
+				TF2Attrib_SetByName(client, "damage force reduction", 0.7);
+				TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.7);
+				TF2Attrib_SetByName(client, "override footstep sound set", 5.0);
 				return;
 			}
 			case TFClass_Soldier:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 3600.0);
-				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
-				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
-				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 3.0);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 3600.0);
+				TF2Attrib_SetByName(client, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(client, "damage force reduction", 0.4);
+				TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.4);
+				TF2Attrib_SetByName(client, "override footstep sound set", 3.0);
 				return;
 			}
 			case TFClass_Pyro:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 2825.0);
-				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.6);
-				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.6);
-				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 6.0);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 2825.0);
+				TF2Attrib_SetByName(client, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(client, "damage force reduction", 0.6);
+				TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.6);
+				TF2Attrib_SetByName(client, "override footstep sound set", 6.0);
 				return;
 			}
 			case TFClass_DemoMan:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 3125.0);
-				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.5);
-				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.5);
-				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 3125.0);
+				TF2Attrib_SetByName(client, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(client, "damage force reduction", 0.5);
+				TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.5);
+				TF2Attrib_SetByName(client, "override footstep sound set", 4.0);
 				return;
 			}
 			case TFClass_Heavy:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 4700.0);
-				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.3);
-				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.3);
-				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 2.0);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 4700.0);
+				TF2Attrib_SetByName(client, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(client, "damage force reduction", 0.3);
+				TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.3);
+				TF2Attrib_SetByName(client, "override footstep sound set", 2.0);
 				return;
 			}
 			case TFClass_Engineer:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1775.0);
-				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
-				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
-				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
-				TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 1775.0);
+				TF2Attrib_SetByName(client, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(client, "damage force reduction", 0.4);
+				TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.4);
+				TF2Attrib_SetByName(client, "override footstep sound set", 4.0);
+				TF2Attrib_SetByName(client, "cannot pick up buildings", 1.0);
 				return;
 			}
 			case TFClass_Medic:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 4350.0);
-				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.6);
-				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.6);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 4350.0);
+				TF2Attrib_SetByName(client, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(client, "damage force reduction", 0.6);
+				TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.6);
 				return;
 			}
 			case TFClass_Sniper:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Primary);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1275.0);
-				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
-				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
-				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 1275.0);
+				TF2Attrib_SetByName(client, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(client, "damage force reduction", 0.4);
+				TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.4);
+				TF2Attrib_SetByName(client, "override footstep sound set", 4.0);
 				return;
 			}
 			case TFClass_Spy:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 1175.0);
-				TF2Attrib_SetByName(iWeapon, "move speed bonus", 0.5);
-				TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.4);
-				TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.4);
-				TF2Attrib_SetByName(iWeapon, "override footstep sound set", 4.0);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 1175.0);
+				TF2Attrib_SetByName(client, "move speed bonus", 0.5);
+				TF2Attrib_SetByName(client, "damage force reduction", 0.4);
+				TF2Attrib_SetByName(client, "airblast vulnerability multiplier", 0.4);
+				TF2Attrib_SetByName(client, "override footstep sound set", 4.0);
 				return;
 			}
 		}
@@ -805,9 +796,8 @@ void SetOwnAttributes(int client , bool bGiant)
 			} */
 			case TFClass_Engineer:
 			{
-				iWeapon = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
-				TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 375.0);
-				TF2Attrib_SetByName(iWeapon, "cannot pick up buildings", 1.0);
+				TF2Attrib_SetByName(client, "hidden maxhealth non buffed", 375.0);
+				TF2Attrib_SetByName(client, "cannot pick up buildings", 1.0);
 				return;
 			}
 /* 			case TFClass_Medic:

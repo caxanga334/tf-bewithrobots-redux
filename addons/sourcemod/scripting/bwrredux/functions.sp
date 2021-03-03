@@ -1791,7 +1791,7 @@ void FrameEngineerDeath(int userid)
 	if(client <= 0)
 		return;
 		
-	char strobjects[][] = { "obj_sentrygun", "obj_dispenser", "obj_teleporter" };
+	static const char strobjects[3][16] = { "obj_sentrygun", "obj_dispenser", "obj_teleporter" };
 	
 	int i;
 	for(int x = 0;x < sizeof(strobjects);x++)

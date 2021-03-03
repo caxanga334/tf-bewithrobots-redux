@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.13"
+#define PLUGIN_VERSION "1.0.14"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -3089,7 +3089,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			int iMaxClip = GetWeaponMaxClip(iActiveWeapon);
 			int iClip = GetWeaponClip(iActiveWeapon);
-			if(iClip < iMaxClip) // set weapon to full clip
+			if(iClip != iMaxClip) // set weapon to full clip
 			{
 				SetWeaponClip(iActiveWeapon, iMaxClip);
 			}
@@ -3263,7 +3263,10 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				SetOwnAttributes(client ,false);
 				
 			TF2_RegeneratePlayer(client);
-			if( rp.Gatebot ) { GiveGatebotHat(client, TFClass); } // TF2_RegeneratePlayer will cause the hat to be removed, add it again.
+			if( rp.Gatebot ) { 
+				GiveGatebotHat(client, TFClass); 
+				BlockBombPickup(client);
+			} // TF2_RegeneratePlayer will cause the hat to be removed, add it again.
 		}
 	}
 #if defined DEBUG_PLAYER
@@ -3283,7 +3286,7 @@ public Action Timer_OnFakePlayerSpawn(Handle timer, any client)
 {
 	int iTeleTarget = -1;
 	
-	if( IsClientInGame(client) )  // teleport bots to teleporters
+	if( IsClientInGame(client) && TF2_GetPlayerClass(client) != TFClass_Spy )  // teleport bots to teleporters
 	{
 		iTeleTarget = FindBestBluTeleporter();
 		if( iTeleTarget != -1 )
