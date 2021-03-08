@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.14"
+#define PLUGIN_VERSION "1.0.15"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -345,6 +345,7 @@ public void OnPluginStart()
 	RegConsoleCmd( "sm_bwrrhelp", Command_BWRRHelpMenu, "Opens the Be With Robots Redux help menu." );
 	RegAdminCmd( "sm_bwrr_debug", Command_Debug, ADMFLAG_ROOT, "Prints some debug messages." );
 	RegAdminCmd( "sm_bwrr_debug_spy", Command_Debug_Spy, ADMFLAG_ROOT, "Debug spy teleport." );
+	RegAdminCmd( "sm_bwrr_debug_spytrace", Command_Debug_Spy_Trace, ADMFLAG_ROOT, "Debug spy teleport trace LOS check." );
 	RegAdminCmd( "sm_bwrr_debug_engy", Command_Debug_Engy, ADMFLAG_ROOT, "Debug engineer teleport." );
 	RegAdminCmd( "sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target." );
 	RegAdminCmd( "sm_bwrr_forceboss", Command_ForceBoss, ADMFLAG_ROOT, "Forces a specific boss on the target." );
@@ -1497,6 +1498,22 @@ public Action Command_Debug_Spy( int client, int nArgs )
 	g_aSpyTeleport.GetArray(iArg1, vecPos);
 	TeleportEntity(client, vecPos, NULL_VECTOR, NULL_VECTOR);
 	ReplyToCommand(client, "Teleported to index %i at %.1f %.1f %.1f", iArg1, vecPos[0], vecPos[1], vecPos[2]);
+
+	return Plugin_Handled;
+}
+
+public Action Command_Debug_Spy_Trace( int client, int nArgs )
+{
+	if(client == 0)
+		return Plugin_Handled;
+	
+	ReplyToCommand(client, "Running test...");
+	float vecPos[3];
+	for(int i = 0;i < g_aSpyTeleport.Length;i++)
+	{
+		g_aSpyTeleport.GetArray(i, vecPos);
+		SpyTeleport_RayCheck(i, vecPos);
+	}
 
 	return Plugin_Handled;
 }

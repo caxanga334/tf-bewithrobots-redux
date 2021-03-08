@@ -160,24 +160,24 @@ void TeleportSpyRobot(int client)
 		return; // No players in RED team.
 	
 	int target = GetRandomClientFromTeam(view_as<int>(TFTeam_Red), false);
-	float TargetPos[3];
+	float TelePos[3];
 	
 	if(!IsValidClient(target))
 	{
-		if( GetSpyTeleportFromConfig(TargetPos) )
+		if( GetSpyTeleportFromConfig(TelePos) )
 		{
 			p_bInSpawn[client] = false;
 			TF2_RemoveCondition(client, TFCond_UberchargedHidden);
-			TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
+			TeleportEntity(client, TelePos, NULL_VECTOR, NULL_VECTOR);
 		}
 	}
 	else
 	{
-		if( GetSpyTeleportFromConfig(TargetPos, target) )
+		if( GetSpyTeleportFromConfig(TelePos, target) )
 		{
 			p_bInSpawn[client] = false;
 			TF2_RemoveCondition(client, TFCond_UberchargedHidden);
-			TeleportEntity(client, TargetPos, NULL_VECTOR, NULL_VECTOR);
+			TeleportEntity(client, TelePos, NULL_VECTOR, NULL_VECTOR);
 			char name[MAX_NAME_LENGTH];
 			GetClientName(target, name, sizeof(name));
 			CPrintToChat(client, "%t", "Spy_Teleported", name);
@@ -561,6 +561,20 @@ bool TraceFilterIgnorePlayers(int ent, int contentsMask)
         return false;
   
     return true;
+}
+
+bool TraceFilterSpy(int entity, int contentsMask, any data)
+{
+	if(entity >= 1 && entity <= MaxClients)
+		return false;
+		
+	if(entity == data)
+		return false;
+		
+	if(entity != 0)
+		return false;
+		
+	return true;
 }
 
 /****************************************************
@@ -1107,17 +1121,17 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 	ArrayList aPos;
 	aPos = new ArrayList();
 	
-	if( IsValidClient(target_player) )
+	if(IsValidClient(target_player))
 	{
 		GetClientAbsOrigin(target_player, tVec);
-		
 		for(int i = 0;i < g_aSpyTeleport.Length;i++)
 		{
-		
 			g_aSpyTeleport.GetArray(i, rVec);
 			
-			current_dist = GetVectorDistance(rVec, tVec);
+			if(!SpyTeleport_RayCheck(i, rVec)) // Trace didn't hit anything
+				continue;
 			
+			current_dist = GetVectorDistance(rVec, tVec);
 			if( current_dist < smallest_dist && current_dist > 256.0 && current_dist < 1500.0 ) 
 			{
 				smallest_dist = current_dist;
@@ -1144,6 +1158,44 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 		g_aSpyTeleport.GetArray(Math_GetRandomInt(0, (g_aSpyTeleport.Length - 1)), origin);
 		return true;
 	}
+}
+
+// returns true if the trace hit something
+bool SpyTeleport_RayCheck(const int id,float pos1[3])
+{
+	Handle trace;
+	pos1[2] += 45;
+	float pos2[3];
+	bool valid = true;
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(!IsClientInGame(i)) // must be in game
+			continue;
+			
+		if(IsFakeClient(i)) // not a bot
+			continue;
+			
+		if(TF2_GetClientTeam(i) != TFTeam_Red) // must be on RED team
+			continue;
+			
+		trace = null;
+		GetClientEyePosition(i, pos2);
+		trace = TR_TraceRayFilterEx(pos1, pos2, MASK_VISIBLE_AND_NPCS, RayType_EndPoint, TraceFilterSpy, i);
+		
+		if(!TR_DidHit(trace))
+		{
+#if defined DEBUG_PLAYER
+			PrintToConsoleAll("[SPY TELEPORT - %i] Trace Ray LOS check failed! Player \"%N\".", id, i);
+			TE_SetupBeamPoints(pos1, pos2, g_iLaserSprite, g_iHaloSprite, 0, 0, 10.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0);
+			TE_SendToAll();
+#endif
+			valid = false;
+			break;
+		}
+	}
+	
+	delete trace;
+	return valid;
 }
 
 // Gets an origin to teleport an engineer
@@ -1585,7 +1637,7 @@ bool IsGatebotAvailable(bool update = false)
 			}
 		}
 #if defined DEBUG_GENERAL
-		CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Didn't found any {orange}team_control_point{cyan} owned by {red}RED{cyan} team.");
+		CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Did not found any {orange}team_control_point{cyan} owned by {red}RED{cyan} team.");
 #endif
 		isavailable = false;
 	}
