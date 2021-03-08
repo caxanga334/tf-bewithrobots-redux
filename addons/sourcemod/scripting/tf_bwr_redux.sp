@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.15"
+#define PLUGIN_VERSION "1.0.16"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -41,6 +41,7 @@ TFClassType p_BotClass[MAXPLAYERS + 1]; // Robot class
 bool p_bInSpawn[MAXPLAYERS + 1]; // Local cache to know if a player is in spawn
 bool p_bIsGatebot[MAXPLAYERS + 1]; // Is the player a gatebot
 bool p_bIsReloadingBarrage[MAXPLAYERS + 1]; // Is loading a barrage?
+float p_flProtTime[MAXPLAYERS + 1]; // Spawn protection timer
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
@@ -100,6 +101,7 @@ ConVar c_bLimitClasses; // Limit playable classes to the ones used in the curren
 ConVar c_iGatebotChance; // change to spawn as a gatebot
 ConVar c_bAntiJoinSpam; // Anti-spam
 ConVar c_fl666CritChance; // Wave 666 100% Crits chance.
+ConVar c_flBluProtectionTime; // How many seconds of spawn protection human BLU players have
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -213,6 +215,11 @@ methodmap RoboPlayer
 		public get() { return g_flNextBombUpgradeTime[this.index]; }
 		public set( float value ) { g_flNextBombUpgradeTime[this.index] = value; }
 	}
+	property float ProtectionTime
+	{
+		public get() { return p_flProtTime[this.index]; }
+		public set( float value ) { p_flProtTime[this.index] = value; }
+	}
 	property TFClassType Class
 	{
 		public get()	{ return p_BotClass[this.index]; }
@@ -308,6 +315,7 @@ public void OnPluginStart()
 	c_iGatebotChance = AutoExecConfig_CreateConVar("sm_bwrr_gatebot_chance", "25", "Chance to spawn as a gatebot on gate maps. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
 	c_bAntiJoinSpam = AutoExecConfig_CreateConVar("sm_bwrr_antispam", "1.0", "Apply anti-spam to join blu command. 1 = Enabled, 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_fl666CritChance = AutoExecConfig_CreateConVar("sm_bwrr_wave666_fullcrit_chance", "75.0", "Chance to spawn with full crits on Wave 666 missions.", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_flBluProtectionTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_spawnprotection_time", "60.0", "How many seconds of spawn protection human BLU players have.", FCVAR_NONE, true, 60.0, true, 300.0);
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
@@ -641,6 +649,10 @@ public void TF2_OnWaitingForPlayersStart()
 public void TF2_OnWaitingForPlayersEnd()
 {
 	g_bFreezePlayers = false;
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		p_flProtTime[i] = GetGameTime() + c_flBluProtectionTime.FloatValue;
+	}
 }
 
 public void OnClientPutInServer(int client)
@@ -720,7 +732,6 @@ stock void TF2Spawn_TouchingSpawn(int client,int entity)
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
 		p_bInSpawn[client] = true;
-		TF2_AddCondition(client, TFCond_UberchargedHidden, TFCondDuration_Infinite);
 		g_flinstructiontime[client] = GetGameTime() + 1.0;
 	}
 }
@@ -742,7 +753,6 @@ stock void TF2Spawn_LeaveSpawn(int client,int entity)
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
 		RoboPlayer rp = RoboPlayer(client);
-		TF2_RemoveCondition(client, TFCond_UberchargedHidden);
 		rp.InSpawn = false;
 		
 		if(rp.Carrier)
@@ -833,7 +843,11 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	
 		if(rp.InSpawn)
 		{
-			TF2_AddCondition(client, TFCond_UberchargedHidden, 0.255);
+			if(rp.ProtectionTime > GetGameTime() || g_bFreezePlayers)
+			{
+				TF2_AddCondition(client, TFCond_UberchargedHidden, 0.255);
+			}
+		
 			int index;
 			
 			if(IsValidEntity(iActiveWeapon)) { index = GetEntProp(iActiveWeapon, Prop_Send, "m_iItemDefinitionIndex"); }
@@ -2848,14 +2862,16 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
-		if( p_iBotAttrib[client] & BotAttrib_AlwaysCrits )
+		RoboPlayer rp = RoboPlayer(client);
+		if( rp.Attributes & BotAttrib_AlwaysCrits )
 		{
 			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 		}
-		if( p_iBotAttrib[client] & BotAttrib_AlwaysMiniCrits )
+		if( rp.Attributes & BotAttrib_AlwaysMiniCrits )
 		{
 			TF2_AddCondition(client, TFCond_Buffed, TFCondDuration_Infinite);
-		}		
+		}
+		rp.ProtectionTime = GetGameTime() + c_flBluProtectionTime.FloatValue;
 	}
 }
 
@@ -4457,6 +4473,7 @@ void ResetRobotData(int client, bool bStrip = false)
 	g_flinstructiontime[client] = 0.0;
 	g_bIsDeploying[client] = false;
 	g_flBombDeployTime[client] = 0.0;
+	p_flProtTime[client] = 0.0;
 	if( bStrip )
 		StripWeapons(client);
 }

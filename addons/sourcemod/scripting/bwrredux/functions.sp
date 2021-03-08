@@ -166,8 +166,7 @@ void TeleportSpyRobot(int client)
 	{
 		if( GetSpyTeleportFromConfig(TelePos) )
 		{
-			p_bInSpawn[client] = false;
-			TF2_RemoveCondition(client, TFCond_UberchargedHidden);
+			BWRR_RemoveSpawnProtection(client);
 			TeleportEntity(client, TelePos, NULL_VECTOR, NULL_VECTOR);
 		}
 	}
@@ -175,8 +174,7 @@ void TeleportSpyRobot(int client)
 	{
 		if( GetSpyTeleportFromConfig(TelePos, target) )
 		{
-			p_bInSpawn[client] = false;
-			TF2_RemoveCondition(client, TFCond_UberchargedHidden);
+			BWRR_RemoveSpawnProtection(client);
 			TeleportEntity(client, TelePos, NULL_VECTOR, NULL_VECTOR);
 			char name[MAX_NAME_LENGTH];
 			GetClientName(target, name, sizeof(name));
@@ -451,6 +449,7 @@ void SpawnOnTeleporter(int teleporter,int client)
 		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.1); // 0.1 sec to compensate for a small delay
 		TeleportEntity(client, OriginVec, NULL_VECTOR, NULL_VECTOR);
 		EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", teleporter, SND_NOFLAGS, teleporter, OriginVec);
+		BWRR_RemoveSpawnProtection(client);
 	}
 }
 
@@ -2208,4 +2207,12 @@ void BWRR_InstructPlayer(int client)
 		CreateAnnotation(NULL_VECTOR, client, "Protect the tank!", 2, 10.0, tankboss);
 		return;
 	}
+}
+
+void BWRR_RemoveSpawnProtection(int client)
+{
+	RoboPlayer rp = RoboPlayer(client);
+	rp.ProtectionTime = -1.0;
+	rp.InSpawn = false;
+	TF2_RemoveCondition(client, TFCond_UberchargedHidden);
 }
