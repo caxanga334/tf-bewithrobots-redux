@@ -316,8 +316,7 @@ void TeleportEngineerToPosition(float origin[3], int client, float OffsetVec[3] 
 {
 	float FinalVec[3];
 	
-	p_bInSpawn[client] = false;
-	TF2_RemoveCondition(client, TFCond_UberchargedHidden);
+	BWRR_RemoveSpawnProtection(client);
 	AddVectors(origin, OffsetVec, FinalVec);
 	TeleportEntity(client, FinalVec, NULL_VECTOR, NULL_VECTOR);
 	CreateTEParticle("teleported_blue",FinalVec, _, _,3.0,-1,-1,-1);
@@ -1274,13 +1273,21 @@ void Config_LoadMap()
 	}
 
 	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/map/");
-	
-	Format(configfile, sizeof(configfile), "%s%s.cfg", configfile, mapname);
+	Format(configfile, sizeof(configfile), "%s%s_server.cfg", configfile, mapname);
 	
 	if(!FileExists(configfile))
 	{
+		BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/map/");
+		Format(configfile, sizeof(configfile), "%s%s.cfg", configfile, mapname);		
+	}
+	else if(!FileExists(configfile))
+	{
 		SetFailState("Map \"%s\" configuration not found.", mapname);
 	}
+	
+#if defined DEBUG_GENERAL
+	LogMessage("Loading Map Config file: \"%s\".", configfile);
+#endif
 	
 	// reset some globals
 	g_flGateStunDuration = 0.0;

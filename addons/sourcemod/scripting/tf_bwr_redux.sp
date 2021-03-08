@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.0.16"
+#define PLUGIN_VERSION "1.1.0"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -313,7 +313,7 @@ public void OnPluginStart()
 	c_strGBFile = AutoExecConfig_CreateConVar("sm_bwrr_botgiant_file", "robots_giant.cfg", "The file to load giant robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
 	c_bLimitClasses = AutoExecConfig_CreateConVar("sm_bwrr_limit_classes", "1", "Limit playable classes on the BLU team to classes that are used in the current wave", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_iGatebotChance = AutoExecConfig_CreateConVar("sm_bwrr_gatebot_chance", "25", "Chance to spawn as a gatebot on gate maps. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
-	c_bAntiJoinSpam = AutoExecConfig_CreateConVar("sm_bwrr_antispam", "1.0", "Apply anti-spam to join blu command. 1 = Enabled, 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bAntiJoinSpam = AutoExecConfig_CreateConVar("sm_bwrr_antispam", "1.0", "Enables/Disables the cooldown system on the join BLU command. 1 = Enabled, 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_fl666CritChance = AutoExecConfig_CreateConVar("sm_bwrr_wave666_fullcrit_chance", "75.0", "Chance to spawn with full crits on Wave 666 missions.", FCVAR_NONE, true, 0.0, true, 100.0);
 	c_flBluProtectionTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_spawnprotection_time", "60.0", "How many seconds of spawn protection human BLU players have.", FCVAR_NONE, true, 60.0, true, 300.0);
 	
@@ -2830,6 +2830,7 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 		if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue)
 		{
 			MovePlayerToRED(i);
+			g_flJoinRobotBanTime[i] = GetGameTime() + 40.0;
 		}
 	}
 }

@@ -237,14 +237,22 @@ void Boss_LoadWaveConfig()
 	}
 
 	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/bosswaves/");
-	
-	Format(configfile, sizeof(configfile), "%s%s.cfg", configfile, mapname);
+	Format(configfile, sizeof(configfile), "%s%s_server.cfg", configfile, mapname);
 	
 	if(!FileExists(configfile))
+	{
+		BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/bosswaves/");
+		Format(configfile, sizeof(configfile), "%s%s.cfg", configfile, mapname);
+	}
+	else if(!FileExists(configfile))
 	{
 		LogMessage("Boss Wave Config file not found for map %s ( %s )", mapname, configfile);
 		return;
 	}
+	
+#if defined DEBUG_GENERAL
+	LogMessage("Loading Boss Wave Config file: \"%s\".", configfile);
+#endif
 	
 	KeyValues kv = new KeyValues("BossWaveConfig");
 	kv.ImportFromFile(configfile);
