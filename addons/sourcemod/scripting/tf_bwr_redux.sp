@@ -1512,7 +1512,7 @@ public Action Command_Debug_Spy_Trace( int client, int nArgs )
 	for(int i = 0;i < g_aSpyTeleport.Length;i++)
 	{
 		g_aSpyTeleport.GetArray(i, vecPos);
-		SpyTeleport_RayCheck(i, vecPos);
+		SpyTeleport_RayCheck(i, vecPos, 1);
 	}
 
 	return Plugin_Handled;

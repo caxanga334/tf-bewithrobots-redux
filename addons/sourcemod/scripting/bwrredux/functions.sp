@@ -1161,7 +1161,7 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 }
 
 // returns true if the trace hit something
-bool SpyTeleport_RayCheck(const int id,float pos1[3])
+bool SpyTeleport_RayCheck(const int id, float pos1[3], int iDebug = 0)
 {
 	Handle trace;
 	pos1[2] += 45;
@@ -1184,11 +1184,11 @@ bool SpyTeleport_RayCheck(const int id,float pos1[3])
 		
 		if(!TR_DidHit(trace))
 		{
-#if defined DEBUG_PLAYER
+			if(iDebug) {
 			PrintToConsoleAll("[SPY TELEPORT - %i] Trace Ray LOS check failed! Player \"%N\".", id, i);
 			TE_SetupBeamPoints(pos1, pos2, g_iLaserSprite, g_iHaloSprite, 0, 0, 10.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0);
 			TE_SendToAll();
-#endif
+			}
 			valid = false;
 			break;
 		}
