@@ -1111,7 +1111,9 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 {
 	float tVec[3], rVec[3]; // target_player's vector, return vector
 	int iBestCell = -1;
-	float current_dist, smallest_dist = 999999.0;
+	float distance;
+	static const float max_dist = 2048.0;
+	static const float min_dist = 256.0;
 	
 	if( g_aSpyTeleport.Length < 1 )
 		return false;
@@ -1129,10 +1131,9 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 			if(!SpyTeleport_RayCheck(i, rVec)) // Trace didn't hit anything
 				continue;
 			
-			current_dist = GetVectorDistance(rVec, tVec);
-			if( current_dist < smallest_dist && current_dist > 256.0 && current_dist < 1500.0 ) 
+			distance = GetVectorDistance(rVec, tVec);
+			if( distance > min_dist && distance < max_dist ) // include all teleport points inside min and max distance
 			{
-				smallest_dist = current_dist;
 				aPos.Push(i);
 			}
 		}
@@ -1280,9 +1281,10 @@ void Config_LoadMap()
 		BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/map/");
 		Format(configfile, sizeof(configfile), "%s%s.cfg", configfile, mapname);		
 	}
-	else if(!FileExists(configfile))
+
+	if(!FileExists(configfile))
 	{
-		SetFailState("Map \"%s\" configuration not found.", mapname);
+		SetFailState("Map \"%s\" configuration not found. \"%s\"", mapname, configfile);
 	}
 	
 #if defined DEBUG_GENERAL

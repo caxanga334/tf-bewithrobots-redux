@@ -244,7 +244,8 @@ void Boss_LoadWaveConfig()
 		BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/bosswaves/");
 		Format(configfile, sizeof(configfile), "%s%s.cfg", configfile, mapname);
 	}
-	else if(!FileExists(configfile))
+
+	if(!FileExists(configfile))
 	{
 		LogMessage("Boss Wave Config file not found for map %s ( %s )", mapname, configfile);
 		return;
