@@ -90,8 +90,8 @@ ConVar c_iMinRedinProg; // minimum red players to join BLU while the wave is in 
 ConVar c_iGiantChance; // change to spawn as a giant robot
 ConVar c_iGiantMinRed; // minimum red players to allow giants.
 ConVar c_iMaxBlu; // maximum blu players allowed
-ConVar c_flBluRespawnTime; // blu players respawn time
-ConVar c_bAutoTeamBalance;
+//ConVar c_flBluRespawnTime; // blu players respawn time
+ConVar c_bAutoTeamBalance; // Is Auto team balance enabled?
 ConVar c_flBusterDelay; // delay between human sentry buster spawns.
 ConVar c_iBusterMinKills; // minimum amount of kills a sentry needs to have before becoming a threat
 ConVar c_svTag; // server tags
@@ -323,7 +323,7 @@ public void OnPluginStart()
 	c_bAutoTeamBalance = AutoExecConfig_CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_flBusterDelay = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_delay", "60.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
 	c_iBusterMinKills = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
-	c_flBluRespawnTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Respawn Time for BLU Players.", FCVAR_NONE, true, 5.0, true, 30.0);
+	//c_flBluRespawnTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_respawn_time", "15.0", "Respawn Time for BLU Players.", FCVAR_NONE, true, 5.0, true, 30.0);
 	c_flForceDelay = AutoExecConfig_CreateConVar("sm_bwrr_force_delay", "30.0", "Base delay for sm_robotmenu usage (Normal Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
 	c_flFDGiant = AutoExecConfig_CreateConVar("sm_bwrr_force_giant_delay", "60.0", "Base delay for sm_robotmenu usage (Giant Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
 	c_strNBFile = AutoExecConfig_CreateConVar("sm_bwrr_botnormal_file", "robots_normal.cfg", "The file to load normal robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
@@ -2819,7 +2819,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	g_iBusterIndex = -1;
 	ResetRobotMenuCooldown();
 	Boss_LoadWaveConfig();
-	SetBLURespawnWaveTime(2.0);
+	SetBLURespawnWaveTime(1.0);
 	CreateTimer(1.0, Timer_CheckGates);
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -3002,8 +3002,9 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			}
 		}
 		
-		CreateTimer(c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client);
-		CreateTimer(1.0, Timer_PickRandomRobot, client);
+		//CreateTimer(c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client);
+		//CreateTimer(1.0, Timer_PickRandomRobot, client);
+		RequestFrame(FramePickNewRobot, GetClientUserId(client));
 		StopRobotLoopSound(client);
 	}
 
@@ -3386,7 +3387,7 @@ public Action Timer_Respawn(Handle timer, any client)
 	return Plugin_Stop;
 }
 
-public Action Timer_RespawnBLUPlayer(Handle timer, any client)
+/* public Action Timer_RespawnBLUPlayer(Handle timer, any client)
 {
 	if( !IsValidClient(client) || IsPlayerAlive(client) || IsFakeClient(client) )
 		return Plugin_Stop;
@@ -3404,7 +3405,7 @@ public Action Timer_PickRandomRobot(Handle timer, any client)
 	PickRandomRobot(client);
 	
 	return Plugin_Stop;
-}
+} */
 
 public Action Timer_UpdateWaveData(Handle timer)
 {

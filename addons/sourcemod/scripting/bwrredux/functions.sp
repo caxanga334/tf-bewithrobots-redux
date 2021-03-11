@@ -2000,6 +2000,18 @@ void FrameShouldBlockBombPickUp(int userid)
 	}
 }
 
+void FramePickNewRobot(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if(client <= 0)
+		return;
+
+	if(IsFakeClient(client))
+		return;
+	
+	PickRandomRobot(client);
+}
+
 // code from Pelipoika's bot control
 // Updates the bomb level show on the HUD
 void UpdateBombHud(int userid)
