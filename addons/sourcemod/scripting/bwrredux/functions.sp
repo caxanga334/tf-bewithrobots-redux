@@ -922,17 +922,62 @@ void TriggerHatchExplosion()
 					SENTRY BUSTER
 *****************************************************/
 
-void SentryBuster_Explode( client )
+void SentryBuster_Explode(int client)
 {
 	if( !IsPlayerAlive(client) )
 		return;
+		
+	RoboPlayer rp = RoboPlayer(client);
 	
-	CreateTimer( 1.98, Timer_SentryBuster_Explode, client, TIMER_FLAG_NO_MAPCHANGE );
+	if(rp.Detonating) // Buster is already detonating
+		return;
+	
+	rp.Detonating = true;
+	rp.BusterTime = GetGameTime() + 1.98000;
+	FakeClientCommand(client, "taunt"); // Force taunt in case the detonation was called by pressing mouse 1
 	float BusterPosVec[3];
 	GetClientAbsOrigin(client, BusterPosVec);
 	EmitGameSoundToAll("MVM.SentryBusterSpin", client, SND_NOFLAGS, client, BusterPosVec);
-	
 	SetEntProp( client, Prop_Data, "m_takedamage", 0, 1 );
+}
+
+void SentryBuster_CreateExplosion(int client)
+{
+	float flExplosionPos[3];
+	GetClientAbsOrigin(client, flExplosionPos );
+	int iWeapon = GetFirstAvailableWeapon(client);
+	
+	if( GameRules_GetRoundState() == RoundState_RoundRunning )
+	{
+		int i;
+		for( i = 1; i <= MaxClients; i++ ) {
+			if( i != client && IsValidClient(i) && IsPlayerAlive(i) ) {
+				if( CanSeeTarget( client, i, 320.0 ) ) {
+					DealDamage(i, client, client, 10000.0, DMG_BLAST, iWeapon);
+				}
+			}
+		}
+		
+		static const char strObjects[3][] = { "obj_sentrygun", "obj_dispenser", "obj_teleporter" };
+		for( int o = 0; o < sizeof(strObjects); o++ )
+		{
+			i = -1;
+			while( ( i = FindEntityByClassname( i, strObjects[o] ) ) != -1 ) {
+				if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) != view_as<int>(TFTeam_Blue) && !GetEntProp( i, Prop_Send, "m_bCarried" ) && !GetEntProp( i, Prop_Send, "m_bPlacing" ) ) {
+					if( CanSeeTarget( client, i, 320.0 ) ) {
+						DealDamage(i, client, client, 10000.0, DMG_BLAST, iWeapon);
+					}
+				}
+			}
+		}
+	}
+	
+	CreateParticle( flExplosionPos, "fluidSmokeExpl_ring_mvm", 6.5 );
+	CreateParticle( flExplosionPos, "explosionTrail_seeds_mvm", 5.5 );	//fluidSmokeExpl_ring_mvm  explosionTrail_seeds_mvm
+	
+	ForcePlayerSuicide( client );
+	EmitGameSoundToAll("MVM.SentryBusterExplode", client, SND_NOFLAGS, client, flExplosionPos);
+	CreateTimer(0.05, Timer_RemoveBody, client, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 bool CanSeeTarget(int iEntity,int iOther, float flMaxDistance = 0.0 )

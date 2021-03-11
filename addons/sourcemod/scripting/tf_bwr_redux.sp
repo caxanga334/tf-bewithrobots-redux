@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.1.1"
+#define PLUGIN_VERSION "1.1.2"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -41,7 +41,9 @@ TFClassType p_BotClass[MAXPLAYERS + 1]; // Robot class
 bool p_bInSpawn[MAXPLAYERS + 1]; // Local cache to know if a player is in spawn
 bool p_bIsGatebot[MAXPLAYERS + 1]; // Is the player a gatebot
 bool p_bIsReloadingBarrage[MAXPLAYERS + 1]; // Is loading a barrage?
+bool p_bIsBusterDetonating[MAXPLAYERS + 1]; // Is the sentry buster detonating?
 float p_flProtTime[MAXPLAYERS + 1]; // Spawn protection timer
+float p_flBusterTimer[MAXPLAYERS + 1]; // Sentry Buster detonation control timer
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
@@ -220,6 +222,16 @@ methodmap RoboPlayer
 		public get() { return p_flProtTime[this.index]; }
 		public set( float value ) { p_flProtTime[this.index] = value; }
 	}
+	property float BusterTime
+	{
+		public get() { return p_flBusterTimer[this.index]; }
+		public set( float value ) { p_flBusterTimer[this.index] = value; }
+	}
+	property float DeployTime
+	{
+		public get() { return g_flBombDeployTime[this.index]; }
+		public set( float value ) { g_flBombDeployTime[this.index] = value; }
+	}
 	property TFClassType Class
 	{
 		public get()	{ return p_BotClass[this.index]; }
@@ -249,6 +261,11 @@ methodmap RoboPlayer
 	{
 		public get() { return g_bIsDeploying[this.index]; }
 		public set( bool value ) { g_bIsDeploying[this.index] = value; }
+	}
+	property bool Detonating
+	{
+		public get() { return p_bIsBusterDetonating[this.index]; }
+		public set( bool value ) { p_bIsBusterDetonating[this.index] = value; }
 	}
 	public void MiniBoss(bool value)
 	{
@@ -917,20 +934,27 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		
 		if(rp.Type == Bot_Buster)
 		{
-			if(g_flBusterVisionTimer < GetGameTime())
+			if(rp.Detonating) // Sentry Buster is detonating.
 			{
-				g_flBusterVisionTimer = GetGameTime() + 6.0;
-				//PrintToConsole(client, "Calling BusterWallhack %.1f", g_flBusterVisionTimer);
-				BusterWallhack(client);
-			}
-		
-			if(buttons & IN_ATTACK && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1 && !rp.InSpawn) // Allows sentry busters to detonate by pressing M1
-			{
-				buttons &= ~IN_ATTACK;
-				if( !(TF2_IsPlayerInCondition(client, TFCond_Taunting)) )
+				if(rp.BusterTime <= GetGameTime())
 				{
-					FakeClientCommand(client, "taunt");
-					return Plugin_Continue;
+					SentryBuster_CreateExplosion(client);
+				}
+			}
+			else
+			{
+				if(g_flBusterVisionTimer <= GetGameTime())
+				{
+					g_flBusterVisionTimer = GetGameTime() + 6.0;
+					//PrintToConsole(client, "Calling BusterWallhack %.1f", g_flBusterVisionTimer);
+					BusterWallhack(client);
+				}
+			
+				if(buttons & IN_ATTACK && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1 && !rp.InSpawn) // Allows sentry busters to detonate by pressing M1
+				{
+					buttons &= ~IN_ATTACK;
+					SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.5);
+					SentryBuster_Explode(client);
 				}
 			}
 		}
@@ -940,7 +964,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			// Bomb deploy
 			if( g_bIsDeploying[client] )
 			{
-				if( g_flBombDeployTime[client] <= GetGameTime() )
+				if( rp.DeployTime <= GetGameTime() )
 				{
 					char strPlrName[MAX_NAME_LENGTH];
 					GetClientName(client, strPlrName, sizeof(strPlrName));
@@ -1097,8 +1121,8 @@ public Action OnTouchCaptureZone(int entity, int other)
 		SetVariantInt(1);
 		AcceptEntityInput(other, "SetForcedTauntCam");
 		RequestFrame(DisableAnim, GetClientUserId(other));
-		g_bIsDeploying[other] = true;
-		g_flBombDeployTime[other] = GetGameTime() + flConVarTime;
+		rp.Deploying = true;
+		rp.DeployTime = GetGameTime() + flConVarTime;
 		if( rp.Type == Bot_Giant || rp.Type == Bot_Boss )
 			EmitGameSoundToAll("MVM.DeployBombGiant", other, SND_NOFLAGS, other, CarrierPos);
 		else
@@ -1133,8 +1157,8 @@ public Action OnEndTouchCaptureZone(int entity, int other)
 		AcceptEntityInput(other, "SetForcedTauntCam");
 		SetEntProp(other, Prop_Send, "m_bUseClassAnimations", 1);
 		TF2_RemoveCondition(other, TFCond_FreezeInput);
-		g_bIsDeploying[other] = false;
-		g_flBombDeployTime[other] = -1.0;
+		rp.Deploying = false;
+		rp.DeployTime = -1.0;
 	}
 	
 	return Plugin_Continue;
@@ -2343,17 +2367,21 @@ public Action Listener_Taunt(int client, const char[] command, int argc)
 
 	if( IsFakeClient(client) )
 		return Plugin_Continue;
+		
+	RoboPlayer rp = RoboPlayer(client);
 	
 	if( TF2_GetClientTeam(client) == TFTeam_Blue )
 	{
-		if( p_bInSpawn[client] == true ) // Block taunts while inside spawn
+		if(rp.InSpawn) // Block taunts while inside spawn
 			return Plugin_Handled;
 		
-		if( p_iBotType[client] == Bot_Buster )
+		if(rp.Type == Bot_Buster)
 		{
-			SentryBuster_Explode(client);
+			if(!rp.Detonating)
+			{
+				SentryBuster_Explode(client);
+			}
 		}
-		return Plugin_Continue;
 	}
 	
 	return Plugin_Continue;
@@ -2788,6 +2816,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	UpdateClassArray();
 	CheckTeams();
 	g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
+	g_iBusterIndex = -1;
 	ResetRobotMenuCooldown();
 	Boss_LoadWaveConfig();
 	SetBLURespawnWaveTime(2.0);
@@ -2933,9 +2962,13 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		RequestFrame(FrameBLUBackstabbed, pack);
 	}
 	
+	RoboPlayer rp = RoboPlayer(client);
+	
 	if(clientteam == TFTeam_Blue && !IsFakeClient(client))
 	{
-		p_bIsGatebot[client] = false;
+		rp.Gatebot = false;
+		rp.Detonating = false;
+		rp.BusterTime = -1.0;
 	
 		if( client == Boss_GetClient() )
 		{
@@ -2957,21 +2990,23 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		}
 		SetEntProp(client, Prop_Send, "m_bIsMiniBoss", 0);
 		SetEntProp(client, Prop_Send, "m_bUseBossHealthBar", 0);
-		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss )
+		
+		switch(rp.Type)
 		{
-			float SndPos[3];
-			GetClientAbsOrigin(client, SndPos);
-			EmitGameSoundToAll("MVM.GiantHeavyExplodes", client, SND_NOFLAGS, client, SndPos);
-			float clientPosVec[3];
-			GetClientAbsOrigin(client, clientPosVec);
-			Robot_GibGiant(client, clientPosVec);
+			case Bot_Giant, Bot_Boss:
+			{
+				float clientPosVec[3];
+				GetClientAbsOrigin(client, clientPosVec);
+				EmitGameSoundToAll("MVM.GiantHeavyExplodes", client, SND_NOFLAGS, client, clientPosVec);
+				Robot_GibGiant(client, clientPosVec);
+			}
 		}
 		
 		CreateTimer(c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client);
 		CreateTimer(1.0, Timer_PickRandomRobot, client);
 		StopRobotLoopSound(client);
 	}
-	
+
 	SpyDisguiseClear(client);
 	
 	return Plugin_Continue;
@@ -3047,8 +3082,8 @@ public Action E_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast
 		if( !IsFakeClient(client) )
 		{
 			rp.Carrier = false;
-			g_bIsDeploying[client] = false;
-			g_flBombDeployTime[client] = -1.0;
+			rp.Deploying = false;
+			rp.DeployTime = -1.0;
 		}
 	}
 }
@@ -3100,19 +3135,17 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 	if( !IsValidClient(client) )
 		return Plugin_Stop;
 		
-	TFClassType TFClass = TF2_GetPlayerClass(client);
+	TFClassType TFClass = p_BotClass[client];
 	char strBotName[255], strBotDesc[255];
 	int iTeleTarget = -1;
 	RoboPlayer rp = RoboPlayer(client);
 		
 	if( TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client) )
 	{
-#if defined DEBUG_PLAYER
-		if(TFClass != p_BotClass[client])
+		if(TF2_GetPlayerClass(client) != rp.Class)
 		{
-			LogError("ERROR: Player class is not the same as selected variant class! TFClass %i p_BotClass %i p_iBotVariant %i \"%L\"", view_as<int>(TFClass), view_as<int>(p_BotClass[client]), p_iBotVariant[client], client);
+			TF2_SetPlayerClass(client, rp.Class, _, true);
 		}
-#endif
 	
 		rp.Carrier = false;
 		rp.ReloadingBarrage = false;
@@ -3498,43 +3531,6 @@ public Action Timer_OnTeleporterFinished(Handle timer, any index)
 	return Plugin_Continue;
 }
 
-public Action Timer_SentryBuster_Explode(Handle timer, any client)
-{
-	if( !IsValidClient(client) || !IsPlayerAlive(client) || p_iBotType[client] != Bot_Buster || IsFakeClient(client) )
-		return Plugin_Stop;
-	
-	float flExplosionPos[3];
-	GetClientAbsOrigin( client, flExplosionPos );
-	int iWeapon = GetFirstAvailableWeapon(client);
-	
-	if( GameRules_GetRoundState() == RoundState_RoundRunning )
-	{
-		int i;
-		for( i = 1; i <= MaxClients; i++ )
-			if( i != client && IsValidClient(i) && IsPlayerAlive(i) )
-				if( CanSeeTarget( client, i, 320.0 ) )
-					DealDamage(i, client, client, 10000.0, DMG_BLAST, iWeapon);
-		
-		char strObjects[5][] = { "obj_sentrygun","obj_dispenser","obj_teleporter","obj_teleporter_entrance","obj_teleporter_exit" };
-		for( int o = 0; o < sizeof(strObjects); o++ )
-		{
-			i = -1;
-			while( ( i = FindEntityByClassname( i, strObjects[o] ) ) != -1 )
-				if( GetEntProp( i, Prop_Send, "m_iTeamNum" ) != view_as<int>(TFTeam_Blue) && !GetEntProp( i, Prop_Send, "m_bCarried" ) && !GetEntProp( i, Prop_Send, "m_bPlacing" ) )
-					if( CanSeeTarget( client, i, 320.0 ) )
-						DealDamage(i, client, client, 10000.0, DMG_BLAST, iWeapon);
-		}
-	}
-	
-	CreateParticle( flExplosionPos, "fluidSmokeExpl_ring_mvm", 6.5 );
-	CreateParticle( flExplosionPos, "explosionTrail_seeds_mvm", 5.5 );	//fluidSmokeExpl_ring_mvm  explosionTrail_seeds_mvm
-	
-	ForcePlayerSuicide( client );
-	EmitGameSoundToAll("MVM.SentryBusterExplode", client, SND_NOFLAGS, client, flExplosionPos);
-	
-	return Plugin_Stop;
-}
-
 public Action Timer_DeleteParticle(Handle timer, any iEntRef)
 {
 	int iParticle = EntRefToEntIndex( iEntRef );
@@ -3555,18 +3551,14 @@ public Action Timer_DeleteParticle(Handle timer, any iEntRef)
 
 public Action Timer_RemoveBody(Handle timer, any client)
 {
-	if( IsFakeClient(client) )
+	if(IsFakeClient(client))
 		return Plugin_Stop;
 
-	//Declare:
-	int BodyRagdoll;
+	int ragdoll;
+	ragdoll = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
 
-	//Initialize:
-	BodyRagdoll = GetEntPropEnt(client, Prop_Send, "m_hRagdoll");
-
-	//Remove:
-	if(IsValidEdict(BodyRagdoll)) 
-		RemoveEdict(BodyRagdoll);
+	if(IsValidEntity(ragdoll)) 
+		RemoveEntity(ragdoll);
 		
 	return Plugin_Stop;
 }
@@ -3864,7 +3856,7 @@ void PickRandomRobot(int client)
 		}
 	
 		// Check cooldown, spawn conditions and permission
-		if( CheckCommandAccess(client, "bwrr_sentrybuster", 0) && GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() )
+		if( CheckCommandAccess(client, "bwrr_sentrybuster", 0) && GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster() && g_iBusterIndex == -1 )
 		{
 			rp.Class = TFClass_DemoMan;
 			rp.Variant = 0;
@@ -4467,6 +4459,7 @@ void ResetRobotData(int client, bool bStrip = false)
 	p_iBotAttrib[client] = 0;
 	p_BotClass[client] = TFClass_Unknown;
 	p_bInSpawn[client] = false;
+	p_bIsBusterDetonating[client] = false;
 	g_bIsCarrier[client] = false;
 	p_bIsGatebot[client] = false;
 	g_bUpgradeStation[client] = false;
@@ -4475,6 +4468,7 @@ void ResetRobotData(int client, bool bStrip = false)
 	g_bIsDeploying[client] = false;
 	g_flBombDeployTime[client] = 0.0;
 	p_flProtTime[client] = 0.0;
+	p_flBusterTimer[client] = 0.0;
 	if( bStrip )
 		StripWeapons(client);
 }
