@@ -3552,6 +3552,9 @@ public Action Timer_DeleteParticle(Handle timer, any iEntRef)
 
 public Action Timer_RemoveBody(Handle timer, any client)
 {
+	if(!IsClientInGame(client))
+		reutnr Plugin_Stop;
+
 	if(IsFakeClient(client))
 		return Plugin_Stop;
 
