@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.1.2"
+#define PLUGIN_VERSION "1.1.3"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -3553,7 +3553,7 @@ public Action Timer_DeleteParticle(Handle timer, any iEntRef)
 public Action Timer_RemoveBody(Handle timer, any client)
 {
 	if(!IsClientInGame(client))
-		reutnr Plugin_Stop;
+		return Plugin_Stop;
 
 	if(IsFakeClient(client))
 		return Plugin_Stop;
