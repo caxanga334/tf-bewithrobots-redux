@@ -3163,7 +3163,8 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}
 		}
 		
-		if( TFClass == TFClass_Spy && p_iBotAttrib[client] & BotAttrib_AutoDisguise )
+		// Automatically disguise spy with 'AutoDisguise' attribute.
+		if( TFClass == TFClass_Spy && rp.Attributes & BotAttrib_AutoDisguise )
 		{
 			int iTarget = GetRandomPlayer(TFTeam_Red, false);
 			if( iTarget >= 1 && iTarget <= MaxClients )
@@ -3172,27 +3173,60 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}
 		}
 		
-		// TO DO: pyro's gas passer and phlog
+		// Set full charge on the player
 		if(rp.Attributes & BotAttrib_FullCharge)
 		{
-			if( TFClass == TFClass_Medic )
+			switch(TFClass)
 			{
-				SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 ); // Medigun's Shield
-				int iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary);
-				if( IsValidEdict( iWeapon ) )
-					SetEntPropFloat( iWeapon, Prop_Send, "m_flChargeLevel", 1.0 );
+				case TFClass_Scout:
+				{
+					SetEntPropFloat( client, Prop_Send, "m_flHypeMeter", 100.0 );
+				}
+				case TFClass_Medic:
+				{
+					SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 ); // Medigun's Shield
+					int iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary);
+					if(IsValidEntity( iWeapon ))
+						SetEntPropFloat( iWeapon, Prop_Send, "m_flChargeLevel", 1.0 );				
+				}
+				case TFClass_Heavy: // Heavy with knockback rage attribute
+				{
+					SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
+				}
+				case TFClass_Soldier: // Soldier's banner
+				{
+					SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
+					SetEntProp( client, Prop_Send, "m_iDecapitations", 10 ); // Airstrike
+				}
+				case TFClass_DemoMan: // Eyelander
+				{
+					SetEntProp( client, Prop_Send, "m_iDecapitations", 5 );
+				}
+				case TFClass_Engineer: // Frontier Justice
+				{
+					SetEntProp( client, Prop_Send, "m_iRevengeCrits", 35 );
+				}
+				case TFClass_Pyro: // Phlogistinator
+				{
+					SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
+				}
+				case TFClass_Sniper: // Hitman's Headtaker
+				{
+					SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
+					SetEntProp( client, Prop_Send, "m_iDecapitations", 10 ); // Bazaar Bargain
+				}
+				case TFClass_Spy: // Diamond Back
+				{
+					SetEntProp( client, Prop_Send, "m_iRevengeCrits", 35 );
+				}
 			}
-			else if( TFClass == TFClass_Soldier )
-			{
-				SetEntPropFloat( client, Prop_Send, "m_flRageMeter", 100.0 );
-			}			
 		}
 
 		if(rp.Attributes & BotAttrib_CannotCarryBomb)
 		{
 			BlockBombPickup(client);
 		}
-		else if(GameRules_GetRoundState() == RoundState_RoundRunning && !rp.Gatebot)
+		else if(GameRules_GetRoundState() == RoundState_RoundRunning && !rp.Gatebot && TFClass != TFClass_Spy)
 		{
 			RequestFrame(FrameCheckFlagForPickUp, GetClientUserId(client));
 		}
@@ -3203,7 +3237,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 		}
 		
-		switch( rp.Type )
+		switch(rp.Type)
 		{
 			case Bot_Giant:
 			{
@@ -3251,7 +3285,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}
 		}
 		
-		if( rp.Gatebot && (rp.Type != Bot_Buster || rp.Type != Bot_Boss) )
+		if(rp.Gatebot && (rp.Type != Bot_Buster || rp.Type != Bot_Boss))
 		{
 			Format(strBotName, sizeof(strBotName), "Gatebot %s", strBotName); // add Gatebot prefix to robot name
 			GiveGatebotHat(client, TFClass);
@@ -3264,9 +3298,9 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		SetRobotModel(client,TFClass);
 		
 		// teleport player
-		if( GameRules_GetRoundState() == RoundState_RoundRunning && !IsGateStunActive() )
+		if(GameRules_GetRoundState() == RoundState_RoundRunning && !IsGateStunActive())
 		{
-			switch( TFClass )
+			switch(TFClass)
 			{
 				case TFClass_Spy: // spies should always spawn near RED players
 				{
@@ -3277,17 +3311,17 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				case TFClass_Engineer:
 				{
 					iTeleTarget = FindBestBluTeleporter();
-					if( iTeleTarget != -1 ) // first search for teleporter
+					if(iTeleTarget != -1) // first search for teleporter
 					{
 						SpawnOnTeleporter(iTeleTarget,client);						
 					}
 					else // no teleporter found
 					{
-						if( (p_iBotAttrib[client] & BotAttrib_TeleportToHint) ) // Check if we should teleport this engineer
+						if(rp.Attributes & BotAttrib_TeleportToHint) // Check if we should teleport this engineer
 						{
-							if( FindEngineerNestNearBomb(client) ) // Returns true if a valid teleport position was found
+							if(FindEngineerNestNearBomb(client)) // Returns true if a valid teleport position was found
 							{
-								if( GetClassCount(TFClass_Engineer, TFTeam_Blue, true, false) > 1 )
+								if(GetClassCount(TFClass_Engineer, TFTeam_Blue, true, false) > 1)
 								{
 									EmitGSToRed("Announcer.MVM_Another_Engineer_Teleport_Spawned");
 								}
@@ -3306,9 +3340,9 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				default: // other classes
 				{
 					iTeleTarget = FindBestBluTeleporter();
-					if( iTeleTarget != -1 ) // found teleporter
+					if(iTeleTarget != -1) // found teleporter
 					{
-						SpawnOnTeleporter(iTeleTarget,client);
+						SpawnOnTeleporter(iTeleTarget, client);
 					}
 					else
 					{
