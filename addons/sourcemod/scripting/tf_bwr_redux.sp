@@ -82,6 +82,7 @@ float g_flGateStunTime;
 
 int g_iLaserSprite;
 int g_iHaloSprite;
+bool g_bPluginError; // Allows the plugin to soft fail
 
 // convars
 ConVar c_PluginVersion; // Plugin version
@@ -421,6 +422,7 @@ public void OnPluginStart()
 	// SDK calls
 	
 	Handle hConf = LoadGameConfigFile("tf2.bwrr");
+	bool sigfailure;
 	
 	if( hConf == null ) LogError("Failed to load gamedata file tf2.bwrr.txt");
 	
@@ -428,7 +430,7 @@ public void OnPluginStart()
 	StartPrepSDKCall(SDKCall_Player);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFPlayer::PlaySpecificSequence");
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//Sequence name
-	if ((g_hSDKPlaySpecificSequence = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CTFPlayer::PlaySpecificSequence signature!");
+	if ((g_hSDKPlaySpecificSequence = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFPlayer::PlaySpecificSequence signature!"); sigfailure = true; }
 	
 	//This call will play a particle effect
 	StartPrepSDKCall(SDKCall_Static);
@@ -438,43 +440,43 @@ public void OnPluginStart()
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);	//pEntity
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//pszAttachmentName
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//bResetAllParticlesOnEntity 
-	if ((g_hSDKDispatchParticleEffect = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for DispatchParticleEffect signature!");
+	if ((g_hSDKDispatchParticleEffect = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for DispatchParticleEffect signature!"); sigfailure = true; }
 	
 	// This allows us to check if a vector is within a cbasetrigger entity
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CBaseTrigger::PointIsWithin");
 	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Plain);
 	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
-	if ((g_hSDKPointIsWithin = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CBaseTrigger::PointIsWithin signature!");
+	if ((g_hSDKPointIsWithin = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CBaseTrigger::PointIsWithin signature!"); sigfailure = true; }
 	
 	//This call is used to remove an objects owner
 	StartPrepSDKCall(SDKCall_Player);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFPlayer::RemoveObject");
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);	//CBaseObject
-	if ((g_hSDKRemoveObject = EndPrepSDKCall()) == null) SetFailState("Failed To create SDKCall for CTFPlayer::RemoveObject signature!");
+	if ((g_hSDKRemoveObject = EndPrepSDKCall()) == null) { LogError("Failed To create SDKCall for CTFPlayer::RemoveObject signature!"); sigfailure = true; }
 	
 	// Used to get an entity center
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CBaseEntity::WorldSpaceCenter");
 	PrepSDKCall_SetReturnInfo(SDKType_Vector, SDKPass_ByRef);
-	if ((g_hSDKWorldSpaceCenter = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CBaseEntity::WorldSpaceCenter offset!");
+	if ((g_hSDKWorldSpaceCenter = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CBaseEntity::WorldSpaceCenter offset!"); sigfailure = true; }
 	
 	// Used to check if the bomb is at home
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CCaptureFlag::IsHome");
 	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_ByValue);
-	if((g_hSDKIsFlagHome = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CCaptureFlag::IsHome signature!");
+	if((g_hSDKIsFlagHome = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CCaptureFlag::IsHome signature!"); sigfailure = true; }
 	
 	//This call forces a player to pickup the intel
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CCaptureFlag::PickUp");
 	PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_Pointer);	//CCaptureFlag
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//silent pickup? or maybe it doesnt exist im not sure.
-	if ((g_hSDKPickupFlag = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CCaptureFlag::PickUp offset!");
+	if ((g_hSDKPickupFlag = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CCaptureFlag::PickUp offset!"); sigfailure = true; }
 	
 	// Used to allow humans to capture gates
 	int iOffset = GameConfGetOffset(hConf, "CFilterTFBotHasTag::PassesFilterImpl");	
-	if(iOffset == -1) SetFailState("Failed to get offset of CFilterTFBotHasTag::PassesFilterImpl");
+	if(iOffset == -1) { LogError("Failed to get offset of CFilterTFBotHasTag::PassesFilterImpl"); sigfailure = true; }
 	g_hCFilterTFBotHasTag = DHookCreate(iOffset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, CFilterTFBotHasTag);
 	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index of the entity using the filter
 	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index that triggered the filter
@@ -483,13 +485,13 @@ public void OnPluginStart()
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CTFWeaponBase::GetMaxClip1");
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Clip
-	if ((g_hSDKGetMaxClip = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CTFWeaponBase::GetMaxClip1 offset!");
+	if ((g_hSDKGetMaxClip = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFWeaponBase::GetMaxClip1 offset!"); sigfailure = true; }
 	
 	//This call gets clip 1 of a weapon
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CTFWeaponBase::Clip1");
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Clip
-	if ((g_hSDKGetClip = EndPrepSDKCall()) == null) SetFailState("Failed to create SDKCall for CTFWeaponBase::GetMaxClip1 offset!");
+	if ((g_hSDKGetClip = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFWeaponBase::GetMaxClip1 offset!"); sigfailure = true; }
 	
 	//CTFBot::GetEventChangeAttributes
 	g_hGetEventChangeAttributes = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
@@ -497,7 +499,8 @@ public void OnPluginStart()
 	
 	if (!DHookSetFromConf(g_hGetEventChangeAttributes, hConf, SDKConf_Signature, "CTFBot::GetEventChangeAttributes"))
 	{
-		SetFailState("Failed to load CTFBot::GetEventChangeAttributes signature from gamedata");
+		LogError("Failed to load CTFBot::GetEventChangeAttributes signature from gamedata");
+		sigfailure = true;
 	}
 	
 	// HookParamType_Unknown
@@ -507,6 +510,12 @@ public void OnPluginStart()
 	if (!DHookEnableDetour(g_hGetEventChangeAttributes, true, CTFBot_GetEventChangeAttributes_Post)) SetFailState("Failed to detour CTFBot::GetEventChangeAttributes_Post.");
 	
 	delete hConf;
+	
+	if(sigfailure) SetFailState("One or more signatures failed!");
+	
+#if defined DEBUG_GENERAL
+	LogMessage("Finished loading signatures.");
+#endif
 	
 	RT_InitArrays();
 	Config_Init();
@@ -565,6 +574,8 @@ public void OnConfigsExecuted()
 
 public void OnMapStart()
 {
+	g_bPluginError = false;
+
 	if(!IsMvM(true))
 	{
 		SetFailState("This plugin is for Mann vs Machine Only."); // probably easier than add IsMvM everywhere
@@ -1386,6 +1397,12 @@ public Action Command_JoinBLU( int client, int nArgs )
 		
 	if( GameRules_GetRoundState() == RoundState_TeamWin )
 		return Plugin_Handled;
+		
+	if(g_bPluginError)
+	{
+		ReplyToCommand(client, "[BWRR] The plugin has been disabled due to an error. Please contact the server administrator.");
+		return Plugin_Handled;
+	}
 		
 	if( !CheckCommandAccess(client, "bwrr_joinblue", 0) )
 	{

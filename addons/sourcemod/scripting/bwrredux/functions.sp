@@ -1298,7 +1298,9 @@ void Config_LoadMap()
 
 	if(!FileExists(configfile))
 	{
-		SetFailState("Map \"%s\" configuration not found. \"%s\"", mapname, configfile);
+		g_bPluginError = true;
+		LogError("Map \"%s\" configuration not found. \"%s\"", mapname, configfile);
+		return;
 	}
 	
 #if defined DEBUG_GENERAL
