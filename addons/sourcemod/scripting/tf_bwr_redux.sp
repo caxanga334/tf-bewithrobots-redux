@@ -164,16 +164,16 @@ enum
 enum
 {
 	BotAttrib_None = 0,
-	BotAttrib_AlwaysCrits = 1, // 100% crit chance
-	BotAttrib_FullCharge = 2, // spawns with full charge (medic, soldier buff)
-	BotAttrib_InfiniteCloak = 4, // Spies never run out of cloak
-	BotAttrib_AutoDisguise = 8, // Automatically give a disguise to the spy
-	BotAttrib_AlwaysMiniCrits = 16, // 100% minicrit chance
-	BotAttrib_TeleportToHint = 32, // teleport engineers to a nest near the bomb.
-	BotAttrib_CannotCarryBomb = 64, // Blocks players from carrying the bomb
-	BotAttrib_CannotBuildTele = 128, // disallow engineers to build teleporters
-	BotAttrib_HoldFireFullReload = 256, // Waits until the weapon is fully loaded to fire again
-	BotAttrib_AlwaysFireWeapon = 512, // Always fire weapon
+	BotAttrib_AlwaysCrits = (1 << 0), // 100% crit chance
+	BotAttrib_FullCharge = (1 << 1), // spawns with full charge (medic, soldier buff)
+	BotAttrib_InfiniteCloak = (1 << 2), // Spies never run out of cloak
+	BotAttrib_AutoDisguise = (1 << 3), // Automatically give a disguise to the spy
+	BotAttrib_AlwaysMiniCrits = (1 << 4), // 100% minicrit chance
+	BotAttrib_TeleportToHint = (1 << 5), // teleport engineers to a nest near the bomb.
+	BotAttrib_CannotCarryBomb = (1 << 6), // Blocks players from carrying the bomb
+	BotAttrib_CannotBuildTele = (1 << 7), // disallow engineers to build teleporters
+	BotAttrib_HoldFireFullReload = (1 << 8), // Waits until the weapon is fully loaded to fire again
+	BotAttrib_AlwaysFireWeapon = (1 << 9), // Always fire weapon
 };
 
 enum struct eDisguisedStruct
@@ -3166,7 +3166,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		// Automatically disguise spy with 'AutoDisguise' attribute.
 		if( TFClass == TFClass_Spy && rp.Attributes & BotAttrib_AutoDisguise )
 		{
-			int iTarget = GetRandomPlayer(TFTeam_Red, false);
+			int iTarget = GetRandomClientFromTeam(view_as<int>(TFTeam_Red), false);
 			if( iTarget >= 1 && iTarget <= MaxClients )
 			{
 				TF2_DisguisePlayer(client, TFTeam_Red, TF2_GetPlayerClass(iTarget), iTarget);
@@ -3226,7 +3226,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		{
 			BlockBombPickup(client);
 		}
-		else if(GameRules_GetRoundState() == RoundState_RoundRunning && !rp.Gatebot && TFClass != TFClass_Spy)
+		else if(GameRules_GetRoundState() == RoundState_RoundRunning && !rp.Gatebot && (TFClass != TFClass_Spy || TFClass != TFClass_Engineer)) // Don't give the bomb on spawn for gatebots, spies and engineers.
 		{
 			RequestFrame(FrameCheckFlagForPickUp, GetClientUserId(client));
 		}
@@ -4127,9 +4127,10 @@ void SetRobotOnPlayer(int client, int iVariant, int type, TFClassType TFClass)
 		}
 	}
 
-	p_iBotType[client] = type;
-	p_iBotVariant[client] = iVariant;
-	p_BotClass[client] = TFClass;
+	RoboPlayer rp = RoboPlayer(client);
+	rp.Type = type;
+	rp.Variant = iVariant;
+	rp.Class = TFClass;
 
 	if(type == Bot_Giant)
 		SetGiantVariantExtras(client, TFClass, iVariant);
@@ -4285,7 +4286,8 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 // Set attributes on the robots.
 void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
-	p_iBotAttrib[client] = 0;
+	RoboPlayer rp = RoboPlayer(client);
+	rp.Attributes = 0;
 	
 	if(iVariant < 0)
 	{
@@ -4293,47 +4295,48 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 		{
 			case TFClass_Soldier:
 			{
-				p_iBotAttrib[client] |= BotAttrib_FullCharge;
+				rp.Attributes |= BotAttrib_FullCharge;
 			}
 			case TFClass_Sniper:
 			{
-				p_iBotAttrib[client] |= BotAttrib_CannotCarryBomb;
+				rp.Attributes |= BotAttrib_CannotCarryBomb;
 			}
 			case TFClass_Engineer:
 			{
-				p_iBotAttrib[client] |= (BotAttrib_CannotCarryBomb|BotAttrib_TeleportToHint);
+				rp.Attributes |= (BotAttrib_CannotCarryBomb|BotAttrib_TeleportToHint);
 			}
 			case TFClass_Medic:
 			{
-				p_iBotAttrib[client] |= (BotAttrib_CannotCarryBomb|BotAttrib_FullCharge);
+				rp.Attributes |= (BotAttrib_CannotCarryBomb|BotAttrib_FullCharge);
 			}
 			case TFClass_Spy:
 			{
-				p_iBotAttrib[client] |= (BotAttrib_CannotCarryBomb|BotAttrib_AutoDisguise);
+				rp.Attributes |= (BotAttrib_CannotCarryBomb|BotAttrib_AutoDisguise);
 			}
 			default:
 			{
-				p_iBotAttrib[client] = 0;
+				rp.Attributes = 0;
 			}
 		}
-		p_iBotType[client] = Bot_Normal;
+		rp.Attributes = Bot_Normal;
 		return;
 	}
 
 	int iRobotType = RT_GetType(TFClass, iVariant, 0);
-	p_iBotAttrib[client] = RT_GetAttributesBits(TFClass, iVariant, 0);
+	rp.Attributes = RT_GetAttributesBits(TFClass, iVariant, 0);
 	
 	if(iRobotType < 0)
 		iRobotType = 0;
 	else if(iRobotType >= Bot_Giant)
 		iRobotType = 0;
 		
-	p_iBotType[client] = iRobotType;
+	rp.Type = iRobotType;
 }
 
 void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
-	p_iBotAttrib[client] = 0;
+	RoboPlayer rp = RoboPlayer(client);
+	rp.Attributes = 0;
 
 	if(iVariant < 0)
 	{
@@ -4341,34 +4344,34 @@ void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 		{
 			case TFClass_Soldier:
 			{
-				p_iBotAttrib[client] |= BotAttrib_FullCharge;
+				rp.Attributes |= BotAttrib_FullCharge;
 			}
 			case TFClass_Sniper:
 			{
-				p_iBotAttrib[client] |= BotAttrib_CannotCarryBomb;
+				rp.Attributes |= BotAttrib_CannotCarryBomb;
 			}
 			case TFClass_Engineer:
 			{
-				p_iBotAttrib[client] |= (BotAttrib_CannotCarryBomb|BotAttrib_TeleportToHint);
+				rp.Attributes |= (BotAttrib_CannotCarryBomb|BotAttrib_TeleportToHint);
 			}
 			case TFClass_Medic:
 			{
-				p_iBotAttrib[client] |= (BotAttrib_CannotCarryBomb|BotAttrib_FullCharge);
+				rp.Attributes |= (BotAttrib_CannotCarryBomb|BotAttrib_FullCharge);
 			}
 			case TFClass_Spy:
 			{
-				p_iBotAttrib[client] |= (BotAttrib_CannotCarryBomb|BotAttrib_AutoDisguise);
+				rp.Attributes |= (BotAttrib_CannotCarryBomb|BotAttrib_AutoDisguise);
 			}
 			default:
 			{
-				p_iBotAttrib[client] = 0;
+				rp.Attributes = 0;
 			}
 		}
-		p_iBotType[client] = Bot_Giant;
+		rp.Type = Bot_Giant;
 		return;
 	}
 
-	p_iBotAttrib[client] = RT_GetAttributesBits(TFClass, iVariant, 1);
+	rp.Attributes = RT_GetAttributesBits(TFClass, iVariant, 1);
 }
 
 // sets the player scale based on robot type
@@ -4377,91 +4380,96 @@ void SetRobotScale(int client, TFClassType TFClass)
 	if( IsFakeClient(client) )
 		return;
 
-	bool bSmallMap = IsSmallMap();
-	float flScale;
+	static const float minscale = 0.3;
+	static const float maxscale_normal = 2.0;
+	static const float maxscale_small = 1.2;
+	bool smallmap = IsSmallMap();
+	float scale = -1.0;
+	RoboPlayer rp = RoboPlayer(client);
 	
-	// Check if a custom scale is set in the template files
-	if( !bSmallMap && p_iBotVariant[client] >= 0 ) // not a small map
+	if(rp.Variant >= 0)
 	{
-		switch( p_iBotType[client] )
+		switch(rp.Type)
 		{
 			case Bot_Boss:
 			{
-				flScale = Boss_GetScale();
-				if( flScale > 0.3 && flScale < 2.0) // limit custom scale between 0.3 and 2.0
-				{
-					ScalePlayerModel(client, flScale);
-					return;
-				}
+				scale = Boss_GetScale();
 			}
 			case Bot_Giant:
 			{
-				flScale = RT_GetScale(TFClass, p_iBotVariant[client], 1);
-				if( flScale > 0.3 && flScale < 2.0) // limit custom scale between 0.3 and 2.0
-				{
-					ScalePlayerModel(client, flScale);
-					return;
-				}
+				scale = RT_GetScale(TFClass, rp.Variant, 1);
 			}
-			case Bot_Big, Bot_Small, Bot_Normal:
+			case Bot_Buster:
 			{
-				flScale = RT_GetScale(TFClass, p_iBotVariant[client], 0);
-				if( flScale > 0.3 && flScale < 2.0) // limit custom scale between 0.3 and 2.0
-				{
-					ScalePlayerModel(client, flScale);
-					return;
-				}
+				scale = 1.75; // Fixed value
+			}
+			default:
+			{
+				scale = RT_GetScale(TFClass, rp.Variant, 0);
 			}
 		}
 	}
 	
-	if( bSmallMap )
+	// Check if scale is in bounds.
+	if(scale >= minscale && scale <= (smallmap ? maxscale_small : maxscale_normal))
 	{
-		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Boss || p_iBotType[client] == Bot_Buster )
+		ScalePlayerModel(client, scale);
+		return;
+	}
+	
+	// Apply default scale
+	if(smallmap)
+	{
+		switch(rp.Type)
 		{
-			ScalePlayerModel(client, 1.20);
-		}
-		else if( p_iBotType[client] == Bot_Big )
-		{
-			ScalePlayerModel(client, 1.10);
-		}
-		else if( p_iBotType[client] == Bot_Small )
-		{
-			ScalePlayerModel(client, 0.65);
-		}
-		else
-		{
-			ScalePlayerModel(client, 1.00);
+			case Bot_Boss, Bot_Giant, Bot_Buster:
+			{
+				ScalePlayerModel(client, 1.2);
+			}
+			case Bot_Big:
+			{
+				ScalePlayerModel(client, 1.1);
+			}
+			case Bot_Small:
+			{
+				ScalePlayerModel(client, 0.65);
+			}
+			default:
+			{
+				ScalePlayerModel(client, 1.0);
+			}
 		}
 	}
 	else
 	{
-		if( p_iBotType[client] == Bot_Giant || p_iBotType[client] == Bot_Buster )
+		switch(rp.Type)
 		{
-			ScalePlayerModel(client, 1.75);
-		}
-		else if( p_iBotType[client] == Bot_Boss )
-		{
-			ScalePlayerModel(client, 1.90);
-		}
-		else if( p_iBotType[client] == Bot_Big )
-		{
-			switch( TFClass )
+			case Bot_Boss:
 			{
-				case TFClass_Scout: ScalePlayerModel(client, 1.4);
-				case TFClass_Heavy: ScalePlayerModel(client, 1.5);
-				case TFClass_DemoMan: ScalePlayerModel(client, 1.3);
-				default: ScalePlayerModel(client, 1.4);
+				ScalePlayerModel(client, 1.9);
 			}
-		}
-		else if( p_iBotType[client] == Bot_Small )
-		{
-			ScalePlayerModel(client, 0.65);
-		}
-		else
-		{
-			ScalePlayerModel(client, 1.00);
-		}
+			case Bot_Giant, Bot_Buster:
+			{
+				ScalePlayerModel(client, 1.75);
+			}
+			case Bot_Big:
+			{
+				switch(TFClass)
+				{
+					case TFClass_Heavy: ScalePlayerModel(client, 1.5);
+					case TFClass_DemoMan: ScalePlayerModel(client, 1.3);
+					default: ScalePlayerModel(client, 1.4);
+				}
+			}
+			case Bot_Small:
+			{
+				ScalePlayerModel(client, 0.65);
+			}
+			default:
+			{
+				ScalePlayerModel(client, 1.0);
+			}
+		}		
 	}
 }
 
@@ -4704,14 +4712,13 @@ void CheckTeams()
 	int iInBlu = GetHumanRobotCount();
 	int iInRed = GetTeamClientCount(2);
 	int iTarget;
-	bool bAutoBalance = c_bAutoTeamBalance.BoolValue;
 	// checks BLU player count
 	if( iInBlu > iMaxBlu && iInBlu > 0 )
 	{
 		int iOverLimit = iInBlu - iMaxBlu;
 		for( int i = 1; i <= iOverLimit; i++ )
 		{
-			iTarget = GetRandomBLUPlayer();
+			iTarget = GetRandomClientFromTeam(view_as<int>(TFTeam_Blue));
 			if( iTarget > 0 )
 			{
 				MovePlayerToRED(iTarget);
@@ -4720,7 +4727,7 @@ void CheckTeams()
 			}
 		}
 	}
-	if( bAutoBalance )
+	if(c_bAutoTeamBalance.BoolValue)
 	{
 		// if the number of players in RED is less than the minimum to join BLU
 		if( (iInRed + 1) < c_iMinRed.IntValue && iInBlu > 0 )
@@ -4731,7 +4738,7 @@ void CheckTeams()
 			
 			for( int i = 1; i <= iCount; i++ )
 			{
-				iTarget = GetRandomBLUPlayer();
+				iTarget = GetRandomClientFromTeam(view_as<int>(TFTeam_Blue));
 				if( iTarget > 0 )
 				{
 					MovePlayerToRED(iTarget);
@@ -4767,31 +4774,6 @@ void ApplyRobotLoopSound(int client)
 }
 
 // end wave spawn manager
-
-// selects a random player from the BLU queue
-int GetRandomBLUPlayer()
-{
-	int players_available[MAXPLAYERS+1];
-	int counter = 0; // counts how many valid players we have
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if(IsClientInGame(i) && !IsFakeClient(i))
-		{
-			if(TF2_GetClientTeam(i) == TFTeam_Blue)
-			{
-				players_available[counter] = i; // stores the client userid
-				counter++;				
-			}
-		}
-	}
-	
-	if(counter == 0)
-		return -1;
-	
-	int iRandom = Math_GetRandomInt(0,counter - 1); // get a random number between 0 and counted players
-	// now we get the user id from the array cell selected via iRandom
-	return players_available[iRandom];
-}
 
 // Allows all players to use sm_robotmenu again
 void ResetRobotMenuCooldown()

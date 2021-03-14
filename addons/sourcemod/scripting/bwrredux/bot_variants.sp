@@ -42,7 +42,7 @@ char g_BGDescription[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STR
 int g_BGWeaponIndex[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
 int g_BGBitsAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
-int g_BGType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+//int g_BGType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGCritChance[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BGScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BGCooldown[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
@@ -609,7 +609,7 @@ int RT_GetType(TFClassType TFClass, int templateindex, int type = 0)
 		{
 			if(templateindex <= g_nBotTemplate[TemplateType_Giant].numtemplates[iClass]) // stock
 			{
-				iRobotType = g_BGType[templateindex][iClass];
+				iRobotType = Bot_Giant; // g_BGType[templateindex][iClass];
 			}			
 		}
 	}
@@ -1117,7 +1117,7 @@ void RT_LoadCfgGiant()
 						KvGetString(kv, "name", g_BGTemplateName[iCounter][j], MAXLEN_CONFIG_STRING);
 						KvGetString(kv, "robotattributes", g_BGRobotAttribs[iCounter][j], MAXLEN_CONFIG_STRING);
 						g_BGHealth[iCounter][j] = kv.GetNum("health", 0);
-						g_BGType[iCounter][j] = kv.GetNum("type", 0);
+						//g_BGType[iCounter][j] = kv.GetNum("type", 0); // Not used by giant robots
 						g_BGScale[iCounter][j] = kv.GetFloat("scale", 0.0);
 						g_BGCooldown[iCounter][j] = kv.GetFloat("cooldown", 0.0);
 						g_BGCritChance[iCounter][j] = kv.GetNum("fullcritchance", 0);

@@ -48,23 +48,21 @@ stock int GetRandomClientFromTeam(const int iTeam, bool bBots = false)
 	int counter = 0;
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if( bBots )
-		{
-			if ( IsClientInGame(i) && GetClientTeam(i) == iTeam )
-			{
-				players_available[counter] = i;
-				counter++;
-			}			
-		}
-		else
-		{
-			if ( IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == iTeam )
-			{
-				players_available[counter] = i;
-				counter++;
-			}						
-		}
+		if(!IsClientInGame(i))
+			continue;
+			
+		if(!bBots && IsFakeClient(i))
+			continue;
+			
+		if(GetClientTeam(i) != iTeam)
+			continue;
+			
+		players_available[counter] = i;
+		counter++;
 	}
+	
+	if(counter == 0)
+		return -1;
 	
 	return players_available[Math_GetRandomInt(0,(counter-1))];
 }
@@ -94,40 +92,6 @@ stock int Math_GetRandomInt(int min, int max)
 stock bool Math_RandomChance(int chance)
 {
 	return Math_GetRandomInt(1, 100) <= chance;
-}
-
-// selects a random player from a team
-int GetRandomPlayer(TFTeam Team, bool bIncludeBots = false)
-{
-	int players_available[MAXPLAYERS+1];
-	int counter = 0; // counts how many valid players we have
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if(bIncludeBots)
-		{
-			if(IsClientInGame(i) && TF2_GetClientTeam(i) == Team)
-			{
-				players_available[counter] = i; // stores the client userid
-				counter++;
-			}			
-		}
-		else
-		{
-			if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == Team)
-			{
-				players_available[counter] = i; // stores the client userid
-				counter++;
-			}				
-		}
-
-	}
-	
-	if(counter == 0)
-		return -1;
-	
-	int iRandom = Math_GetRandomInt(0,counter - 1); // get a random number between 0 and counted players
-	// now we get the user id from the array cell selected via iRandom
-	return players_available[iRandom];
 }
 
 // IsMvM code by FlaminSarge
@@ -485,6 +449,7 @@ public void OnDestroyedTeleporter(const char[] output, int caller, int activator
 // Fires a bunch of tracers to check if there is enough space for robots (and giants) to spawn.
 // The player size can be found here: https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper's_Reference
 // Remember that giant's size is multiplied by 1.75 (some bosses uses 1.9).
+// To-do: Replace with TraceHull
 bool CheckTeleportClamping(int teleporter, int client)
 {
 	float VecTeleporter[3], RayEndPos[3];
@@ -494,7 +459,7 @@ bool CheckTeleportClamping(int teleporter, int client)
 	{0.0,45.0,0.0}, {0.0,135.0,0.0}, {0.0,225.0,0.0}, {0.0,315.0,0.0},};
 	// the minimum distances is not the same for each angle
 	//										1 								5										10		
-	static float flMinDists_Normal[13] = { 185.0 ,110.0 ,110.0 ,110.0 ,110.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0};
+	static float flMinDists_Normal[13] = { 180.0 ,110.0 ,110.0 ,110.0 ,110.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0};
 	static float flMinDists_Small[13] = { 120.0 ,80.0 ,80.0 ,80.0 ,80.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0};
 	float fldistance;
 	GetEntPropVector(teleporter, Prop_Send, "m_vecOrigin", VecTeleporter);
