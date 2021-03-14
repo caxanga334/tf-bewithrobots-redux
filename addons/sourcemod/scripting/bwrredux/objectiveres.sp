@@ -210,6 +210,9 @@ int OR_GetMaxWave()
 
 bool OR_IsGiantAvaiable()
 {
+	if(!c_bLimitClasses.BoolValue)
+		return true; // Always return true if limit is disabled.
+
 	if( g_iAvailableClasses & scout_giant || g_iAvailableClasses & soldier_giant || g_iAvailableClasses & pyro_giant
 	|| g_iAvailableClasses & demoman_giant || g_iAvailableClasses & heavy_giant || g_iAvailableClasses & engineer_giant
 	|| g_iAvailableClasses & medic_giant || g_iAvailableClasses & sniper_giant || g_iAvailableClasses & spy_giant )
@@ -222,6 +225,9 @@ bool OR_IsGiantAvaiable()
 
 bool OR_IsNormalAvaiable()
 {
+	if(!c_bLimitClasses.BoolValue)
+		return true; // Always returns true if limit is disabled.
+
 	if( g_iAvailableClasses & scout_normal || g_iAvailableClasses & soldier_normal || g_iAvailableClasses & pyro_normal
 	|| g_iAvailableClasses & demoman_normal || g_iAvailableClasses & heavy_normal || g_iAvailableClasses & engineer_normal
 	|| g_iAvailableClasses & medic_normal || g_iAvailableClasses & sniper_normal || g_iAvailableClasses & spy_normal )
