@@ -446,84 +446,51 @@ public void OnDestroyedTeleporter(const char[] output, int caller, int activator
 	AcceptEntityInput(caller,"KillHierarchy");
 }
 
-// Fires a bunch of tracers to check if there is enough space for robots (and giants) to spawn.
+// V2: Uses trace hull.
 // The player size can be found here: https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper's_Reference
 // Remember that giant's size is multiplied by 1.75 (some bosses uses 1.9).
-// To-do: Replace with TraceHull
+// Returns true if a teleporter CANNOT be built
 bool CheckTeleportClamping(int teleporter, int client)
 {
-	float VecTeleporter[3], RayEndPos[3];
-	// Array of angles to check, remember to change array size when adding/removing angles
-	//								straigh up 1		angled roof 																		// floor6		7					8
-	static float RayAngles[13][3] = { {270.0,0.0,0.0}, {225.0,0.0,0.0}, {225.0,90.0,0.0}, {225.0,180.0,0.0}, {225.0,270.0,0.0}, {0.0,0.0,0.0}, {0.0,90.0,0.0}, {0.0,180.0,0.0}, {0.0,270.0,0.0}, 
-	{0.0,45.0,0.0}, {0.0,135.0,0.0}, {0.0,225.0,0.0}, {0.0,315.0,0.0},};
-	// the minimum distances is not the same for each angle
-	//										1 								5										10		
-	static float flMinDists_Normal[13] = { 180.0 ,110.0 ,110.0 ,110.0 ,110.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0 ,64.0};
-	static float flMinDists_Small[13] = { 120.0 ,80.0 ,80.0 ,80.0 ,80.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0 ,48.0};
-	float fldistance;
-	GetEntPropVector(teleporter, Prop_Send, "m_vecOrigin", VecTeleporter);
-	VecTeleporter[2] += 5;
+	float telepos[3];
+	GetEntPropVector(teleporter, Prop_Send, "m_vecOrigin", telepos);
+	telepos[2] += 12.0;
+	bool smallmap = IsSmallMap();
+	Handle trace = null;
+	float mins_normal[3] = { -48.0, -48.0, 0.0 }; // Normal map
+	float maxs_normal[3] = { 48.0, 48.0, 164.0 };
+	float mins_small[3] = { -29.0, -29.0, 0.0 }; // Small map
+	float maxs_small[3] = { 29.0, 29.0, 99.0 };	
 	
-	bool bSmallMap = IsSmallMap();
-	Handle Tracer = null;
-	
-	for(int i = 0;i < sizeof(RayAngles);i++)
+	if(smallmap)
+		trace = TR_TraceHullFilterEx(telepos, telepos, mins_small, maxs_small, MASK_PLAYERSOLID, TraceFilterTeleporter, teleporter);
+	else
+		trace = TR_TraceHullFilterEx(telepos, telepos, mins_normal, maxs_normal, MASK_PLAYERSOLID, TraceFilterTeleporter, teleporter);
+		
+	if(TR_DidHit(trace))
 	{
-		Tracer = TR_TraceRayFilterEx(VecTeleporter, RayAngles[i], MASK_SHOT, RayType_Infinite, TraceFilterIgnorePlayers, teleporter);
-		if( Tracer != null && TR_DidHit(Tracer) ) // tracer hit something
-		{
-			TR_GetEndPosition(RayEndPos, Tracer);
-			fldistance = GetVectorDistance(VecTeleporter, RayEndPos);
-			if( bSmallMap ) // Small map mode?
-			{
-				if(fldistance < flMinDists_Small[i])
-				{
-					TE_SetupBeamPoints(VecTeleporter, RayEndPos, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0); // show a red beam to help with teleporter placement
-					TE_SendToClient(client, 0.1);
-					CloseHandle(Tracer);
-					return true;
-				}
-			}
-			else
-			{
-				if(fldistance < flMinDists_Normal[i])
-				{
-					TE_SetupBeamPoints(VecTeleporter, RayEndPos, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 0, 0, 255}, 0); // show a red beam to help with teleporter placement
-					TE_SendToClient(client, 0.1);
-					CloseHandle(Tracer);
-					return true;
-				}			
-			}
-#if defined DEBUG_GENERAL
-			TE_SetupBeamPoints(VecTeleporter, RayEndPos, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 1.0, {255, 255, 255, 255}, 0); // if debug is enabled, create a white beam to visualize the rays
-			TE_SendToClient(client, 0.1);
-#endif			
-		}
-#if defined DEBUG_GENERAL
+		if(smallmap)
+			DrawBox(client, telepos, mins_small, maxs_small);
 		else
-		{
-			PrintToConsole(client, "Ray ID: %i was null or did not hit something", i);
-			PrintToConsole(client, "Ray Angles for ray %d: %f %f %f", i, RayAngles[i][0], RayAngles[i][1], RayAngles[i][2]);
-		}
-#endif
-		CloseHandle( Tracer );
-		Tracer = null;
+			DrawBox(client, telepos, mins_normal, maxs_normal);
+			
+		delete trace;
+		return true;
 	}
 
+	delete trace;
 	return false;
 }
 
-bool TraceFilterIgnorePlayers(int ent, int contentsMask)
+bool TraceFilterTeleporter(int entity, int contentsMask, any data)
 {
-    if(ent >= 1 && ent <= MaxClients)
-    {
-        return false;
-    }
-    if(ent != 0)
-        return false;
-  
-    return true;
+	if(entity >= 1 && entity <= MaxClients)
+		return false;
+		
+	if(entity == data)
+		return false;
+		
+	return true;
 }
 
 bool TraceFilterSpy(int entity, int contentsMask, any data)
@@ -538,6 +505,59 @@ bool TraceFilterSpy(int entity, int contentsMask, any data)
 		return false;
 		
 	return true;
+}
+
+void TE_SendBeam(const float vMins[3], const float vMaxs[3], const int colors[4] = { 255, 255, 255, 255 }, int client = -1)
+{
+	TE_SetupBeamPoints(vMins, vMaxs, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 0.0, colors, 0);
+	
+	if(client > 0 && client <= MaxClients)
+		TE_SendToClient(client);
+	else
+		TE_SendToAll();
+}
+
+// Code from Silver's dev cmd plugin
+void DrawBox(int client, float vPos[3], float vMins[3], float vMaxs[3])
+{
+	if( vMins[0] == vMaxs[0] && vMins[1] == vMaxs[1] && vMins[2] == vMaxs[2] )
+	{
+		vMins = view_as<float>({ -15.0, -15.0, -15.0 });
+		vMaxs = view_as<float>({ 15.0, 15.0, 15.0 });
+	}
+	else
+	{
+		AddVectors(vPos, vMaxs, vMaxs);
+		AddVectors(vPos, vMins, vMins);
+	}
+	
+	int colors[4] = { 0, 255, 0, 255 };
+	float vPos1[3], vPos2[3], vPos3[3], vPos4[3], vPos5[3], vPos6[3];
+	vPos1 = vMaxs;
+	vPos1[0] = vMins[0];
+	vPos2 = vMaxs;
+	vPos2[1] = vMins[1];
+	vPos3 = vMaxs;
+	vPos3[2] = vMins[2];
+	vPos4 = vMins;
+	vPos4[0] = vMaxs[0];
+	vPos5 = vMins;
+	vPos5[1] = vMaxs[1];
+	vPos6 = vMins;
+	vPos6[2] = vMaxs[2];
+
+	TE_SendBeam(vMaxs, vPos1, colors, client);
+	TE_SendBeam(vMaxs, vPos2, colors, client);
+	TE_SendBeam(vMaxs, vPos3, colors, client);
+	TE_SendBeam(vPos6, vPos1, colors, client);
+	TE_SendBeam(vPos6, vPos2, colors, client);
+	TE_SendBeam(vPos6, vMins, colors, client);
+	TE_SendBeam(vPos4, vMins, colors, client);
+	TE_SendBeam(vPos5, vMins, colors, client);
+	TE_SendBeam(vPos5, vPos1, colors, client);
+	TE_SendBeam(vPos5, vPos3, colors, client);
+	TE_SendBeam(vPos4, vPos3, colors, client);
+	TE_SendBeam(vPos4, vPos2, colors, client);
 }
 
 /****************************************************
@@ -581,44 +601,28 @@ void EmitGSToRed(const char[] gamesound)
 // returns the number of classes in a team.
 int GetClassCount(TFClassType TFClass, TFTeam Team, bool bIncludeBots = false, bool bIncludeDead = true)
 {
-	int iClassNum = 0;
+	int counter = 0;
 	for(int i = 1; i <= MaxClients; i++)
 	{
-		if( IsClientInGame(i) )
-		{
-			if( bIncludeBots )
-			{
-				if( TF2_GetClientTeam(i) == Team )
-				{
-					if( TF2_GetPlayerClass(i) == TFClass )
-					{
-						if( bIncludeDead )
-							iClassNum++;
-						else if( IsPlayerAlive(i) )
-							iClassNum++;
-					}
-				}
-			}
-			else
-			{
-				if( !IsFakeClient(i) )
-				{
-					if( TF2_GetClientTeam(i) == Team )
-					{
-						if( TF2_GetPlayerClass(i) == TFClass )
-						{
-							if( bIncludeDead )
-								iClassNum++;
-							else if( IsPlayerAlive(i) )
-								iClassNum++;
-						}
-					}
-				}
-			}
-		}
+		if(!IsClientInGame(i))
+			continue;
+			
+		if(!bIncludeBots && IsFakeClient(i))
+			continue;
+			
+		if(!bIncludeDead && !IsPlayerAlive(i))
+			continue;
+			
+		if(TF2_GetClientTeam(i) != Team)
+			continue;
+			
+		if(TF2_GetPlayerClass(i) != TFClass)
+			continue;
+			
+		counter++;
 	}
 	
-	return iClassNum;
+	return counter;
 }
 
 // returns the ent index of the first available weapon
