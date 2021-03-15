@@ -1384,6 +1384,163 @@ void Config_LoadMap()
 #endif
 }
 
+void Config_ReloadTeleport()
+{
+	char mapname[64], buffer[256], configfile[PLATFORM_MAX_PATH];
+	float origin[3];
+	
+	g_aSpyTeleport.Clear();
+	g_aEngyTeleport.Clear();
+	
+	GetCurrentMap(buffer, sizeof(buffer));
+	
+	// Some servers might use workshop
+	if( !GetMapDisplayName(buffer, mapname, sizeof(mapname)) )
+	{
+		strcopy(mapname, sizeof(mapname), buffer); // use the result from GetCurrentMap if this fails.
+	}
+
+	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/map/");
+	Format(configfile, sizeof(configfile), "%s%s_server.cfg", configfile, mapname);
+	
+	if(!FileExists(configfile))
+	{
+		BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/map/");
+		Format(configfile, sizeof(configfile), "%s%s.cfg", configfile, mapname);		
+	}
+
+	if(!FileExists(configfile))
+	{
+		LogError("Map \"%s\" configuration not found. \"%s\"", mapname, configfile);
+		return;
+	}
+	
+	KeyValues kv = new KeyValues("MapConfig");
+	kv.ImportFromFile(configfile);
+	
+	// Jump into the first subsection
+	if (!kv.GotoFirstSubKey())
+	{
+		delete kv;
+		return;
+	}
+	
+	do
+	{
+		kv.GetSectionName(buffer, sizeof(buffer));
+
+		if(strcmp(buffer, "SpyTeleport", false) == 0)
+		{
+			kv.GotoFirstSubKey();
+			
+			do
+			{
+				kv.GetVector("origin", origin, NULL_VECTOR);
+				g_aSpyTeleport.PushArray(origin);
+			} while (kv.GotoNextKey());
+			
+			kv.GoBack();
+		}
+		else if( strcmp(buffer, "EngineerTeleport", false) == 0 )
+		{
+			kv.GotoFirstSubKey();
+			
+			do
+			{
+				kv.GetVector("origin", origin, NULL_VECTOR);
+				g_aEngyTeleport.PushArray(origin);
+			} while (kv.GotoNextKey());
+			
+			kv.GoBack();
+		}
+	} while (kv.GotoNextKey());
+	
+	delete kv;
+}
+
+// map specific config
+void Config_AddTeleportPoint(int client,const int type)
+{
+	char mapname[64], buffer[256], configfile[PLATFORM_MAX_PATH];
+	
+	GetCurrentMap(buffer, sizeof(buffer));
+	
+	// Some servers might use workshop
+	if( !GetMapDisplayName(buffer, mapname, sizeof(mapname)) )
+	{
+		strcopy(mapname, sizeof(mapname), buffer); // use the result from GetCurrentMap if this fails.
+	}
+
+	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/map/");
+	Format(configfile, sizeof(configfile), "%s%s_server.cfg", configfile, mapname);
+	
+	if(!FileExists(configfile))
+	{
+		BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/map/");
+		Format(configfile, sizeof(configfile), "%s%s.cfg", configfile, mapname);		
+	}
+
+	if(!FileExists(configfile))
+	{
+		PrintToChat(client, "Map \"%s\" configuration not found. \"%s\"", mapname, configfile);
+		return;
+	}
+	
+	KeyValues kv = new KeyValues("MapConfig");
+	kv.ImportFromFile(configfile);
+	
+	// Jump into the first subsection
+	if (!kv.GotoFirstSubKey())
+	{
+		delete kv;
+		return;
+	}
+	kv.GoBack();
+	
+	int counter;
+	char key[8];
+	float origin[3];
+	GetClientAbsOrigin(client, origin);
+	origin[2] += 10.0;
+	
+	switch(type)
+	{
+		case 0: // Spy
+		{
+			counter = g_aSpyTeleport.Length + 1;
+			if(kv.JumpToKey("SpyTeleport", false))
+			{
+				FormatEx(key, sizeof(key), "%i", counter);
+				if(kv.JumpToKey(key, true)) {
+					FormatEx(buffer, sizeof(buffer), "%.1f %.1f %.1f", origin[0], origin[1], origin[2]);
+					kv.SetString("origin", buffer);
+					CPrintToChat(client, "{green}[BWRR] {cyan}Added spy teleport point to origin \"%.1f %.1f %.1f\".", origin[0], origin[1], origin[2]);
+				}
+			}
+		}
+		case 1: // Engineer
+		{
+			counter = g_aEngyTeleport.Length + 1;
+			if(kv.JumpToKey("EngineerTeleport", false))
+			{
+				FormatEx(key, sizeof(key), "%i", counter);
+				if(kv.JumpToKey(key, true)) {
+					FormatEx(buffer, sizeof(buffer), "%.1f %.1f %.1f", origin[0], origin[1], origin[2]);
+					kv.SetString("origin", buffer);
+					CPrintToChat(client, "{green}[BWRR] {cyan}Added engineer teleport point to origin \"%.1f %.1f %.1f\".", origin[0], origin[1], origin[2]);
+				}
+			}			
+		}
+	}
+	
+	do {}
+	while(kv.GoBack());
+	
+	kv.ExportToFile(configfile);
+	delete kv;
+	Config_ReloadTeleport(); // Reload
+}
+
 bool IsSmallMap() { return g_bLimitRobotScale; }
 
 void TF2_PlaySequence(int client, const char[] sequence)

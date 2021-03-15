@@ -377,6 +377,8 @@ public void OnPluginStart()
 	RegAdminCmd( "sm_bwrr_forceboss", Command_ForceBoss, ADMFLAG_ROOT, "Forces a specific boss on the target." );
 	RegAdminCmd( "sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team." );
 	RegAdminCmd( "sm_bwrr_getorigin", Command_GetOrigin, ADMFLAG_ROOT, "Prints your current coordinates." );
+	RegAdminCmd( "sm_bwrr_editor", Command_Editor, ADMFLAG_ROOT, "Opens the editor." );
+	RegAdminCmd( "sm_bwrr_reload", Command_Reload, ADMFLAG_ROOT, "Reloads the map config." );
 	RegAdminCmd( "sm_bwrr_add_cooldown", Command_BanBLU, ADMFLAG_BAN, "Add joinblu cooldown to the target." );
 	
 	// listener
@@ -1627,6 +1629,27 @@ public Action Command_GetOrigin( int client, int nArgs )
 	return Plugin_Handled;
 }
 
+public Action Command_Editor( int client, int nArgs )
+{
+	if(client == 0)
+		return Plugin_Handled;
+		
+	if(!IsClientInGame(client))
+		return Plugin_Handled;
+		
+	Menufunc_CreateEditorMenu(client);
+	
+	return Plugin_Handled;
+}
+
+public Action Command_Reload( int client, int nArgs )
+{
+	Config_LoadMap();
+	ShowActivity2(client, "[SM] ", "Reloaded the map config.");
+	LogAction(client, -1, "\"%L\" reloaded the map config.", client);
+	return Plugin_Handled;
+}
+
 public Action Command_ForceBot( int client, int nArgs )
 {
 	char arg1[MAX_NAME_LENGTH], arg2[16], arg3[4], arg4[4];
@@ -2813,6 +2836,45 @@ public int MenuHandler_JoinTeam(Menu menu, MenuAction action, int param1, int pa
 				else if(strcmp(info, "teamblu") == 0)
 				{
 					Command_JoinBLU(param1, 0);
+				}
+			}			
+		}
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}	
+}
+
+void Menufunc_CreateEditorMenu(int client)
+{
+	Menu menu = new Menu(MenuHandler_Editor, MENU_ACTIONS_ALL);
+	menu.SetTitle("BWRR Editor");
+	menu.AddItem("spy", "Spy Teleport Point");
+	menu.AddItem("engineer", "Engineer Teleport Point");
+	menu.ExitButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_Editor(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			char info[32];
+			bool bFound = menu.GetItem(param2, info, sizeof(info));
+			if(bFound)
+			{
+				if(strcmp(info, "spy") == 0)
+				{
+					Config_AddTeleportPoint(param1, 0);
+					Menufunc_CreateEditorMenu(param1);
+				}
+				else if(strcmp(info, "engineer") == 0)
+				{
+					Config_AddTeleportPoint(param1, 1);
+					Menufunc_CreateEditorMenu(param1);
 				}
 			}			
 		}
