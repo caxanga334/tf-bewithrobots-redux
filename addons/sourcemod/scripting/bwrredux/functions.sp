@@ -2011,6 +2011,8 @@ void FrameBLUBackstabbed(DataPack pack)
 		CreateAnnotation(attackerpos, i, "Enemy Spy!", 9, 5.0);
 		g_flinstructiontime[i] = GetGameTime() + 7.0;
 	}
+	
+	delete pack;
 }
 
 // checks if we can teleport a flag to the player upon spawning
@@ -2128,6 +2130,126 @@ void FrameCheckForUnbalance(int client)
 }
 
 /****************************************************
+					TEAM CHANGE
+*****************************************************/
+
+void PreChangeTeam(int client, const int team)
+{
+	int flag = TF2_GetClientFlag(client);
+	if(flag != -1) { TF2_ResetFlag(flag); }
+
+	switch(team)
+	{
+		case 1: // SPECTATOR
+		{
+			if(FindConVar("mp_allowspectators").BoolValue)
+			{
+				DataPack pack = new DataPack();
+				pack.WriteCell(client);
+				pack.WriteCell(team);
+				RequestFrame(FrameChangeClientTeam, pack);
+			}
+		}
+		case 2: // RED
+		{
+			DataPack pack = new DataPack();
+			pack.WriteCell(client);
+			pack.WriteCell(team);
+			RequestFrame(FrameChangeClientTeam, pack);
+		}
+		case 3: // BLU
+		{
+			DataPack pack = new DataPack();
+			pack.WriteCell(client);
+			pack.WriteCell(team);
+			RequestFrame(FrameChangeClientTeam, pack);
+		}
+	}
+}
+
+void FrameChangeClientTeam(DataPack pack)
+{
+	pack.Reset();
+	int client = pack.ReadCell();
+	int team = pack.ReadCell();
+	switch(team)
+	{
+		case 1: // SPECTATOR
+		{
+			MovePlayerToSpec(client);
+		}
+		case 2: // RED
+		{
+			MovePlayerToRED(client);
+		}
+		case 3: // BLU
+		{
+			MovePlayerToBLU(client);
+		}
+	}
+	delete pack;
+}
+
+// moves player to RED
+void MovePlayerToRED(int client)
+{
+	StopRobotLoopSound(client);
+	ScalePlayerModel(client, 1.0);
+	ResetRobotData(client, true);
+	SetVariantString( "" );
+	AcceptEntityInput( client, "SetCustomModel" );
+	LogMessage("Player \"%L\" joined RED team.", client);
+	int iEntFlags = GetEntityFlags( client );
+	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
+	TF2_ChangeClientTeam( client, TFTeam_Red );
+	SetEntityFlags( client, iEntFlags );
+	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
+	TF2Attrib_RemoveAll(client);
+	TF2Attrib_ClearCache(client);
+	
+	if( TF2_GetPlayerClass(client) == TFClass_Unknown )
+		ShowVGUIPanel(client, "class_red");
+}
+
+// moves players to spectator
+void MovePlayerToSpec(int client)
+{
+	if(IsFakeClient(client))
+		return;
+
+	StopRobotLoopSound(client);
+	ScalePlayerModel(client, 1.0);
+	ResetRobotData(client, true);
+	SetVariantString( "" );
+	AcceptEntityInput( client, "SetCustomModel" );
+	SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
+	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
+	LogMessage("Player \"%L\" joined SPECTATOR team.", client);
+	TF2_ChangeClientTeam(client, TFTeam_Spectator);
+}
+
+// moves player to BLU team.
+void MovePlayerToBLU(int client)
+{
+	if(IsFakeClient(client))
+		return;
+
+	StopRobotLoopSound(client);
+	ForcePlayerSuicide(client);
+	SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
+	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
+	
+	int iEntFlags = GetEntityFlags( client );
+	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
+	TF2_ChangeClientTeam(client, TFTeam_Blue);
+	SetEntityFlags( client, iEntFlags );
+	LogMessage("Player \"%L\" joined BLU team.", client);
+	
+	ScalePlayerModel(client, 1.0);
+	PickRandomRobot(client);
+}
+
+/****************************************************
 					WEAPONS
 *****************************************************/
 
@@ -2176,6 +2298,18 @@ bool TF2_HasFlag(int client)
 	return false;
 }
 
+int TF2_GetClientFlag(int client)
+{
+	int iFlag = GetEntPropEnt(client, Prop_Send, "m_hItem");
+	
+	if(iFlag != INVALID_ENT_REFERENCE && GetEntPropEnt(iFlag, Prop_Send, "moveparent") == client)
+	{
+		return iFlag;
+	}
+	
+	return -1;	
+}
+
 void TF2_PickUpFlag(int client, int flag)
 {
 	SDKCall(g_hSDKPickupFlag, flag, client, true);
@@ -2184,6 +2318,14 @@ void TF2_PickUpFlag(int client, int flag)
 bool TF2_IsFlagHome(int flag)
 {
 	return SDKCall(g_hSDKIsFlagHome, flag);
+}
+
+void TF2_ResetFlag(int flag)
+{
+	if(IsValidEntity(flag))
+	{
+		AcceptEntityInput(flag, "ForceReset");
+	}
 }
 
 /****************************************************

@@ -1473,7 +1473,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
-	MovePlayerToBLU(client);
+	PreChangeTeam(client, view_as<int>(TFTeam_Blue));
 	return Plugin_Handled;
 }
 
@@ -1485,7 +1485,7 @@ public Action Command_JoinRED( int client, int nArgs )
 	if( TF2_GetClientTeam(client) == TFTeam_Red )
 		return Plugin_Handled;
 	
-	MovePlayerToRED(client);
+	PreChangeTeam(client, view_as<int>(TFTeam_Red));
 
 	return Plugin_Handled;
 }
@@ -1901,16 +1901,16 @@ public Action Command_MoveTeam( int client, int nArgs )
 			}
 			else
 			{
-				MovePlayerToBLU(target_list[i]);
+				PreChangeTeam(target_list[i], view_as<int>(TFTeam_Blue));
 			}
 		}
 		else if( NewTargetTeam == TFTeam_Red )
 		{
-			MovePlayerToRED(target_list[i]);
+			PreChangeTeam(target_list[i], view_as<int>(TFTeam_Red));
 		}
 		else
 		{
-			MovePlayerToSpec(target_list[i]);
+			PreChangeTeam(target_list[i], view_as<int>(TFTeam_Spectator));
 		}
 		LogAction(client, target_list[i], "\"%L\" changed \"%L\"'s team to %s", client, target_list[i], strLogTeam);
 	}
@@ -2319,7 +2319,7 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 	}
 	else if( strcmp( strTeam, "spectate", false ) == 0 || strcmp( strTeam, "spectator", false ) == 0 )
 	{
-		MovePlayerToSpec(client);
+		PreChangeTeam(client, view_as<int>(TFTeam_Spectator));
 		return Plugin_Handled;
 	}
 	
@@ -2937,7 +2937,7 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 	{
 		if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue)
 		{
-			MovePlayerToRED(i);
+			PreChangeTeam(i, view_as<int>(TFTeam_Red));
 			g_flJoinRobotBanTime[i] = GetGameTime() + 40.0;
 		}
 	}
@@ -3549,7 +3549,7 @@ public Action Timer_RemoveFromSpec(Handle timer, any client)
 	{
 		if( IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Spectator )
 		{
-			MovePlayerToRED(i);
+			PreChangeTeam(i, view_as<int>(TFTeam_Red));
 		}
 	}
 	
@@ -3757,65 +3757,6 @@ public Action Timer_HelpUnstuck(Handle timer, any userid)
 *****************************************************/
 
 // ***PLAYER***
-
-// moves player to RED
-void MovePlayerToRED(int client)
-{
-	StopRobotLoopSound(client);
-	ScalePlayerModel(client, 1.0);
-	ResetRobotData(client, true);
-	SetVariantString( "" );
-	AcceptEntityInput( client, "SetCustomModel" );
-	LogMessage("Player \"%L\" joined RED team.", client);
-	int iEntFlags = GetEntityFlags( client );
-	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
-	TF2_ChangeClientTeam( client, TFTeam_Red );
-	SetEntityFlags( client, iEntFlags );
-	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
-	TF2Attrib_RemoveAll(client);
-	TF2Attrib_ClearCache(client);
-	
-	if( TF2_GetPlayerClass(client) == TFClass_Unknown )
-		ShowVGUIPanel(client, "class_red");
-}
-
-// moves players to spectator
-void MovePlayerToSpec(int client)
-{
-	if(IsFakeClient(client))
-		return;
-
-	StopRobotLoopSound(client);
-	ScalePlayerModel(client, 1.0);
-	ResetRobotData(client, true);
-	SetVariantString( "" );
-	AcceptEntityInput( client, "SetCustomModel" );
-	SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
-	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
-	LogMessage("Player \"%L\" joined SPECTATOR team.", client);
-	TF2_ChangeClientTeam(client, TFTeam_Spectator);
-}
-
-// moves player to BLU team.
-void MovePlayerToBLU(int client)
-{
-	if(IsFakeClient(client))
-		return;
-
-	StopRobotLoopSound(client);
-	ForcePlayerSuicide(client);
-	SetEntProp( client, Prop_Send, "m_nBotSkill", BotSkill_Easy );
-	SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 0 );
-	
-	int iEntFlags = GetEntityFlags( client );
-	SetEntityFlags( client, iEntFlags | FL_FAKECLIENT );
-	TF2_ChangeClientTeam(client, TFTeam_Blue);
-	SetEntityFlags( client, iEntFlags );
-	LogMessage("Player \"%L\" joined BLU team.", client);
-	
-	ScalePlayerModel(client, 1.0);
-	PickRandomRobot(client);
-}
 
 // returns the number of human players on BLU/ROBOT team
 int GetHumanRobotCount()
@@ -4800,7 +4741,7 @@ void CheckTeams()
 			iTarget = GetRandomClientFromTeam(view_as<int>(TFTeam_Blue));
 			if( iTarget > 0 )
 			{
-				MovePlayerToRED(iTarget);
+				PreChangeTeam(iTarget, view_as<int>(TFTeam_Red));
 				CPrintToChat(iTarget, "%t", "Moved Blu Full");
 				LogAction(iTarget, -1, "\"%L\" was moved to RED (full)", iTarget);
 			}
@@ -4820,7 +4761,7 @@ void CheckTeams()
 				iTarget = GetRandomClientFromTeam(view_as<int>(TFTeam_Blue));
 				if( iTarget > 0 )
 				{
-					MovePlayerToRED(iTarget);
+					PreChangeTeam(iTarget, view_as<int>(TFTeam_Red));
 					CPrintToChat(iTarget, "%t", "Moved Blu Balance");
 					LogAction(iTarget, -1, "\"%L\" was moved to RED (auto team balance)", iTarget);
 				}
