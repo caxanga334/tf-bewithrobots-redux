@@ -98,8 +98,7 @@ void StripItems( int client, bool RemoveWeapons = true )
 			}
 		}
 		
-		TF2_RemoveAllWeapons(client);
-		// bug: sappers and toolboxes aren't removed however this shouldn't be a problem.
+		RemoveAllWeapons(client);
 	}
 	
 	if( !OR_IsHalloweenMission() || p_iBotType[client] == Bot_Buster ) // Allow players to have wearables on wave 666 unless the player is a sentry buster
@@ -163,8 +162,7 @@ void StripWeapons( int client )
 		}
 	}
 	
-	TF2_RemoveAllWeapons(client);
-	// bug: sappers and toolboxes aren't removed however this shouldn't be a problem.
+	RemoveAllWeapons(client);
 }
 
 bool IsWeaponWearable(char[] classname)
@@ -178,6 +176,19 @@ bool IsWeaponWearable(char[] classname)
 	}
 	
 	return false;
+}
+
+void RemoveAllWeapons(int client)
+{
+	int weapon;
+	for(int i = 0; i <= view_as<int>(TF2LoadoutSlot_PDA2); i++)
+	{
+		weapon = TF2_GetPlayerLoadoutSlot(client, i, true);
+		if(weapon != -1) {
+			TF2_RemoveWeapon(i, weapon);
+			RemoveEntity(weapon);
+		}
+	}
 }
 
 // Returns the class base health
@@ -355,6 +366,19 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 					}
 				}
 			}
+		}
+	}
+	
+	switch(TFClass) // Generic Weapons
+	{
+		case TFClass_Engineer:
+		{
+			SpawnWeapon(client, "tf_weapon_pda_engineer_destroy", 26, 1, 0, false); // Destruction PDA
+			SpawnWeapon(client, "tf_weapon_builder", 28, 1, 0, false); // Toolbox
+		}
+		case TFClass_Spy:
+		{
+			SpawnWeapon(client, "tf_weapon_pda_spy", 27, 1, 0, false); // Disguise Kit
 		}
 	}
 }
