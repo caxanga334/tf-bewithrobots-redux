@@ -128,7 +128,7 @@ void TeleportSpyRobot(int client)
 	
 	if(!IsValidClient(target))
 	{
-		if( GetSpyTeleportFromConfig(TelePos) )
+		if(GetSpyTeleportFromConfig(TelePos))
 		{
 			BWRR_RemoveSpawnProtection(client);
 			TeleportEntity(client, TelePos, NULL_VECTOR, NULL_VECTOR);
@@ -136,7 +136,7 @@ void TeleportSpyRobot(int client)
 	}
 	else
 	{
-		if( GetSpyTeleportFromConfig(TelePos, target) )
+		if(GetSpyTeleportFromConfig(TelePos, target))
 		{
 			BWRR_RemoveSpawnProtection(client);
 			TeleportEntity(client, TelePos, NULL_VECTOR, NULL_VECTOR);
@@ -2136,7 +2136,7 @@ void FrameCheckForUnbalance(int client)
 void PreChangeTeam(int client, const int team)
 {
 	int flag = TF2_GetClientFlag(client);
-	if(flag != -1) { TF2_ResetFlag(flag); }
+	if(IsValidEntity(flag)) { TF2_ResetFlag(flag); }
 
 	switch(team)
 	{

@@ -109,8 +109,11 @@ void StripItems( int client, bool RemoveWeapons = true )
 			iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
 			if( iOwner == client )
 			{
-				TF2_RemoveWearable( client, iEntity );
-				RemoveEntity(iEntity);
+				int index = GetEntProp(iEntity, Prop_Send, "m_iItemDefinitionIndex");
+				if(!IsWearableAWeapon(index)) {
+					TF2_RemoveWearable( client, iEntity );
+					RemoveEntity(iEntity);
+				}
 			}
 		}
 	}
@@ -119,15 +122,17 @@ void StripItems( int client, bool RemoveWeapons = true )
 	while( ( iEntity = FindEntityByClassname( iEntity, "tf_powerup_bottle" ) ) > MaxClients )
 	{
 		iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
-		if( iOwner == client )
+		if( iOwner == client ) {
 			RemoveEntity(iEntity);
+		}
 	}
 	iEntity = -1;
 	while( ( iEntity = FindEntityByClassname( iEntity, "tf_usableitem" ) ) > MaxClients )
 	{
 		iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
-		if( iOwner == client )
+		if( iOwner == client ) {
 			RemoveEntity(iEntity);
+		}
 	}
 }
 
@@ -171,8 +176,9 @@ bool IsWeaponWearable(char[] classname)
 	
 	for(int i = 0;i < sizeof(strWearables);i++)
 	{
-		if(strcmp(classname, strWearables[i], false) == 0)
+		if(strcmp(classname, strWearables[i], false) == 0) {
 			return true;
+		}
 	}
 	
 	return false;
@@ -185,16 +191,36 @@ void RemoveAllWeapons(int client)
 	{
 		weapon = TF2_GetPlayerLoadoutSlot(client, i, true);
 		if(weapon != -1) {
-			TF2_RemoveWeapon(i, weapon);
+			if(TF2_IsWearable(weapon)) {
+				TF2_RemoveWearable(client, weapon);
+			}
+			else {
+				TF2_RemoveWeapon(client, weapon);
+			}
+
 			RemoveEntity(weapon);
 		}
+	}
+}
+
+// Some weapons uses the tf_wearable class, which is removed.
+// This is used to filter some items so they don't get removed (for example: Gunboats)
+bool IsWearableAWeapon(int index)
+{
+	switch(index)
+	{
+		case 133, 444, 405, 608, 231, 642:
+		{
+			return true;
+		}
+		default: return false;
 	}
 }
 
 // Returns the class base health
 int GetClassBaseHealth(TFClassType Class)
 {
-	switch( Class )
+	switch(Class)
 	{
 		case TFClass_Scout: return 125;
 		case TFClass_Sniper: return 125;
