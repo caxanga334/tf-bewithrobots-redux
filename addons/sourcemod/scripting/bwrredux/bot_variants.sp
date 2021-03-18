@@ -289,8 +289,50 @@ int SpawnWeapon(int client,char[] name,int index,int level,int qual,bool bWearab
 	return entity;
 }
 
+// Modified version of SpawnWeapon exclusive for gatebot hats.
+void SpawnGatebotHat(int client,char[] name,int index, bool light = true)
+{
+	if(IsFakeClient(client)) {
+		return;
+	}
+
+	Handle hWeapon = TF2Items_CreateItem(OVERRIDE_ALL|FORCE_GENERATION|PRESERVE_ATTRIBUTES);
+	TF2Items_SetClassname(hWeapon, name);
+	TF2Items_SetItemIndex(hWeapon, index);
+	TF2Items_SetLevel(hWeapon, 1);
+	TF2Items_SetQuality(hWeapon, 6);
+	
+	// If light is false, the gatebot hat is turned off.
+	if(!light) {
+		TF2Items_SetAttribute(hWeapon, 0, 542, 1.0); // item style override
+		TF2Items_SetNumAttributes(hWeapon, 1);
+	}
+	
+	if(hWeapon==null)
+		return;
+		
+	int entity = TF2Items_GiveNamedItem(client, hWeapon);
+	CloseHandle(hWeapon);
+	if(IsValidEdict(entity))
+	{
+		TF2_EquipPlayerWearable(client, entity);
+#if defined VISIBLE_WEAPONS
+		SetEntProp(entity, Prop_Send, "m_bValidatedAttachedEntity", 1);
+#endif
+	}
+}
+
+bool IsGateBotHat(int index)
+{
+	switch(index)
+	{
+		case 1057, 1063, 1058, 1061, 1060, 1065, 1059, 1062, 1064: return true;
+		default: return false;
+	}
+}
+
 // gives the gatebot hat to the client
-void GiveGatebotHat(int client, TFClassType class)
+void GiveGatebotHat(int client, TFClassType class, bool light = true)
 {
 	int index;
 	
@@ -308,7 +350,29 @@ void GiveGatebotHat(int client, TFClassType class)
 		default: return;
 	}
 	
-	SpawnWeapon(client,"tf_wearable",index,1,1,true);
+	SpawnGatebotHat(client,"tf_wearable",index, light);
+}
+
+void RemoveGateBotHat(int client)
+{
+	int entity = -1;
+	while((entity = FindEntityByClassname(entity, "tf_wearable")) > MaxClients)
+	{
+		int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+		if(owner == client)
+		{
+			int index = GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex");
+			if(IsGateBotHat(index)) {
+				TF2_RemoveWearable(client, entity);
+				RemoveEntity(entity);
+			}
+		}
+	}	
+}
+
+void EnableBombPickup(int client)
+{
+	TF2Attrib_RemoveByName(client, "cannot pick up intelligence");
 }
 
 // Give weapons to the player

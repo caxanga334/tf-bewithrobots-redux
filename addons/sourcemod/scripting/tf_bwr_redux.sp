@@ -1355,13 +1355,13 @@ public MRESReturn CFilterTFBotHasTag(int iFilter, Handle hReturn, Handle hParams
 
 void OnGateCaptureBLU(const char[] output, int caller, int activator, float delay)
 {
-	CreateTimer(1.0, Timer_CheckGates);
+	CreateTimer(1.0, Timer_GateCaptured);
 	RequestFrame(GateCapturedByRobots);
 }
 
 void OnGateCaptureRED(const char[] output, int caller, int activator, float delay)
 {
-	CreateTimer(1.0, Timer_CheckGates);
+	CreateTimer(1.0, Timer_GateCaptured);
 }
 
 /****************************************************
@@ -2228,6 +2228,9 @@ public Action Command_BossInfo( int client, int nArgs )
 	}
 	
 	Boss_GetName(bossname, sizeof(bossname));
+	if(Boss_IsGatebot()) {
+		Format(bossname, sizeof(bossname), "Gatebot %s", bossname);
+	}
 	ReplyToCommand(client, "Boss State: %s", state);
 	ReplyToCommand(client, "Selected Boss: %s", bossname);
 	if(IsValidClient(iBossPlayer) && IsPlayerAlive(iBossPlayer))
@@ -3364,15 +3367,19 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}
 			case Bot_Boss:
 			{
-				Boss_GetName(strBotName, sizeof(strBotName));
+				char bossname[64];
+				Boss_GetName(bossname, sizeof(bossname));
+				if(Boss_IsGatebot()) {
+					Format(bossname, sizeof(bossname), "Gatebot %s", bossname);
+				}
 				SetEntProp(client, Prop_Send, "m_bIsMiniBoss", 1);
 				SetEntProp(client, Prop_Send, "m_bUseBossHealthBar", 1);
 				Boss_SetHealth(client);
 				ApplyRobotLoopSound(client);
 				char plrname[MAX_NAME_LENGTH];
 				GetClientName(client, plrname, sizeof(plrname));
-				CPrintToChatAll("%t", "Boss_Spawn", plrname, strBotName, Boss_ComputeHealth());
-				LogAction(client, -1, "Player \"%L\" spawned as a boss robot ( %s ).", client, strBotName);
+				CPrintToChatAll("%t", "Boss_Spawn", plrname, bossname, Boss_ComputeHealth());
+				LogAction(client, -1, "Player \"%L\" spawned as a boss robot ( %s ).", client, bossname);
 				EmitGameSoundToAll("MVM.GiantHeavyEntrance", SOUND_FROM_PLAYER);
 			}
 			case Bot_Buster:
@@ -3399,7 +3406,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}
 		}
 		
-		if(rp.Gatebot && (rp.Type != Bot_Buster || rp.Type != Bot_Boss))
+		if(rp.Gatebot && rp.Type != Bot_Buster)
 		{
 			Format(strBotName, sizeof(strBotName), "Gatebot %s", strBotName); // add Gatebot prefix to robot name
 			GiveGatebotHat(client, TFClass);
@@ -3548,6 +3555,15 @@ public Action Timer_UpdateWaveData(Handle timer)
 public Action Timer_CheckGates(Handle timer)
 {
 	IsGatebotAvailable(true);
+	return Plugin_Stop;
+}
+
+public Action Timer_GateCaptured(Handle timer)
+{
+	if(!IsGatebotAvailable(true))
+	{
+		ReverseGateBots();
+	}
 	return Plugin_Stop;
 }
 
@@ -3945,6 +3961,7 @@ void PickRandomRobot(int client)
 		}
 	}
 	
+	rp.Gatebot = false;
 	if(CheckCommandAccess(client, "bwrr_gatebot", 0) && IsGatebotAvailable() && Math_GetRandomInt(1,100) <= c_iGatebotChance.IntValue)
 	{
 		rp.Gatebot = true;

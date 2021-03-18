@@ -20,6 +20,7 @@ float g_BossRespawnDelay; // Respawn delay for boss
 
 // boss data
 // Prefix - g_TBoss
+bool g_TBossGatebot; // Is this boss a gatebot?
 char g_TBossName[MAXLEN_CONFIG_STRING];
 int g_TBossWeaponIndex[MAX_ROBOTS_WEAPONS];
 int g_TBossBitsAttribs;
@@ -84,6 +85,11 @@ float Boss_GetScale()
 	return g_TBossScale;
 }
 
+bool Boss_IsGatebot()
+{
+	return g_TBossGatebot;
+}
+
 void Boss_Death()
 {
 	g_BossClient = -1;
@@ -98,7 +104,12 @@ void Boss_SetupPlayer(int client)
 	rp.Variant = 0;
 	rp.Attributes = g_TBossBitsAttribs;
 	rp.Class = g_TBossClass;
-	rp.Gatebot = false;
+	rp.Gatebot = g_TBossGatebot;
+	
+	if(!IsGatebotAvailable()) {
+		rp.Gatebot = false;
+		g_TBossGatebot = false;
+	}
 	
 	g_BossClient = client;
 	g_BossState = BossState_InPlay;
@@ -367,6 +378,7 @@ bool Boss_LoadProfile(char[] bossfile)
 	g_TBossHPRegen = kv.GetFloat("health_regen", 10.0);
 	g_TBossClass = TF2_GetClass(buffer);
 	g_TBossScale = kv.GetFloat("scale", 1.9);
+	g_TBossGatebot = !!kv.GetNum("gatebot", 0);
 	kv.GetString("robotattributes", buffer, sizeof(buffer));
 	
 	iNum = ExplodeString(buffer, ",", strBits, sizeof(strBits), sizeof(strBits[]));

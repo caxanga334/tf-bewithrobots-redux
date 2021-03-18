@@ -1796,6 +1796,37 @@ bool IsGateStunActive()
 	return false;
 }
 
+void ReverseGateBots()
+{
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(!IsClientInGame(i)) {
+			continue;
+		}
+		
+		if(IsFakeClient(i)) {
+			continue;
+		}
+		
+		if(!IsPlayerAlive(i)) {
+			continue;
+		}
+		
+		if(TF2_GetClientTeam(i) != TFTeam_Blue) {
+			continue;
+		}
+		
+		RoboPlayer rp = RoboPlayer(i);
+		
+		if(rp.Gatebot) {
+			RemoveGateBotHat(i);
+			GiveGatebotHat(i, TF2_GetPlayerClass(i), false);
+			EnableBombPickup(i);
+			rp.Gatebot = false;
+		}
+	}
+}
+
 /****************************************************
 					LATE LOAD
 *****************************************************/
