@@ -2510,3 +2510,39 @@ void BWRR_RemoveSpawnProtection(int client)
 	rp.InSpawn = false;
 	TF2_RemoveCondition(client, TFCond_UberchargedHidden);
 }
+
+void BWRR_IgniteOnHit(int attacker, int victim)
+{
+	static const float max_distance = 1000.0;
+	float attackerpos[3], victimpos[3];
+	GetClientAbsOrigin(attacker, attackerpos);
+	GetClientAbsOrigin(victim, victimpos);
+	float distance = GetVectorDistance(attackerpos, victimpos);
+	float chance = max_distance - distance;
+	chance /= 10.0;
+	if(Math_RandomChance(RoundToCeil(chance))) {
+		TF2_IgnitePlayer(victim, attacker, 5.0);
+	}
+#if defined DEBUG_PLAYER
+	CPrintToChat(attacker, "{green}IgniteOnHit::{cyan} Chance %.2f Distance: %.2f", chance, distance);
+	CPrintToChat(victim, "{green}IgniteOnHit::{cyan} Chance %.2f Distance: %.2f", chance, distance);
+#endif
+}
+
+void BWRR_StunOnHit(int attacker, int victim)
+{
+	static const float max_distance = 1000.0;
+	float attackerpos[3], victimpos[3];
+	GetClientAbsOrigin(attacker, attackerpos);
+	GetClientAbsOrigin(victim, victimpos);
+	float distance = GetVectorDistance(attackerpos, victimpos);
+	float chance = max_distance - distance;
+	chance /= 10.0;
+	if(Math_RandomChance(RoundToCeil(chance))) {
+		TF2_StunPlayer(victim, 1.0, _, TF_STUNFLAGS_BIGBONK, attacker);
+	}
+#if defined DEBUG_PLAYER
+	CPrintToChat(attacker, "{green}StunOnHit::{cyan} Chance %.2f Distance: %.2f", chance, distance);
+	CPrintToChat(victim, "{green}StunOnHit::{cyan} Chance %.2f Distance: %.2f", chance, distance);
+#endif
+}

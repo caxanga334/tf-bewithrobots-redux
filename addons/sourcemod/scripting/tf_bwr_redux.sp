@@ -173,7 +173,11 @@ enum
 	BotAttrib_CannotBuildTele = (1 << 7), // disallow engineers to build teleporters
 	BotAttrib_HoldFireFullReload = (1 << 8), // Waits until the weapon is fully loaded to fire again
 	BotAttrib_AlwaysFireWeapon = (1 << 9), // Always fire weapon
+	BotAttrib_IgniteOnHit = (1 << 10), // Ignite players when hit
+	BotAttrib_StunOnHit = (1 << 11), // Stuns players when hit
 };
+
+#define BOTATTRIB_MAX 12
 
 enum struct eDisguisedStruct
 {
@@ -1225,7 +1229,7 @@ public Action SDKOnPlayerTakeDamage(int victim, int& attacker, int& inflictor, f
 		return Plugin_Continue;
 	}
 		
-	if(GetClientTeam(victim) == 3)
+	if(GetClientTeam(victim) == view_as<int>(TFTeam_Blue))
 	{
 		if(p_iBotType[victim] == Bot_Buster)
 		{
@@ -1253,6 +1257,16 @@ public Action SDKOnPlayerTakeDamage(int victim, int& attacker, int& inflictor, f
 		// Alert giant players they're getting backstabbed
 		EmitSoundToClient(victim, "player/spy_shield_break.wav");
 		PrintCenterText(victim, "!!!!!! YOU WERE BACKSTABBED !!!!!");
+	}
+	
+	if(GetClientTeam(attacker) == view_as<int>(TFTeam_Blue) && GetClientTeam(victim) == view_as<int>(TFTeam_Red)) {
+		RoboPlayer rp = RoboPlayer(attacker);		
+		if(rp.Attributes & BotAttrib_IgniteOnHit) {
+			BWRR_IgniteOnHit(attacker, victim);
+		}
+		if(rp.Attributes & BotAttrib_StunOnHit) {
+			BWRR_StunOnHit(attacker, victim);
+		}		
 	}
 	
 	return Plugin_Continue;

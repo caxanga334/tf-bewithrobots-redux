@@ -10,8 +10,8 @@
 // Globals
 char g_strClassKey[10][16] = {"unknownclass" ,"scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"};
 char g_strWeaponsKey[MAX_ROBOTS_WEAPONS][32] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
-char g_strValidAttribs[10][32] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire"};
-int g_AttribValue[10] = {1,2,4,8,16,32,64,128,256,512};
+char g_strValidAttribs[BOTATTRIB_MAX][32] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire", "igniteonhit", "stunonhit"};
+int g_AttribValue[BOTATTRIB_MAX] = {(1 << 0),(1 << 1),(1 << 2),(1 << 3),(1 << 4),(1 << 5),(1 << 6),(1 << 7),(1 << 8),(1 << 9),(1 << 10),(1 << 11)};
 
 // Big list of arrays
 /**
