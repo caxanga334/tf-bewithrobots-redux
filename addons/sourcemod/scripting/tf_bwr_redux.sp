@@ -1260,13 +1260,15 @@ public Action SDKOnPlayerTakeDamage(int victim, int& attacker, int& inflictor, f
 	}
 	
 	if(GetClientTeam(attacker) == view_as<int>(TFTeam_Blue) && GetClientTeam(victim) == view_as<int>(TFTeam_Red)) {
-		RoboPlayer rp = RoboPlayer(attacker);		
-		if(rp.Attributes & BotAttrib_IgniteOnHit) {
-			BWRR_IgniteOnHit(attacker, victim);
+		if(damagecustom != TF_CUSTOM_BURNING && damagecustom != TF_CUSTOM_BURNING_ARROW && damagecustom != TF_CUSTOM_BURNING_FLARE && damagecustom != TF_CUSTOM_PLAYER_SENTRY) {
+			RoboPlayer rp = RoboPlayer(attacker);
+			if(rp.Attributes & BotAttrib_IgniteOnHit) {
+				BWRR_IgniteOnHit(attacker, victim);
+			}
+			if(rp.Attributes & BotAttrib_StunOnHit) {
+				BWRR_StunOnHit(attacker, victim);
+			}
 		}
-		if(rp.Attributes & BotAttrib_StunOnHit) {
-			BWRR_StunOnHit(attacker, victim);
-		}		
 	}
 	
 	return Plugin_Continue;
@@ -3391,6 +3393,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			{
 				char bossname[64];
 				Boss_GetName(bossname, sizeof(bossname));
+				Boss_GetName(strBotName, sizeof(strBotName));
 				if(Boss_IsGatebot()) {
 					Format(bossname, sizeof(bossname), "Gatebot %s", bossname);
 				}

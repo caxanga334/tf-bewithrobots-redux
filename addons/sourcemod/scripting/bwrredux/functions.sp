@@ -1745,7 +1745,7 @@ bool IsGatebotAvailable(bool update = false)
 			}
 		}
 #if defined DEBUG_GENERAL
-		CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Did not found any {orange}team_control_point{cyan} owned by {red}RED{cyan} team.");
+		CPrintToChatAll("{green}IsGatebotAvailable::{cyan} Could not find any {orange}team_control_point{cyan} owned by {red}RED{cyan} team.");
 #endif
 		isavailable = false;
 	}
