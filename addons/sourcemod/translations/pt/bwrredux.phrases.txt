@@ -133,4 +133,8 @@
 	{
 		"pt"	"Selecione uma Equipe"
 	}
+	"SB_Instructions" // Sentry buster instructions
+	{
+		"pt"	"{green}[SENTRY BUSTER] {cyan}Faça uma provocação ou aperte o botão esquerdo do mouse para explodir!"
+	}
 }

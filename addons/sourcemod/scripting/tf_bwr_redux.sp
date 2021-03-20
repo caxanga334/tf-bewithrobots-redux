@@ -3415,6 +3415,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				ApplyRobotLoopSound(client);
 				SetEntProp(client, Prop_Send, "m_iHealth", 2500);
 				SetEntProp(client, Prop_Data, "m_iHealth", 2500);
+				CPrintToChat(client, "%t", "SB_Instructions");
 			}
 			default:
 			{

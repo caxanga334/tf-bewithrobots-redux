@@ -133,4 +133,8 @@
 	{
 		"en"	"Select a Team"
 	}
+	"SB_Instructions" // Sentry buster instructions
+	{
+		"en"	"{green}[SENTRY BUSTER] {cyan}Taunt or press the left mouse button to detonate!"
+	}
 }

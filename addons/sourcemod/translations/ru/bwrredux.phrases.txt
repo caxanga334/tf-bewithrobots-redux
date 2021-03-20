@@ -133,4 +133,8 @@
 	{
 		"ru"	"Выберите команду"
 	}
+	"SB_Instructions" // Sentry buster instructions
+	{
+		"ru"	"{green}[SENTRY BUSTER] {cyan}Taunt or press the left mouse button to detonate!"
+	}
 }
