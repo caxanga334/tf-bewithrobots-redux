@@ -23,7 +23,7 @@
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.1.5"
+#define PLUGIN_VERSION "1.1.6"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -339,6 +339,10 @@ public void OnPluginStart()
 	// It is an expensive operation (file operations is relatively slow) and should be done at the end when the file will not be written to anymore
 	AutoExecConfig_CleanFile();
 	
+	// Add Changehook
+	c_strNBFile.AddChangeHook(OnRobotTemplateFileChanged);
+	c_strGBFile.AddChangeHook(OnRobotTemplateFileChanged);
+	
 	c_svTag = FindConVar("sv_tags");
 	
 	// convar hooks
@@ -540,20 +544,24 @@ public void OnPluginStart()
 	}
 }
 
-char NormalBotsFile()
+void GetNormalBotTFile(char[] filename, int size)
 {
-	char buffer[32];
-	c_strNBFile.GetString(buffer, sizeof(buffer));
-	return buffer;
+	c_strNBFile.GetString(filename, size);
 }
 
-char GiantBotsFile()
+void GetGiantBotTFile(char[] filename, int size)
 {
-	char buffer[32];
-	c_strGBFile.GetString(buffer, sizeof(buffer));
-	return buffer;
+	c_strGBFile.GetString(filename, size);
 }
 
+void OnRobotTemplateFileChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	// Reload config files if the convar is changed.
+	RT_ClearArrays();
+	RT_LoadCfgNormal();
+	RT_LoadCfgGiant();
+	RT_PostLoad();	
+}
 
 public void OnLibraryAdded(const char[] name)
 {
@@ -1913,7 +1921,7 @@ public Action Command_MoveTeam( int client, int nArgs )
 		}
 		else
 		{
-			PreChangeTeam(target_list[i], view_as<int>(TFTeam_Spectator));
+			PreChangeTeam(target_list[i], view_as<int>(TFTeam_Spectator), true);
 		}
 		LogAction(client, target_list[i], "\"%L\" changed \"%L\"'s team to %s", client, target_list[i], strLogTeam);
 	}

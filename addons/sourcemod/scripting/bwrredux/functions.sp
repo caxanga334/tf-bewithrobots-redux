@@ -2164,7 +2164,7 @@ void FrameCheckForUnbalance(int client)
 					TEAM CHANGE
 *****************************************************/
 
-void PreChangeTeam(int client, const int team)
+void PreChangeTeam(int client, const int team, bool forced = false)
 {
 	int flag = TF2_GetClientFlag(client);
 	if(IsValidEntity(flag)) { TF2_ResetFlag(flag); }
@@ -2173,7 +2173,7 @@ void PreChangeTeam(int client, const int team)
 	{
 		case 1: // SPECTATOR
 		{
-			if(FindConVar("mp_allowspectators").BoolValue)
+			if(FindConVar("mp_allowspectators").BoolValue || forced)
 			{
 				DataPack pack = new DataPack();
 				pack.WriteCell(client);

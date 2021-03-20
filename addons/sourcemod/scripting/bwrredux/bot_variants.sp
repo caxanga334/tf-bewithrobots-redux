@@ -1072,7 +1072,7 @@ void RT_LoadCfgNormal()
 {
 	char filename[32], configfile[PLATFORM_MAX_PATH];
 	
-	FormatEx(filename, sizeof(filename), "%s", NormalBotsFile());
+	GetNormalBotTFile(filename, sizeof(filename));
 
 	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/");
 	
@@ -1187,7 +1187,7 @@ void RT_LoadCfgGiant()
 {
 	char filename[32], configfile[PLATFORM_MAX_PATH];
 	
-	FormatEx(filename, sizeof(filename), "%s", GiantBotsFile());
+	GetGiantBotTFile(filename, sizeof(filename));
 
 	BuildPath(Path_SM, configfile, sizeof(configfile), "configs/bwrr/");
 	
