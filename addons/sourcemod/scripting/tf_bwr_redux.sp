@@ -431,7 +431,7 @@ public void OnPluginStart()
 	Handle hConf = LoadGameConfigFile("tf2.bwrr");
 	bool sigfailure;
 	
-	if( hConf == null ) LogError("Failed to load gamedata file tf2.bwrr.txt");
+	if( hConf == null ) { SetFailState("Failed to load gamedata file tf2.bwrr.txt"); }
 	
 	// bool CTFPlayer::PlaySpecificSequence( const char *pAnimationName )
 	StartPrepSDKCall(SDKCall_Player);
@@ -3140,8 +3140,6 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			}
 		}
 		
-		//CreateTimer(c_flBluRespawnTime.FloatValue, Timer_RespawnBLUPlayer, client);
-		//CreateTimer(1.0, Timer_PickRandomRobot, client);
 		RequestFrame(FramePickNewRobot, GetClientUserId(client));
 		StopRobotLoopSound(client);
 	}
@@ -3521,11 +3519,10 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 #if defined DEBUG_PLAYER
 	if(TF2_GetClientTeam(client) == TFTeam_Blue)
 	{
-		PrintToChat(client, "Robot Type: %d", p_iBotType[client]);
-		PrintToChat(client, "Robot Variant: %d", p_iBotVariant[client]);
-		PrintToChat(client, "Robot Attributes: %d", p_iBotAttrib[client]);
-		PrintToChat(client, "Robot Class: %d (%d)", view_as<int>(p_BotClass[client]), view_as<int>(TFClass));
-		LogMessage("OnPlayerSpawn: \"%N\" Type: %d, Variant: %d, Attributes: %d", client, p_iBotType[client], p_iBotVariant[client], p_iBotAttrib[client]);
+		CPrintToChat(client, "{green}[DEBUG]{cyan} Robot Type: %d", rp.Type);
+		CPrintToChat(client, "{green}[DEBUG]{cyan} Robot Variant: %d", rp.Variant);
+		CPrintToChat(client, "{green}[DEBUG]{cyan} Robot Attributes: %d", rp.Attributes);
+		CPrintToChat(client, "{green}[DEBUG]{cyan} Robot Class: %d (%d)", view_as<int>(rp.Class), view_as<int>(TFClass));
 	}
 #endif
 	return Plugin_Stop;
@@ -4371,6 +4368,10 @@ bool IsValidVariant(bool bGiants, TFClassType TFClass, int iVariant)
 // Set attributes on the robots.
 void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
+#if defined DEBUG_PLAYER
+	CPrintToChat(client, "{green}[DEBUG]{orange} SetVariantExtras:: {cyan}Called for client %N class %i variant %i", client, view_as<int>(TFClass), iVariant);
+#endif
+
 	RoboPlayer rp = RoboPlayer(client);
 	rp.Attributes = 0;
 	
@@ -4403,7 +4404,7 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 				rp.Attributes = 0;
 			}
 		}
-		rp.Attributes = Bot_Normal;
+		rp.Type = Bot_Normal;
 		return;
 	}
 
@@ -4420,6 +4421,10 @@ void SetVariantExtras(int client,TFClassType TFClass, int iVariant)
 
 void SetGiantVariantExtras(int client,TFClassType TFClass, int iVariant)
 {
+#if defined DEBUG_PLAYER
+	CPrintToChat(client, "{green}[DEBUG]{orange} SetGiantVariantExtras:: {cyan}Called for client %N class %i variant %i", client, view_as<int>(TFClass), iVariant);
+#endif
+
 	RoboPlayer rp = RoboPlayer(client);
 	rp.Attributes = 0;
 
