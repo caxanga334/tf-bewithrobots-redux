@@ -103,6 +103,7 @@ ConVar c_iGatebotChance; // change to spawn as a gatebot
 ConVar c_bAntiJoinSpam; // Anti-spam
 ConVar c_fl666CritChance; // Wave 666 100% Crits chance.
 ConVar c_flBluProtectionTime; // How many seconds of spawn protection human BLU players have
+ConVar c_strBusterProfiles; // List of sentry busters profiles to load.
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -284,7 +285,8 @@ methodmap RoboPlayer
 #include "bwrredux/objectiveres.sp"
 #include "bwrredux/functions.sp"
 #include "bwrredux/boss.sp"
- 
+#include "bwrredux/buster.sp"
+
 public Plugin myinfo =
 {
 	name = "[TF2] Be With Robots Redux",
@@ -335,6 +337,7 @@ public void OnPluginStart()
 	c_bAntiJoinSpam = AutoExecConfig_CreateConVar("sm_bwrr_antispam", "1.0", "Enables/Disables the cooldown system on the join BLU command. 1 = Enabled, 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_fl666CritChance = AutoExecConfig_CreateConVar("sm_bwrr_wave666_fullcrit_chance", "75.0", "Chance to spawn with full crits on Wave 666 missions.", FCVAR_NONE, true, 0.0, true, 100.0);
 	c_flBluProtectionTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_spawnprotection_time", "60.0", "How many seconds of spawn protection human BLU players have.", FCVAR_NONE, true, 60.0, true, 300.0);
+	c_strBusterProfiles = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_profiles", "valve", "List of sentry busters profiles to load separated by comma.", FCVAR_NONE);
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
@@ -527,6 +530,7 @@ public void OnPluginStart()
 	RT_InitArrays();
 	Config_Init();
 	Boss_InitArrays();
+	Buster_InitArrays();
 	
 	array_avclass = new ArrayList(10);
 	array_avgiants = new ArrayList(10);
@@ -630,6 +634,7 @@ public void OnMapStart()
 	g_bSkipSpawnRoom = false;
 	BotNoticeBackstabChance(true);
 	BotNoticeBackstabMaxRange(true);
+	AnnounceBombDeployWarning(true);
 	
 	// add custom tag
 	AddPluginTag("BWRR");
@@ -668,6 +673,7 @@ public void OnMapStart()
 	PrecacheSound("player/spy_shield_break.wav");
 	PrecacheScriptSound("MVM.GiantHeavyEntrance");
 	PrecacheScriptSound("MVM.Warning");
+	PrecacheScriptSound("Announcer.MVM_Bomb_Alert_Deploying");
 	g_iLaserSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
 	g_iHaloSprite = PrecacheModel("materials/sprites/halo01.vmt");
 	
@@ -1125,6 +1131,7 @@ public Action OnTouchCaptureZone(int entity, int other)
 		RequestFrame(DisableAnim, GetClientUserId(other));
 		rp.Deploying = true;
 		rp.DeployTime = GetGameTime() + flConVarTime;
+		AnnounceBombDeployWarning();
 		if(rp.Type == Bot_Giant || rp.Type == Bot_Boss)
 			EmitGameSoundToAll("MVM.DeployBombGiant", other, SND_NOFLAGS, other, CarrierPos);
 		else
@@ -3175,7 +3182,7 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 					}
 					case Bot_Buster:
 					{
-						GiveBusterInventory(client);
+						Buster_GiveInventory(client);
 					}
 					default:
 					{
@@ -3407,12 +3414,11 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}
 			case Bot_Buster:
 			{
-				strBotName = "Sentry Buster";
+				Buster_GetName(strBotName, sizeof(strBotName));
 				SetEntProp( client, Prop_Send, "m_bIsMiniBoss", 1 );
 				EmitGSToRed("Announcer.MVM_Sentry_Buster_Alert");
 				ApplyRobotLoopSound(client);
-				SetEntProp(client, Prop_Send, "m_iHealth", 2500);
-				SetEntProp(client, Prop_Data, "m_iHealth", 2500);
+				Buster_SetHealth(client);
 				CPrintToChat(client, "%t", "SB_Instructions");
 			}
 			default:
@@ -3430,7 +3436,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 			}
 		}
 		
-		if(rp.Gatebot && rp.Type != Bot_Buster)
+		if(rp.Gatebot)
 		{
 			Format(strBotName, sizeof(strBotName), "Gatebot %s", strBotName); // add Gatebot prefix to robot name
 			GiveGatebotHat(client, TFClass);
@@ -3438,7 +3444,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		}
 
 		CPrintToChat(client, "%t", "Bot Spawn", strBotName);
-		if(strlen(strBotDesc) > 3) { PrintToChat(client, "%s", strBotDesc); }
+		if(strlen(strBotDesc) > 3) { CPrintToChat(client, "%s", strBotDesc); }
 		SetRobotScale(client,TFClass);
 		SetRobotModel(client,TFClass);
 		
@@ -3974,10 +3980,7 @@ void PickRandomRobot(int client)
 		// Check cooldown, spawn conditions and permission
 		if(CheckCommandAccess(client, "bwrr_sentrybuster", 0) && GetGameTime() > g_flNextBusterTime && ShouldDispatchSentryBuster())
 		{
-			rp.Class = TFClass_DemoMan;
-			rp.Variant = 0;
-			rp.Type = Bot_Buster;
-			rp.Attributes = BotAttrib_CannotCarryBomb;
+			Buster_SetupClient(client);
 			g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
 			CreateTimer(0.1, Timer_SetRobotClass, client);
 			return;
@@ -4492,7 +4495,7 @@ void SetRobotScale(int client, TFClassType TFClass)
 			}
 			case Bot_Buster:
 			{
-				scale = 1.75; // Fixed value
+				scale = Buster_GetScale();
 			}
 			default:
 			{

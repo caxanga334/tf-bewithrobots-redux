@@ -117,7 +117,7 @@ void Boss_SetupPlayer(int client)
 
 void Boss_GiveInventory(int client)
 {
-	if( IsFakeClient(client) )
+	if(IsFakeClient(client))
 		return;
 
 	int iWeapon;

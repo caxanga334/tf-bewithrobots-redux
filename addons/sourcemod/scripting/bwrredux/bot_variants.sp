@@ -931,25 +931,6 @@ void SetOwnAttributes(int client , bool bGiant)
 	}
 }
 
-void GiveBusterInventory(int client)
-{
-	if( IsFakeClient(client) )
-		return;
-
-	TF2Attrib_RemoveAll(client); // remove atributes on the client
-
-	int iWeapon = -1;
-	iWeapon = SpawnWeapon( client, "tf_weapon_stickbomb", 307, 1, 6, false );
-	TF2Attrib_SetByName(iWeapon, "hidden maxhealth non buffed", 2325.0);
-	TF2Attrib_SetByName(iWeapon, "move speed bonus", 1.34);
-	TF2Attrib_SetByName(iWeapon, "damage force reduction", 0.5);
-	TF2Attrib_SetByName(iWeapon, "airblast vulnerability multiplier", 0.5);
-	TF2Attrib_SetByName(iWeapon, "override footstep sound set", 7.0);
-	TF2Attrib_SetByName(iWeapon, "cannot be backstabbed", 1.0);
-	TF2Attrib_SetByName(iWeapon, "no_jump", 1.0);
-	TF2Attrib_SetByName(iWeapon, "no_duck", 1.0);
-}
-
 // ==== ROBOT TEMPLATE CONFIG FILES ====
 void RT_InitArrays()
 {

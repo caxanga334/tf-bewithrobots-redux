@@ -2546,3 +2546,18 @@ void BWRR_StunOnHit(int attacker, int victim)
 	CPrintToChat(victim, "{green}StunOnHit::{cyan} Chance %.2f Distance: %.2f", chance, distance);
 #endif
 }
+
+void AnnounceBombDeployWarning(bool clear = false)
+{
+	static float last;
+	
+	if(clear) {
+		last = 0.0;
+		return;
+	}
+	
+	if(last < GetGameTime()) {
+		EmitGameSoundToAll("Announcer.MVM_Bomb_Alert_Deploying");
+		last = GetGameTime() + 10.0; // 10 seconds cooldown
+	}
+}
