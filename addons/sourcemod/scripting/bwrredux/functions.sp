@@ -1584,6 +1584,9 @@ void FindSpawnRoomsInTheMap()
 
 void AddAdditionalSpawnRooms()
 {
+	if(!c_bFixSpawnHole.BoolValue)
+		return;
+
 	if(g_bSkipSpawnRoom) // all info_player_teamspawn in this map are inside a func_respawnroom, skip
 		return;
 

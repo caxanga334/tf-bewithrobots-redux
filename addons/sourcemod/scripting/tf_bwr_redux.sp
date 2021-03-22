@@ -104,6 +104,7 @@ ConVar c_bAntiJoinSpam; // Anti-spam
 ConVar c_fl666CritChance; // Wave 666 100% Crits chance.
 ConVar c_flBluProtectionTime; // How many seconds of spawn protection human BLU players have
 ConVar c_strBusterProfiles; // List of sentry busters profiles to load.
+ConVar c_bFixSpawnHole; // Create additional func_respawnroom to fix holes
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -338,6 +339,8 @@ public void OnPluginStart()
 	c_fl666CritChance = AutoExecConfig_CreateConVar("sm_bwrr_wave666_fullcrit_chance", "75.0", "Chance to spawn with full crits on Wave 666 missions.", FCVAR_NONE, true, 0.0, true, 100.0);
 	c_flBluProtectionTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_spawnprotection_time", "60.0", "How many seconds of spawn protection human BLU players have.", FCVAR_NONE, true, 60.0, true, 300.0);
 	c_strBusterProfiles = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_profiles", "valve", "List of sentry busters profiles to load separated by comma.", FCVAR_NONE);
+	c_bFixSpawnHole = AutoExecConfig_CreateConVar("sm_bwrr_fix_spawnroom_holes", "1.0", "Should the plugin create func_respawnroom to fix holes?", FCVAR_NONE, true, 0.0, true, 1.0);
+
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
