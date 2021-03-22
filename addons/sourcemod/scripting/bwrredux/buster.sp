@@ -108,7 +108,7 @@ bool Buster_LoadProfile(const char[] busterprofile)
 	
 	Boss_ClearArrays(); // Need to clear arrays due to the new force boss command.
 	
-	KeyValues kv = new KeyValues("BossTemplate");
+	KeyValues kv = new KeyValues("BusterTemplate");
 	kv.ImportFromFile(configfile);
 	
 	// Jump into the first subsection
