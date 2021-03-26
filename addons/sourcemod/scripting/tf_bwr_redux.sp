@@ -1,3 +1,6 @@
+#pragma semicolon 1
+#pragma newdecls required
+
 #include <sourcemod>
 #include <tf2>
 #include <tf2_stocks>
@@ -20,8 +23,6 @@
 //#define DEBUG_CRASHFIX // crash fixes debug
 // visible weapons?
 //#define VISIBLE_WEAPONS
-
-#pragma semicolon 1
 
 #define PLUGIN_VERSION "1.1.6"
 
@@ -2371,7 +2372,8 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 		return Plugin_Handled;
 	}
 	
-	return Plugin_Continue;
+	Command_JoinRED(client, 0); // Default to RED team.
+	return Plugin_Handled;
 }
 
 public Action Listener_Ready(int client, const char[] command, int argc)
