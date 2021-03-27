@@ -180,9 +180,13 @@ enum
 	BotAttrib_AlwaysFireWeapon = (1 << 9), // Always fire weapon
 	BotAttrib_IgniteOnHit = (1 << 10), // Ignite players when hit
 	BotAttrib_StunOnHit = (1 << 11), // Stuns players when hit
+	BotAttrib_BulletImmune = (1 << 12), // Applies TFCond_BulletImmune to the client
+	BotAttrib_BlastImmune = (1 << 13), // Applies TFCond_BlastImmune to the client
+	BotAttrib_FireImmune = (1 << 14), // Applies TFCond_FireImmune to the client
+	BotAttrib_BonkNerf = (1 << 15), // Nerf scout's energy drink when deploying the bomb
 };
 
-#define BOTATTRIB_MAX 12
+#define BOTATTRIB_MAX 16
 
 // Speak Concepts
 
@@ -1000,6 +1004,18 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			// Bomb deploy
 			if(g_bIsDeploying[client])
 			{
+				if(rp.Attributes & BotAttrib_BonkNerf && TF2_IsPlayerInCondition(client, TFCond_Bonked))
+				{
+					float meter = GetEntPropFloat(client, Prop_Send, "m_flEnergyDrinkMeter");
+					if(meter > 1.0)
+					{
+#if defined DEBUG_PLAYER
+						CPrintToChat(client, "{green}[DEBUG] {cyan}Applying Bonk Nerf! (%.1f)", meter);
+#endif
+						SetEntPropFloat(client, Prop_Send, "m_flEnergyDrinkMeter", 1.0);
+					}
+				}
+			
 				if(rp.DeployTime <= GetGameTime())
 				{
 					char strPlrName[MAX_NAME_LENGTH];
@@ -3110,11 +3126,23 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 		RoboPlayer rp = RoboPlayer(client);
 		if(rp.Attributes & BotAttrib_AlwaysCrits)
 		{
-			TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
+			TF2_AddCondition(client, TFCond_CritOnFlagCapture);
 		}
 		if(rp.Attributes & BotAttrib_AlwaysMiniCrits)
 		{
-			TF2_AddCondition(client, TFCond_Buffed, TFCondDuration_Infinite);
+			TF2_AddCondition(client, TFCond_Buffed);
+		}
+		if(rp.Attributes & BotAttrib_BulletImmune)
+		{
+			TF2_AddCondition(client, TFCond_BulletImmune);
+		}
+		if(rp.Attributes & BotAttrib_BlastImmune)
+		{
+			TF2_AddCondition(client, TFCond_BlastImmune);
+		}
+		if(rp.Attributes & BotAttrib_FireImmune)
+		{
+			TF2_AddCondition(client, TFCond_FireImmune);
 		}
 		rp.ProtectionTime = GetGameTime() + c_flBluProtectionTime.FloatValue;
 	}
@@ -3184,7 +3212,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	
 	if(clientteam == TFTeam_Blue && !IsFakeClient(client))
 	{
-		if(TF2_IsGiant(attacker)) // Giant BLU human killed
+		if(TF2_IsGiant(client)) // Giant BLU human killed
 		{
 			TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_KILLED, view_as<int>(TFTeam_Red), "");
 		}
@@ -3225,7 +3253,7 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		StopRobotLoopSound(client);
 	}
 	
-	if(clientteam == TFTeam_Red && !IsFakeClient(attacker)) // RED player was killed by human BLU player
+	if(clientteam == TFTeam_Red && attacker > 0 && attacker <= MaxClients && !IsFakeClient(attacker)) // RED player was killed by human BLU player
 	{
 		if(TF2_IsGiant(attacker)) // Killed by giant human
 		{

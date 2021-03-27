@@ -891,17 +891,17 @@ void SentryBuster_CreateExplosion(int client)
 	GetClientAbsOrigin(client, flExplosionPos );
 	int iWeapon = GetFirstAvailableWeapon(client);
 	
-	if( GameRules_GetRoundState() == RoundState_RoundRunning )
+	if(GameRules_GetRoundState() == RoundState_RoundRunning)
 	{
 		int i;
 		for( i = 1; i <= MaxClients; i++ ) {
 			if( i != client && IsValidClient(i) && IsPlayerAlive(i) ) {
-				if( CanSeeTarget( client, i, 320.0 ) ) {
+				if(CanSeeTarget(client, i, 320.0)) {
 					DealDamage(i, client, client, 10000.0, DMG_BLAST, iWeapon);
 				}
 			}
 		}
-		
+
 		static const char strObjects[3][] = { "obj_sentrygun", "obj_dispenser", "obj_teleporter" };
 		for( int o = 0; o < sizeof(strObjects); o++ )
 		{
