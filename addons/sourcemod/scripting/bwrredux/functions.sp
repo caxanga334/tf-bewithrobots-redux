@@ -797,31 +797,6 @@ void SDKTFPlayerRemoveObject(int client, int obj)
 	SDKCall(g_hSDKRemoveObject, client, obj);
 }
 
-void Robot_GibGiant(int client, float OriginVec[3])
-{
-	if( IsFakeClient(client) )
-		return;
-
-	int Ent;
-
-	//Initialize:
-	Ent = CreateEntityByName("tf_ragdoll");
-
-	//Write:
-	SetEntPropVector(Ent, Prop_Send, "m_vecRagdollOrigin", OriginVec); 
-	SetEntProp(Ent, Prop_Send, "m_iPlayerIndex", client); 
-	SetEntPropVector(Ent, Prop_Send, "m_vecForce", NULL_VECTOR);
-	SetEntPropVector(Ent, Prop_Send, "m_vecRagdollVelocity", NULL_VECTOR);
-	SetEntProp(Ent, Prop_Send, "m_bGib", 1);
-
-	//Send:
-	DispatchSpawn(Ent);
-
-	//Remove Body:
-	CreateTimer(0.05, Timer_RemoveBody, client, TIMER_FLAG_NO_MAPCHANGE);
-	CreateTimer(8.0, Timer_RemoveGibs, Ent, TIMER_FLAG_NO_MAPCHANGE);
-}
-
 /****************************************************
 					MAP RELATED
 *****************************************************/
@@ -947,6 +922,7 @@ void SentryBuster_CreateExplosion(int client)
 	ForcePlayerSuicide( client );
 	EmitGameSoundToAll("MVM.SentryBusterExplode", client, SND_NOFLAGS, client, flExplosionPos);
 	CreateTimer(0.05, Timer_RemoveBody, client, TIMER_FLAG_NO_MAPCHANGE);
+	TF2_SpeakConcept(MP_CONCEPT_MVM_SENTRY_BUSTER_DOWN, view_as<int>(TFTeam_Red), "");
 }
 
 bool CanSeeTarget(int iEntity,int iOther, float flMaxDistance = 0.0 )
@@ -2360,6 +2336,15 @@ void TF2_ResetFlag(int flag)
 	{
 		AcceptEntityInput(flag, "ForceReset");
 	}
+}
+
+/****************************************************
+					SPEAK CONCEPT
+*****************************************************/
+
+void TF2_SpeakConcept(int concept, int team, char[] modifiers)
+{
+	SDKCall(g_hSDKSpeakConcept, concept, team, modifiers);
 }
 
 /****************************************************

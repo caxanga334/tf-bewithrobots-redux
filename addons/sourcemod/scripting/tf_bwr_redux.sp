@@ -122,6 +122,8 @@ Handle g_hSDKGetMaxClip;
 Handle g_hSDKGetClip;
 Handle g_hSDKIsFlagHome;
 Handle g_hSDKPickupFlag;
+Handle g_hCTFPlayerShouldGib;
+Handle g_hSDKSpeakConcept;
 
 enum ParticleAttachment
 {
@@ -181,6 +183,24 @@ enum
 };
 
 #define BOTATTRIB_MAX 12
+
+// Speak Concepts
+
+enum
+{
+	MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE1 = 99,
+	MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE2 = 100,
+	MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE3 = 101,
+	MP_CONCEPT_MVM_BOMB_PICKUP = 104,
+	MP_CONCEPT_MVM_SENTRY_BUSTER = 105,
+	MP_CONCEPT_MVM_SENTRY_BUSTER_DOWN = 106,
+	MP_CONCEPT_MVM_SNIPER_CALLOUT = 107,
+	MP_CONCEPT_MVM_GIANT_CALLOUT = 113,
+	MP_CONCEPT_MVM_GIANT_HAS_BOMB = 114,
+	MP_CONCEPT_MVM_GIANT_KILLED = 115,
+	MP_CONCEPT_MVM_GIANT_KILLED_TEAMMATE = 116,
+};
+
 
 enum struct eDisguisedStruct
 {
@@ -481,6 +501,13 @@ public void OnPluginStart()
 	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_ByValue);
 	if((g_hSDKIsFlagHome = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CCaptureFlag::IsHome signature!"); sigfailure = true; }
 	
+	StartPrepSDKCall(SDKCall_GameRules);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed");
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // int iConcept
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // int iTeam
+	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // const char *modifiers
+	if((g_hSDKSpeakConcept = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed signature!"); sigfailure = true; }
+	
 	//This call forces a player to pickup the intel
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CCaptureFlag::PickUp");
@@ -494,6 +521,11 @@ public void OnPluginStart()
 	g_hCFilterTFBotHasTag = DHookCreate(iOffset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, CFilterTFBotHasTag);
 	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index of the entity using the filter
 	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index that triggered the filter
+	
+	iOffset = GameConfGetOffset(hConf, "CTFPlayer::ShouldGib");
+	if(iOffset == -1) { SetFailState("Failed to get offset of CTFBot::ShouldGib"); }
+	g_hCTFPlayerShouldGib = DHookCreate(iOffset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, CTFPlayer_ShouldGib);
+	DHookAddParam(g_hCTFPlayerShouldGib, HookParamType_ObjectPtr, -1, DHookPass_ByRef);
 	
 	//This call gets the maximum clip 1 of a weapon
 	StartPrepSDKCall(SDKCall_Entity);
@@ -707,6 +739,7 @@ public void TF2_OnWaitingForPlayersEnd()
 public void OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_OnTakeDamage, SDKOnPlayerTakeDamage);
+	DHookEntity(g_hCTFPlayerShouldGib, true, client);
 	g_flinstructiontime[client] = 0.0;
 	g_flJoinRobotBanTime[client] = 0.0;
 }
@@ -962,12 +995,12 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 		
-		if( rp.Carrier && TF2_HasFlag(client) )
+		if(rp.Carrier && TF2_HasFlag(client))
 		{
 			// Bomb deploy
-			if( g_bIsDeploying[client] )
+			if(g_bIsDeploying[client])
 			{
-				if( rp.DeployTime <= GetGameTime() )
+				if(rp.DeployTime <= GetGameTime())
 				{
 					char strPlrName[MAX_NAME_LENGTH];
 					GetClientName(client, strPlrName, sizeof(strPlrName));
@@ -979,14 +1012,15 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 				}
 			}
 			
-			if( !TF2_IsPlayerInCondition(client, TFCond_Taunting) && !TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden) && !g_bIsDeploying[client] )
+			if(!TF2_IsPlayerInCondition(client, TFCond_Taunting) && !TF2_IsPlayerInCondition(client, TFCond_UberchargedHidden) && !g_bIsDeploying[client])
 			{
-				if( TF2_IsGiant(client) )
+				if(TF2_IsGiant(client))
 				{
-					if( rp.BombLevel != 4 )
+					if(rp.BombLevel != 4)
 					{
 						rp.BombLevel = 4;
 						RequestFrame(UpdateBombHud, GetClientUserId(client));
+						TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_HAS_BOMB, view_as<int>(TFTeam_Red), "");
 					}
 				}
 				else
@@ -1040,6 +1074,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 									rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_2nd_upgrade"));
 									TF2_AddCondition(client, TFCond_DefenseBuffNoCritBlock, TFCondDuration_Infinite);
 									SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup1", PATTACH_POINT_FOLLOW, client, "head", 0);
+									TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE1, view_as<int>(TFTeam_Red), "");
 								}
 								case 2:
 								{
@@ -1052,11 +1087,13 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 									
 									TF2Attrib_SetByName(client, "health regen", flRegen + 45.0);
 									SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup2", PATTACH_POINT_FOLLOW, client, "head", 0);
+									TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE2, view_as<int>(TFTeam_Red), "");
 								}
 								case 3:
 								{
 									TF2_AddCondition(client, TFCond_CritOnWin, TFCondDuration_Infinite);
 									SDKCall(g_hSDKDispatchParticleEffect, "mvm_levelup3", PATTACH_POINT_FOLLOW, client, "head", 0);
+									TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE3, view_as<int>(TFTeam_Red), "");
 								}
 							}
 							EmitGameSoundToAll("MVM.Warning", SOUND_FROM_WORLD);
@@ -1382,6 +1419,34 @@ public MRESReturn CFilterTFBotHasTag(int iFilter, Handle hReturn, Handle hParams
 	
 	DHookSetReturn(hReturn, bResult);
 	return MRES_Supercede;
+}
+
+// Code from Pelipoika's Bot Control
+public MRESReturn CTFPlayer_ShouldGib(int pThis, Handle hReturn, Handle hParams)
+{
+	if(!DHookIsNullParam(hParams, 1) && TF2_GetClientTeam(pThis) == TFTeam_Blue)
+	{
+		bool is_miniboss = view_as<bool>(GetEntProp(pThis, Prop_Send, "m_bIsMiniBoss"));
+		float m_flModelScale = GetEntPropFloat(pThis, Prop_Send, "m_flModelScale");
+		
+		if(is_miniboss || m_flModelScale > 1.0)
+		{
+			DHookSetReturn(hReturn, true);
+			return MRES_Supercede;
+		}
+		
+		bool is_engie  = (TF2_GetPlayerClass(pThis) == TFClass_Engineer);
+		bool is_medic  = (TF2_GetPlayerClass(pThis) == TFClass_Medic);
+		bool is_sniper = (TF2_GetPlayerClass(pThis) == TFClass_Sniper);
+		bool is_spy    = (TF2_GetPlayerClass(pThis) == TFClass_Spy);
+		
+		if (is_engie || is_medic || is_sniper || is_spy) {
+			DHookSetReturn(hReturn, false);
+			return MRES_Supercede;
+		}
+	}
+	
+	return MRES_Ignored;
 }
 
 /****************************************************
@@ -3097,7 +3162,7 @@ public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadca
 public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	//int attacker = GetClientOfUserId(event.GetInt("attacker"));
+	int attacker = GetClientOfUserId(event.GetInt("attacker"));
 	int customkill = event.GetInt("customkill");
 	TFTeam clientteam = TF2_GetClientTeam(client);
 	
@@ -3119,6 +3184,11 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 	
 	if(clientteam == TFTeam_Blue && !IsFakeClient(client))
 	{
+		if(TF2_IsGiant(attacker)) // Giant BLU human killed
+		{
+			TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_KILLED, view_as<int>(TFTeam_Red), "");
+		}
+	
 		rp.Gatebot = false;
 		rp.Detonating = false;
 		rp.BusterTime = -1.0;
@@ -3148,12 +3218,19 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 				float clientPosVec[3];
 				GetClientAbsOrigin(client, clientPosVec);
 				EmitGameSoundToAll("MVM.GiantHeavyExplodes", client, SND_NOFLAGS, client, clientPosVec);
-				Robot_GibGiant(client, clientPosVec);
 			}
 		}
 		
 		RequestFrame(FramePickNewRobot, GetClientUserId(client));
 		StopRobotLoopSound(client);
+	}
+	
+	if(clientteam == TFTeam_Red && !IsFakeClient(attacker)) // RED player was killed by human BLU player
+	{
+		if(TF2_IsGiant(attacker)) // Killed by giant human
+		{
+			TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_KILLED_TEAMMATE, view_as<int>(TFTeam_Red), "");
+		}
 	}
 
 	SpyDisguiseClear(client);
@@ -3215,11 +3292,13 @@ public Action E_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast
 			if(TF2_IsGiant(client))
 			{
 				rp.BombLevel = 4;
+				TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_HAS_BOMB, view_as<int>(TFTeam_Red), "");
 			}
 			else
 			{
 				rp.BombLevel = 0;
 				rp.UpgradeTime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_1st_upgrade"));
+				TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_PICKUP, view_as<int>(TFTeam_Red), "");
 			}
 			RequestFrame(UpdateBombHud, GetClientUserId(client));
 		}
@@ -3398,6 +3477,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				if(Math_RandomChance(RT_GetFullCritsChance(p_BotClass[client], p_iBotVariant[client], 1))) {
 					TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 				}
+				TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_CALLOUT, view_as<int>(TFTeam_Red), "");
 			}
 			case Bot_Boss:
 			{
@@ -3416,6 +3496,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				CPrintToChatAll("%t", "Boss_Spawn", plrname, bossname, Boss_ComputeHealth());
 				LogAction(client, -1, "Player \"%L\" spawned as a boss robot ( %s ).", client, bossname);
 				EmitGameSoundToAll("MVM.GiantHeavyEntrance", SOUND_FROM_PLAYER);
+				TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_CALLOUT, view_as<int>(TFTeam_Red), "");
 			}
 			case Bot_Buster:
 			{
@@ -3425,6 +3506,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				ApplyRobotLoopSound(client);
 				Buster_SetHealth(client);
 				CPrintToChat(client, "%t", "SB_Instructions");
+				TF2_SpeakConcept(MP_CONCEPT_MVM_SENTRY_BUSTER, view_as<int>(TFTeam_Red), "");
 			}
 			default:
 			{
@@ -3492,6 +3574,19 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 							TeleportToSpawnPoint(client, TFClass);
 						}
 					}
+				}
+				case TFClass_Sniper:
+				{
+					TF2_SpeakConcept(MP_CONCEPT_MVM_SNIPER_CALLOUT, view_as<int>(TFTeam_Red), "");
+					iTeleTarget = FindBestBluTeleporter();
+					if(iTeleTarget != -1) // found teleporter
+					{
+						SpawnOnTeleporter(iTeleTarget, client);
+					}
+					else
+					{
+						TeleportToSpawnPoint(client, TFClass);
+					}					
 				}
 				default: // other classes
 				{
