@@ -28,6 +28,7 @@ int g_BNBitsAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BNHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BNType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BNCritChance[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+int g_BNCurrency[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BNScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BNCooldown[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BNWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
@@ -44,6 +45,7 @@ int g_BGBitsAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGHealth[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 //int g_BGType[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 int g_BGCritChance[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
+int g_BGCurrency[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BGScale[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 float g_BGCooldown[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BGWeaponClass[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
@@ -556,12 +558,29 @@ int RT_GetFullCritsChance(TFClassType TFClass, int templateindex, int type = 0)
 		return 0;
 
 	int iClass = view_as<int>(TFClass);
-	switch( type )
+	switch(type)
 	{
 		case 0: // Normal
 			return g_BNCritChance[templateindex][iClass];
 		case 1: // Giant
-			return g_BNCritChance[templateindex][iClass];
+			return g_BGCritChance[templateindex][iClass];
+		default:
+			return 0;
+	}
+}
+
+int RT_GetCurrency(TFClassType TFClass, int templateindex, int type = 0)
+{
+	if(templateindex < 0)
+		return 0;
+
+	int iClass = view_as<int>(TFClass);
+	switch(type)
+	{
+		case 0: // Normal
+			return g_BNCurrency[templateindex][iClass];
+		case 1: // Giant
+			return g_BGCurrency[templateindex][iClass];
 		default:
 			return 0;
 	}
@@ -925,7 +944,9 @@ void SetOwnAttributes(int client , bool bGiant)
 			case TFClass_Spy:
 			{
 				iWeapon = GetPlayerWeaponSlot(client, 4); // spy invis watch
-				TF2Attrib_SetByName(iWeapon, "mult cloak meter regen rate", 4.0); // own spy doesn't have inf cloak
+				if(iWeapon != -1) {
+					TF2Attrib_SetByName(iWeapon, "mult cloak meter regen rate", 4.0); // own spy doesn't have inf cloak
+				}
 			}
 		}
 	}
@@ -1101,6 +1122,7 @@ void RT_LoadCfgNormal()
 						g_BNScale[iCounter][j] = kv.GetFloat("scale", 0.0);
 						g_BNCooldown[iCounter][j] = kv.GetFloat("cooldown", 0.0);
 						g_BNCritChance[iCounter][j] = kv.GetNum("fullcritchance", 0);
+						g_BNCurrency[iCounter][j] = kv.GetNum("currency", 0);
 						KvGetString(kv, "description", g_BNDescription[iCounter][j], MAXLEN_CONFIG_STRING);
 						
 						if(kv.JumpToKey("playerattributes"))
@@ -1216,6 +1238,7 @@ void RT_LoadCfgGiant()
 						g_BGScale[iCounter][j] = kv.GetFloat("scale", 0.0);
 						g_BGCooldown[iCounter][j] = kv.GetFloat("cooldown", 0.0);
 						g_BGCritChance[iCounter][j] = kv.GetNum("fullcritchance", 0);
+						g_BGCurrency[iCounter][j] = kv.GetNum("currency", 0);
 						KvGetString(kv, "description", g_BGDescription[iCounter][j], MAXLEN_CONFIG_STRING);
 						
 						if(kv.JumpToKey("playerattributes"))

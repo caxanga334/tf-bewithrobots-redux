@@ -280,6 +280,7 @@ void TeleportEngineerToPosition(float origin[3], int client, float OffsetVec[3] 
 {
 	float FinalVec[3];
 	
+	TF2_PushAllPlayers(origin, 400.0, 500.0, view_as<int>(TFTeam_Red)); // Push players
 	BWRR_RemoveSpawnProtection(client);
 	AddVectors(origin, OffsetVec, FinalVec);
 	TeleportEntity(client, FinalVec, NULL_VECTOR, NULL_VECTOR);
@@ -2339,12 +2340,22 @@ void TF2_ResetFlag(int flag)
 }
 
 /****************************************************
-					SPEAK CONCEPT
+					GENERIC SDK CALLS
 *****************************************************/
 
 void TF2_SpeakConcept(int concept, int team, char[] modifiers)
 {
 	SDKCall(g_hSDKSpeakConcept, concept, team, modifiers);
+}
+
+void TF2_PushAllPlayers(float vPos[3], float range, float force, int team)
+{
+	SDKCall(g_hSDKPushAwayPlayers, vPos, range, force, team, 0);
+}
+
+void TF2_DropCurrencyPack(int client, int type, int amount, bool forcedistribute, int moneymaker)
+{
+	SDKCall(g_hSDKDropCurrency, client, type, amount, forcedistribute, moneymaker);
 }
 
 /****************************************************

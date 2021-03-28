@@ -26,6 +26,7 @@ int g_TBossWeaponIndex[MAX_ROBOTS_WEAPONS];
 int g_TBossBitsAttribs;
 int g_TBossBaseHealth;
 int g_TBossPlrHealth;
+int g_TBossCurrency;
 float g_TBossScale;
 float g_TBossHPRegen; // HP regen per player
 TFClassType g_TBossClass;
@@ -78,6 +79,11 @@ void Boss_GetName(char[] name, int size)
 int Boss_GetClient()
 {
 	return g_BossClient;
+}
+
+int Boss_GetCurrency()
+{
+	return g_TBossCurrency;
 }
 
 float Boss_GetScale()
@@ -379,6 +385,7 @@ bool Boss_LoadProfile(char[] bossfile)
 	g_TBossClass = TF2_GetClass(buffer);
 	g_TBossScale = kv.GetFloat("scale", 1.9);
 	g_TBossGatebot = !!kv.GetNum("gatebot", 0);
+	g_TBossCurrency = kv.GetNum("currency", 0);
 	kv.GetString("robotattributes", buffer, sizeof(buffer));
 	
 	iNum = ExplodeString(buffer, ",", strBits, sizeof(strBits), sizeof(strBits[]));

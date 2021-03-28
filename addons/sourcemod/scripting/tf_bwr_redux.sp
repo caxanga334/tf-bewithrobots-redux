@@ -34,6 +34,8 @@
 #define ROBOT_SND_GIANT_HEAVY ")mvm/giant_heavy/giant_heavy_loop.wav"
 #define ROBOT_SND_SENTRY_BUSTER "mvm/sentrybuster/mvm_sentrybuster_loop.wav"
 
+#define TF_CURRENCY_PACK_CUSTOM 9
+
 // player robot variants prefix: p_
 int p_iBotType[MAXPLAYERS + 1]; // Robot type
 int p_iBotVariant[MAXPLAYERS + 1]; // Robot variant
@@ -106,6 +108,7 @@ ConVar c_fl666CritChance; // Wave 666 100% Crits chance.
 ConVar c_flBluProtectionTime; // How many seconds of spawn protection human BLU players have
 ConVar c_strBusterProfiles; // List of sentry busters profiles to load.
 ConVar c_bFixSpawnHole; // Create additional func_respawnroom to fix holes
+ConVar c_bDropCurrency; // Should human players drop currency when killed
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -124,6 +127,9 @@ Handle g_hSDKIsFlagHome;
 Handle g_hSDKPickupFlag;
 Handle g_hCTFPlayerShouldGib;
 Handle g_hSDKSpeakConcept;
+Handle g_hCTFPLayerCanBeForcedToLaugh;
+Handle g_hSDKPushAwayPlayers;
+Handle g_hSDKDropCurrency;
 
 enum ParticleAttachment
 {
@@ -365,6 +371,7 @@ public void OnPluginStart()
 	c_flBluProtectionTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_spawnprotection_time", "60.0", "How many seconds of spawn protection human BLU players have.", FCVAR_NONE, true, 60.0, true, 300.0);
 	c_strBusterProfiles = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_profiles", "valve", "List of sentry busters profiles to load separated by comma.", FCVAR_NONE);
 	c_bFixSpawnHole = AutoExecConfig_CreateConVar("sm_bwrr_fix_spawnroom_holes", "1.0", "Should the plugin create func_respawnroom to fix holes?", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bDropCurrency = AutoExecConfig_CreateConVar("sm_bwrr_spawn_currency", "1.0", "Should the plugin spawn currency when human BLU players are killed.", FCVAR_NONE, true, 0.0, true, 1.0);
 
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
@@ -505,12 +512,32 @@ public void OnPluginStart()
 	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_ByValue);
 	if((g_hSDKIsFlagHome = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CCaptureFlag::IsHome signature!"); sigfailure = true; }
 	
+	// Make players speak concept
 	StartPrepSDKCall(SDKCall_GameRules);
 	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed");
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // int iConcept
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // int iTeam
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // const char *modifiers
 	if((g_hSDKSpeakConcept = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed signature!"); sigfailure = true; }
+	
+	// Push players away
+	StartPrepSDKCall(SDKCall_GameRules);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFGameRules::PushAllPlayersAway");
+	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Plain); // Vector& vFromThisPoint
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // float flRange
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // float flForce
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // int nTeam
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue); // CUtlVector< CTFPlayer* > *pPushedPlayers
+	if((g_hSDKPushAwayPlayers = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFGameRules::PushAllPlayersAway signature!"); sigfailure = true; }
+	
+	// Drop currency
+	StartPrepSDKCall(SDKCall_Player);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFPlayer::DropCurrencyPack");
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue); // CurrencyRewards_t nSize
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // int nAmount
+	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool bForceDistribute
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue); // CBasePlayer* pMoneyMaker
+	if((g_hSDKDropCurrency = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFPlayer::DropCurrencyPack signature!"); sigfailure = true; }
 	
 	//This call forces a player to pickup the intel
 	StartPrepSDKCall(SDKCall_Entity);
@@ -558,6 +585,18 @@ public void OnPluginStart()
 	
 	if(!DHookEnableDetour(g_hGetEventChangeAttributes, false, CTFBot_GetEventChangeAttributes)) { SetFailState("Failed to detour CTFBot::GetEventChangeAttributes."); }
 	if(!DHookEnableDetour(g_hGetEventChangeAttributes, true, CTFBot_GetEventChangeAttributes_Post)) { SetFailState("Failed to detour CTFBot::GetEventChangeAttributes_Post."); }
+	
+	g_hCTFPLayerCanBeForcedToLaugh = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Bool, ThisPointer_CBaseEntity);
+	if(!g_hCTFPLayerCanBeForcedToLaugh) { SetFailState("Failed to setup detour for CTFPlayer::CanBeForcedToLaugh"); }
+	
+	if(!DHookSetFromConf(g_hCTFPLayerCanBeForcedToLaugh, hConf, SDKConf_Signature, "CTFPlayer::CanBeForcedToLaugh"))
+	{
+		LogError("Failed to load CTFPlayer::CanBeForcedToLaugh signature from gamedata");
+		sigfailure = true;
+	}
+	
+	if(!DHookEnableDetour(g_hCTFPLayerCanBeForcedToLaugh, false, CTFPLayer_CanBeForcedToLaugh)) { SetFailState("Failed to detour CTFPlayer::CanBeForcedToLaugh"); }
+	if(!DHookEnableDetour(g_hCTFPLayerCanBeForcedToLaugh, true, CTFPLayer_CanBeForcedToLaugh_Post)) { SetFailState("Failed to detour CTFPlayer::CanBeForcedToLaugh_Post"); }
 	
 	delete hConf;
 	
@@ -1460,6 +1499,34 @@ public MRESReturn CTFPlayer_ShouldGib(int pThis, Handle hReturn, Handle hParams)
 			DHookSetReturn(hReturn, false);
 			return MRES_Supercede;
 		}
+	}
+	
+	return MRES_Ignored;
+}
+
+public MRESReturn CTFPLayer_CanBeForcedToLaugh(int pThis, Handle hReturn)
+{
+	if(TF2_GetClientTeam(pThis) == TFTeam_Blue && !IsFakeClient(pThis))
+	{
+#if defined DEBUG_PLAYER
+		CPrintToChat(pThis, "{green}[DEBUG] {snow}Overriding CTFPLayer::CanBeForcedToLaugh");
+#endif
+		DHookSetReturn(hReturn, false);
+		return MRES_Supercede;
+	}
+	
+	return MRES_Ignored;
+}
+
+public MRESReturn CTFPLayer_CanBeForcedToLaugh_Post(int pThis, Handle hReturn)
+{
+	if(TF2_GetClientTeam(pThis) == TFTeam_Blue && !IsFakeClient(pThis))
+	{
+#if defined DEBUG_PLAYER
+		CPrintToChat(pThis, "{green}[DEBUG] {snow}Overriding CTFPLayer::CanBeForcedToLaugh (Post)");
+#endif
+		DHookSetReturn(hReturn, false);
+		return MRES_Supercede;
 	}
 	
 	return MRES_Ignored;
@@ -3216,6 +3283,43 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		{
 			TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_KILLED, view_as<int>(TFTeam_Red), "");
 		}
+		
+		if(c_bDropCurrency.BoolValue && GameRules_GetRoundState() == RoundState_RoundRunning && !rp.InSpawn)
+		{
+			int amount;
+			// Drop Currency
+			switch(rp.Type)
+			{
+				case Bot_Boss:
+				{
+					amount = Boss_GetCurrency();
+				}
+				case Bot_Giant:
+				{
+					amount = RT_GetCurrency(TF2_GetPlayerClass(client), rp.Variant, 1);
+				}
+				case Bot_Buster: amount = 0;
+				default:
+				{
+					amount = RT_GetCurrency(TF2_GetPlayerClass(client), rp.Variant, 0);
+				}
+			}
+			
+			if(amount > 0)
+			{
+				if(attacker > 0 && attacker <= MaxClients && TF2_GetClientTeam(attacker) == TFTeam_Red && TF2_GetPlayerClass(attacker) == TFClass_Sniper)
+				{
+					TF2_DropCurrencyPack(client, TF_CURRENCY_PACK_CUSTOM, amount, true, attacker);
+				}
+				else
+				{
+					TF2_DropCurrencyPack(client, TF_CURRENCY_PACK_CUSTOM, amount, false, 0);
+				}
+#if defined DEBUG_PLAYER
+				CPrintToChatAll("{green}[DEBUG] {gray}DropCurrency:: {cyan} Player: %N - Amount: %i", client, amount);
+#endif
+			}
+		}
 	
 		rp.Gatebot = false;
 		rp.Detonating = false;
@@ -3753,6 +3857,9 @@ public Action Timer_BuildObject(Handle timer, any index)
 	if(IsValidEdict(index))
 	{
 		GetEdictClassname(index, classname, sizeof(classname));
+		float vPos[3];
+		GetEntPropVector(index, Prop_Send, "m_vecOrigin", vPos);
+		TF2_PushAllPlayers(vPos, 400.0, 500.0, view_as<int>(TFTeam_Red)); // Push players
 		
 		if(strcmp(classname, "obj_sentrygun", false) == 0)
 		{
