@@ -536,7 +536,7 @@ public void OnPluginStart()
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue); // CurrencyRewards_t nSize
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // int nAmount
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool bForceDistribute
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue); // CBasePlayer* pMoneyMaker
+	PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_Pointer); // CBasePlayer* pMoneyMaker
 	if((g_hSDKDropCurrency = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFPlayer::DropCurrencyPack signature!"); sigfailure = true; }
 	
 	//This call forces a player to pickup the intel
@@ -3307,17 +3307,13 @@ public Action E_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 			
 			if(amount > 0)
 			{
-				if(attacker > 0 && attacker <= MaxClients && TF2_GetClientTeam(attacker) == TFTeam_Red && TF2_GetPlayerClass(attacker) == TFClass_Sniper)
+				if(attacker > 0 && attacker <= MaxClients && TF2_GetClientTeam(attacker) == TFTeam_Red)
 				{
 					TF2_DropCurrencyPack(client, TF_CURRENCY_PACK_CUSTOM, amount, true, attacker);
-				}
-				else
-				{
-					TF2_DropCurrencyPack(client, TF_CURRENCY_PACK_CUSTOM, amount, false, 0);
-				}
 #if defined DEBUG_PLAYER
 				CPrintToChatAll("{green}[DEBUG] {gray}DropCurrency:: {cyan} Player: %N - Amount: %i", client, amount);
 #endif
+				}
 			}
 		}
 	
