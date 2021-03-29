@@ -950,16 +950,16 @@ bool CanSeeTarget(int iEntity,int iOther, float flMaxDistance = 0.0 )
 		}
 	}
 	
-	Handle hTrace = TR_TraceRayFilterEx( vecStart, vecTarget, MASK_VISIBLE, RayType_EndPoint, TraceFilterSentryBuster, iOther );
-	if( !TR_DidHit( hTrace ) )
+	Handle hTrace = TR_TraceRayFilterEx(vecStart, vecTarget, MASK_VISIBLE, RayType_EndPoint, TraceFilterSentryBuster, iOther);
+	if(!TR_DidHit(hTrace))
 	{
-		CloseHandle( hTrace );
+		delete hTrace;
 		return false;
 	}
 	
 	int iHitEnt = TR_GetEntityIndex( hTrace );
 	TR_GetEndPosition( vecEnd, hTrace );
-	CloseHandle( hTrace );
+	delete hTrace;
 	
 	if( iHitEnt == iOther || GetVectorDistanceMeter( vecEnd, vecTarget ) <= 1.0 )
 	{
@@ -1153,7 +1153,6 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 // returns true if the trace hit something
 bool SpyTeleport_RayCheck(const int id, float pos1[3], int iDebug = 0)
 {
-	Handle trace;
 	pos1[2] += 45;
 	float pos2[3];
 	bool valid = true;
@@ -1166,11 +1165,10 @@ bool SpyTeleport_RayCheck(const int id, float pos1[3], int iDebug = 0)
 			continue;
 			
 		if(TF2_GetClientTeam(i) != TFTeam_Red) // must be on RED team
-			continue;
-			
-		trace = null;
+			continue;	
+		
 		GetClientEyePosition(i, pos2);
-		trace = TR_TraceRayFilterEx(pos1, pos2, MASK_VISIBLE_AND_NPCS, RayType_EndPoint, TraceFilterSpy, i);
+		Handle trace = TR_TraceRayFilterEx(pos1, pos2, MASK_VISIBLE_AND_NPCS, RayType_EndPoint, TraceFilterSpy, i);
 		
 		if(!TR_DidHit(trace))
 		{
@@ -1180,11 +1178,12 @@ bool SpyTeleport_RayCheck(const int id, float pos1[3], int iDebug = 0)
 			TE_SendToAll();
 			}
 			valid = false;
+			delete trace;
 			break;
 		}
+		delete trace;
 	}
-	
-	delete trace;
+
 	return valid;
 }
 
