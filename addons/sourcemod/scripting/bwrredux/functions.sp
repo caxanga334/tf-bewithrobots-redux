@@ -508,9 +508,9 @@ bool TraceFilterSpy(int entity, int contentsMask, any data)
 	return true;
 }
 
-void TE_SendBeam(const float vMins[3], const float vMaxs[3], const int colors[4] = { 255, 255, 255, 255 }, int client = -1)
+void TE_SendBeam(const float vMins[3], const float vMaxs[3], const int colors[4] = { 255, 255, 255, 255 }, int client = -1, float time = 5.0)
 {
-	TE_SetupBeamPoints(vMins, vMaxs, g_iLaserSprite, g_iHaloSprite, 0, 0, 5.0, 1.0, 1.0, 1, 0.0, colors, 0);
+	TE_SetupBeamPoints(vMins, vMaxs, g_iLaserSprite, g_iHaloSprite, 0, 0, time, 1.0, 1.0, 1, 0.0, colors, 0);
 	
 	if(client > 0 && client <= MaxClients)
 		TE_SendToClient(client);
@@ -519,7 +519,7 @@ void TE_SendBeam(const float vMins[3], const float vMaxs[3], const int colors[4]
 }
 
 // Code from Silver's dev cmd plugin
-void DrawBox(int client, float vPos[3], float vMins[3], float vMaxs[3])
+void DrawBox(int client, float vPos[3], float vMins[3], float vMaxs[3], int colors[4] = { 0, 255, 0, 255 }, float time = 5.0)
 {
 	if( vMins[0] == vMaxs[0] && vMins[1] == vMaxs[1] && vMins[2] == vMaxs[2] )
 	{
@@ -532,7 +532,6 @@ void DrawBox(int client, float vPos[3], float vMins[3], float vMaxs[3])
 		AddVectors(vPos, vMins, vMins);
 	}
 	
-	int colors[4] = { 0, 255, 0, 255 };
 	float vPos1[3], vPos2[3], vPos3[3], vPos4[3], vPos5[3], vPos6[3];
 	vPos1 = vMaxs;
 	vPos1[0] = vMins[0];
@@ -547,18 +546,18 @@ void DrawBox(int client, float vPos[3], float vMins[3], float vMaxs[3])
 	vPos6 = vMins;
 	vPos6[2] = vMaxs[2];
 
-	TE_SendBeam(vMaxs, vPos1, colors, client);
-	TE_SendBeam(vMaxs, vPos2, colors, client);
-	TE_SendBeam(vMaxs, vPos3, colors, client);
-	TE_SendBeam(vPos6, vPos1, colors, client);
-	TE_SendBeam(vPos6, vPos2, colors, client);
-	TE_SendBeam(vPos6, vMins, colors, client);
-	TE_SendBeam(vPos4, vMins, colors, client);
-	TE_SendBeam(vPos5, vMins, colors, client);
-	TE_SendBeam(vPos5, vPos1, colors, client);
-	TE_SendBeam(vPos5, vPos3, colors, client);
-	TE_SendBeam(vPos4, vPos3, colors, client);
-	TE_SendBeam(vPos4, vPos2, colors, client);
+	TE_SendBeam(vMaxs, vPos1, colors, client, time);
+	TE_SendBeam(vMaxs, vPos2, colors, client, time);
+	TE_SendBeam(vMaxs, vPos3, colors, client, time);
+	TE_SendBeam(vPos6, vPos1, colors, client, time);
+	TE_SendBeam(vPos6, vPos2, colors, client, time);
+	TE_SendBeam(vPos6, vMins, colors, client, time);
+	TE_SendBeam(vPos4, vMins, colors, client, time);
+	TE_SendBeam(vPos5, vMins, colors, client, time);
+	TE_SendBeam(vPos5, vPos1, colors, client, time);
+	TE_SendBeam(vPos5, vPos3, colors, client, time);
+	TE_SendBeam(vPos4, vPos3, colors, client, time);
+	TE_SendBeam(vPos4, vPos2, colors, client, time);
 }
 
 /****************************************************

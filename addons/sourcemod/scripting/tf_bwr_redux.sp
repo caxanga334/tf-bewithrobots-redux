@@ -4948,6 +4948,13 @@ void TeleportToSpawnPoint(int client, TFClassType TFClass)
 		GetEntPropVector(iSpawn, Prop_Send, "m_vecOrigin", vecOrigin);
 		GetEntPropVector(iSpawn, Prop_Data, "m_angRotation", vecAngles);		
 		TeleportEntity(client, vecOrigin, vecAngles, NULL_VECTOR);
+#if defined DEBUG_GENERAL
+		CPrintToChat(client, "{green}[SPAWN] {snow}Teleported to spawn point index %i origin %.1f %.1f %.1f angles %.1f %.1f %.1f", iSpawn, vecOrigin[0], vecOrigin[1], vecOrigin[2], vecAngles[0], vecAngles[1], vecAngles[2]);
+		int colors[4] = { 20, 200, 255, 255 };
+		float mins[3] = { -24.0, -24.0, 0.0 }; // Normal map
+		float maxs[3] = { 24.0, 24.0, 82.0 };
+		DrawBox(client, vecOrigin, mins, maxs, colors, 15.0);
+#endif
 	}
 }
 
