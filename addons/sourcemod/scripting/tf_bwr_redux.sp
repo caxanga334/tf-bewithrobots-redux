@@ -417,6 +417,8 @@ public void OnPluginStart()
 	RegAdminCmd("sm_bwrr_debug_spytrace", Command_Debug_Spy_Trace, ADMFLAG_ROOT, "Debug spy teleport trace LOS check.");
 	RegAdminCmd("sm_bwrr_debug_engy", Command_Debug_Engy, ADMFLAG_ROOT, "Debug engineer teleport.");
 	RegAdminCmd("sm_bwrr_show_teleport_positions", Command_Show_Tele_Pos, ADMFLAG_ROOT, "Shows positions where spies and engineers are teleported.");
+	RegAdminCmd("sm_bwrr_show_spawn_points", Command_Show_SpawnPoints, ADMFLAG_ROOT, "Shows spawn points in the map.");
+	RegAdminCmd("sm_bwrr_tracehull", Command_TraceHull, ADMFLAG_ROOT, "Performs a trace hull in your current position");
 	RegAdminCmd("sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target.");
 	RegAdminCmd("sm_bwrr_forceboss", Command_ForceBoss, ADMFLAG_ROOT, "Forces a specific boss on the target.");
 	RegAdminCmd("sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team.");
@@ -1758,17 +1760,8 @@ public Action Command_Show_Tele_Pos(int client, int args)
 {
 	if(!client)
 		return Plugin_Handled;
-		
-	if(args < 1)
-	{
-		ReplyToCommand(client, "Usage: sm_bwrr_show_teleport_positions <max range>");
-		return Plugin_Handled;
-	}
-	
-	char arg1[8];
-	GetCmdArg(1, arg1, sizeof(arg1));
-	float flarg1 = StringToFloat(arg1);
-	float clientorigin[3], origin[3], distance, pos2[3];
+
+	float clientorigin[3], origin[3], pos2[3];
 	GetClientAbsOrigin(client, clientorigin);
 	float delay = 0.0;
 	
@@ -1782,8 +1775,7 @@ public Action Command_Show_Tele_Pos(int client, int args)
 		if(IsValidEntity(i))
 		{
 			GetEntPropVector(i, Prop_Send, "m_vecOrigin", origin);
-			distance = GetVectorDistance(clientorigin, origin);
-			if(distance <= flarg1) 
+			if(GetVectorDistance(clientorigin, origin) <= 2048.0) 
 			{
 				pos2[0] = origin[0];
 				pos2[1] = origin[1];
@@ -1800,8 +1792,7 @@ public Action Command_Show_Tele_Pos(int client, int args)
 	{
 		g_aEngyTeleport.GetArray(y, origin);
 	
-		distance = GetVectorDistance(clientorigin, origin);
-		if(distance >= flarg1)
+		if(GetVectorDistance(clientorigin, origin) >= 2048.0)
 			continue;
 		
 		pos2[0] = origin[0];
@@ -1817,8 +1808,7 @@ public Action Command_Show_Tele_Pos(int client, int args)
 	{
 		g_aSpyTeleport.GetArray(y, origin);
 	
-		distance = GetVectorDistance(clientorigin, origin);
-		if(distance >= flarg1)
+		if(GetVectorDistance(clientorigin, origin) >= 2048.0)
 			continue;
 		
 		pos2[0] = origin[0];
@@ -1830,6 +1820,94 @@ public Action Command_Show_Tele_Pos(int client, int args)
 		delay += 0.1;
 	}
 	
+	return Plugin_Handled;
+}
+
+public Action Command_Show_SpawnPoints(int client, int args)
+{
+	if(!client)
+		return Plugin_Handled;
+	
+	char arg1[64], name[64];
+	int entity;
+	float delay = 0.0;
+	float origin[3], pos2[3], clientorigin[3];
+	GetClientAbsOrigin(client, clientorigin);
+	
+	if(args >= 1)
+	{
+		GetCmdArg(1, arg1, sizeof(arg1));
+	}
+	
+	CPrintToChat(client, "{snow}RED - RED Team Spawn Point");
+	CPrintToChat(client, "{snow}BLUE - BLU Team Spawn Point");
+	CPrintToChat(client, "{snow}YELLOW - MARKED Team Spawn Point");
+	
+	while((entity = FindEntityByClassname(entity, "info_player_teamspawn")) != -1)
+	{
+		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+		if(GetVectorDistance(clientorigin, origin) <= 2048.0)
+		{
+			GetEntPropString(entity, Prop_Data, "m_iName", name, sizeof(name));
+			if(args >= 1 && strcmp(name, arg1, false) == 0) // First check for disabled points
+			{
+				pos2[0] = origin[0];
+				pos2[1] = origin[1];
+				pos2[2] = origin[2];
+				pos2[2] += 90.0;
+				TE_SetupBeamPoints(origin, pos2, g_iLaserSprite, g_iHaloSprite, 0, 0, 10.0, 1.0, 1.0, 1, 1.0, { 255, 255, 0, 255 }, 0);
+				TE_SendToClient(client, delay);
+				delay += 0.1;				
+			}
+			else if(GetEntProp(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
+			{
+				pos2[0] = origin[0];
+				pos2[1] = origin[1];
+				pos2[2] = origin[2];
+				pos2[2] += 90.0;
+				TE_SetupBeamPoints(origin, pos2, g_iLaserSprite, g_iHaloSprite, 0, 0, 10.0, 1.0, 1.0, 1, 1.0, { 255, 0, 0, 255 }, 0);
+				TE_SendToClient(client, delay);
+				delay += 0.1;
+			}
+			else if(GetEntProp(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Blue))
+			{
+				pos2[0] = origin[0];
+				pos2[1] = origin[1];
+				pos2[2] = origin[2];
+				pos2[2] += 90.0;
+				TE_SetupBeamPoints(origin, pos2, g_iLaserSprite, g_iHaloSprite, 0, 0, 10.0, 1.0, 1.0, 1, 1.0, { 0, 0, 255, 255 }, 0);
+				TE_SendToClient(client, delay);
+				delay += 0.1;				
+			}
+		}
+	}
+	
+	return Plugin_Handled;
+}
+
+public Action Command_TraceHull(int client, int args)
+{
+	if(!client)
+		return Plugin_Handled;
+	
+	float mins[3], maxs[3], position[3];
+	GetEntPropVector(client, Prop_Send, "m_vecMins", mins);
+	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
+	GetClientAbsOrigin(client, position);
+	Handle trace = TR_TraceHullFilterEx(position, position, mins, maxs, MASK_PLAYERSOLID, TraceFilterTeleporter, client);
+	if(TR_DidHit(trace))
+	{
+		int hitentity = TR_GetEntityIndex(trace);
+		char classname[64];
+		GetEntityClassname(hitentity, classname, sizeof(classname));
+		CPrintToChat(client, "{green}[TRACE HULL]{cyan} Collision with entity index \"%i\" classname \"%s\"", hitentity, classname);
+	}
+	else
+	{
+		CPrintToChat(client, "{green}[TRACE HULL]{cyan} No collision detected.");
+	}
+	
+	delete trace;
 	return Plugin_Handled;
 }
 
@@ -3148,6 +3226,9 @@ void Menufunc_CreateEditorMenu(int client)
 	menu.SetTitle("BWRR Editor");
 	menu.AddItem("spy", "Spy Teleport Point");
 	menu.AddItem("engineer", "Engineer Teleport Point");
+	menu.AddItem("showtelepos", "Show Teleport Points (2048 radius)");
+	menu.AddItem("showspawn", "Show Spawn Points (2048 radius)");
+	menu.AddItem("tracehull", "Trace Hull Test");
 	menu.ExitButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
@@ -3170,6 +3251,21 @@ public int MenuHandler_Editor(Menu menu, MenuAction action, int param1, int para
 				else if(strcmp(info, "engineer") == 0)
 				{
 					Config_AddTeleportPoint(param1, 1);
+					Menufunc_CreateEditorMenu(param1);
+				}
+				else if(strcmp(info, "showtelepos") == 0)
+				{
+					Command_Show_Tele_Pos(param1, 0);
+					Menufunc_CreateEditorMenu(param1);
+				}
+				else if(strcmp(info, "showspawn") == 0)
+				{
+					Command_Show_SpawnPoints(param1, 0);
+					Menufunc_CreateEditorMenu(param1);
+				}
+				else if(strcmp(info, "tracehull") == 0)
+				{
+					Command_TraceHull(param1, 0);
 					Menufunc_CreateEditorMenu(param1);
 				}
 			}			
