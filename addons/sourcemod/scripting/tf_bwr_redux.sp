@@ -416,6 +416,7 @@ public void OnPluginStart()
 	RegAdminCmd("sm_bwrr_debug_spy", Command_Debug_Spy, ADMFLAG_ROOT, "Debug spy teleport.");
 	RegAdminCmd("sm_bwrr_debug_spytrace", Command_Debug_Spy_Trace, ADMFLAG_ROOT, "Debug spy teleport trace LOS check.");
 	RegAdminCmd("sm_bwrr_debug_engy", Command_Debug_Engy, ADMFLAG_ROOT, "Debug engineer teleport.");
+	RegAdminCmd("sm_bwrr_show_teleport_positions", Command_Show_Tele_Pos, ADMFLAG_ROOT, "Shows positions where spies and engineers are teleported.");
 	RegAdminCmd("sm_bwrr_forcebot", Command_ForceBot, ADMFLAG_ROOT, "Forces a specific robot variant on the target.");
 	RegAdminCmd("sm_bwrr_forceboss", Command_ForceBoss, ADMFLAG_ROOT, "Forces a specific boss on the target.");
 	RegAdminCmd("sm_bwrr_move", Command_MoveTeam, ADMFLAG_BAN, "Changes the target player team.");
@@ -1742,10 +1743,6 @@ public Action Command_Debug_Spy( int client, int nArgs )
 
 public Action Command_Debug_Spy_Trace( int client, int nArgs )
 {
-	if(client == 0) {
-		return Plugin_Handled;
-	}
-	
 	ReplyToCommand(client, "Running test...");
 	float vecPos[3];
 	for(int i = 0;i < g_aSpyTeleport.Length;i++)
@@ -1757,7 +1754,86 @@ public Action Command_Debug_Spy_Trace( int client, int nArgs )
 	return Plugin_Handled;
 }
 
-public Action Command_Debug_Engy( int client, int nArgs )
+public Action Command_Show_Tele_Pos(int client, int args)
+{
+	if(!client)
+		return Plugin_Handled;
+		
+	if(args < 1)
+	{
+		ReplyToCommand(client, "Usage: sm_bwrr_show_teleport_positions <max range>");
+		return Plugin_Handled;
+	}
+	
+	char arg1[8];
+	GetCmdArg(1, arg1, sizeof(arg1));
+	float flarg1 = StringToFloat(arg1);
+	float clientorigin[3], origin[3], distance, pos2[3];
+	GetClientAbsOrigin(client, clientorigin);
+	float delay = 0.0;
+	
+	ReplyToCommand(client, "BLUE - Engineer (bot_hint_engineer_nest)");
+	ReplyToCommand(client, "ORANGE - Engineer (config)");
+	ReplyToCommand(client, "CYAN - Spy (config)");
+	
+	int i = -1;
+	while((i = FindEntityByClassname(i, "bot_hint_engineer_nest")) != -1)
+	{
+		if(IsValidEntity(i))
+		{
+			GetEntPropVector(i, Prop_Send, "m_vecOrigin", origin);
+			distance = GetVectorDistance(clientorigin, origin);
+			if(distance <= flarg1) 
+			{
+				pos2[0] = origin[0];
+				pos2[1] = origin[1];
+				pos2[2] = origin[2];
+				pos2[2] += 90.0;
+				TE_SetupBeamPoints(origin, pos2, g_iLaserSprite, g_iHaloSprite, 0, 0, 10.0, 1.0, 1.0, 1, 1.0, {0, 0, 255, 255}, 0);
+				TE_SendToClient(client, delay);
+				delay += 0.1;
+			}
+		}
+	}
+	
+	for(int y = 0;y < g_aEngyTeleport.Length;y++)
+	{
+		g_aEngyTeleport.GetArray(y, origin);
+	
+		distance = GetVectorDistance(clientorigin, origin);
+		if(distance >= flarg1)
+			continue;
+		
+		pos2[0] = origin[0];
+		pos2[1] = origin[1];
+		pos2[2] = origin[2];
+		pos2[2] += 90.0;
+		TE_SetupBeamPoints(origin, pos2, g_iLaserSprite, g_iHaloSprite, 0, 0, 10.0, 1.0, 1.0, 1, 1.0, { 251, 153, 2, 255 }, 0);
+		TE_SendToClient(client, delay);
+		delay += 0.1;
+	}
+	
+	for(int y = 0;y < g_aSpyTeleport.Length;y++)
+	{
+		g_aSpyTeleport.GetArray(y, origin);
+	
+		distance = GetVectorDistance(clientorigin, origin);
+		if(distance >= flarg1)
+			continue;
+		
+		pos2[0] = origin[0];
+		pos2[1] = origin[1];
+		pos2[2] = origin[2];
+		pos2[2] += 90.0;
+		TE_SetupBeamPoints(origin, pos2, g_iLaserSprite, g_iHaloSprite, 0, 0, 10.0, 1.0, 1.0, 1, 1.0, { 0, 255, 255, 255 }, 0);
+		TE_SendToClient(client, delay);
+		delay += 0.1;
+	}
+	
+	return Plugin_Handled;
+}
+
+public Action Command_Debug_Engy(int client, int nArgs)
 {
 	if(client == 0) {
 		return Plugin_Handled;

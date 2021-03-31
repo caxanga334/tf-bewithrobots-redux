@@ -183,7 +183,7 @@ bool FindEngineerNestNearBomb(int client)
 	int i = -1;
 	ArrayList anests;
 	anests = new ArrayList();
-	while((i = FindEntityByClassname(i, "bot_hint_engineer_nest" )) != -1)
+	while((i = FindEntityByClassname(i, "bot_hint_engineer_nest")) != -1)
 	{
 		if(IsValidEntity(i))
 		{
