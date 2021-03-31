@@ -128,7 +128,7 @@ void TeleportSpyRobot(int client)
 	
 	if(!IsValidClient(target))
 	{
-		if(GetSpyTeleportFromConfig(TelePos))
+		if(GetSpyTeleportFromConfig(TelePos, _, client))
 		{
 			BWRR_RemoveSpawnProtection(client);
 			TeleportEntity(client, TelePos, NULL_VECTOR, NULL_VECTOR);
@@ -136,7 +136,7 @@ void TeleportSpyRobot(int client)
 	}
 	else
 	{
-		if(GetSpyTeleportFromConfig(TelePos, target))
+		if(GetSpyTeleportFromConfig(TelePos, target, client))
 		{
 			BWRR_RemoveSpawnProtection(client);
 			TeleportEntity(client, TelePos, NULL_VECTOR, NULL_VECTOR);
@@ -189,6 +189,9 @@ bool FindEngineerNestNearBomb(int client)
 		{
 			GetEntPropVector(i, Prop_Send, "m_vecOrigin", nVec); // nest
 			
+			if(!CanTeleportPlayerToPosition(client, nVec)) // Stuck check
+				continue;
+			
 			current_dist = GetVectorDistance(bVec, nVec);
 			
 			// if the nest is closer to the hatch than the bomb itself, it's a forward nest
@@ -219,7 +222,7 @@ bool FindEngineerNestNearBomb(int client)
 	
 	if( iTargetNest == -1 ) // no bot_hint_engineer_nest found
 	{
-		if( GetEngyTeleportFromConfig(tVec, bVec) )
+		if( GetEngyTeleportFromConfig(tVec, bVec, client) )
 		{
 			TeleportEngineerToPosition(tVec, client);
 		}
@@ -481,6 +484,23 @@ bool CheckTeleportClamping(int teleporter, int client)
 
 	delete trace;
 	return false;
+}
+
+// Performs a trace hull to check if the player will get stuck
+// returns TRUE if it's safe to teleport
+bool CanTeleportPlayerToPosition(int client, float position[3])
+{
+	float mins[3], maxs[3];
+	GetEntPropVector(client, Prop_Send, "m_vecMins", mins);
+	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
+	Handle trace = TR_TraceHullFilterEx(position, position, mins, maxs, MASK_PLAYERSOLID, TraceFilterTeleporter, client);
+	if(TR_DidHit(trace))
+	{
+		delete trace;
+		return false;
+	}
+	delete trace;
+	return true;
 }
 
 bool TraceFilterTeleporter(int entity, int contentsMask, any data)
@@ -877,7 +897,7 @@ void Config_Init()
 // Gets an origin to teleport a spy
 // If target_player is set, try to find one near the target
 // returns true if a spot is found
-bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
+bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1, int client)
 {
 	float tVec[3], rVec[3]; // target_player's vector, return vector
 	int iBestCell = -1;
@@ -898,11 +918,14 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 		{
 			g_aSpyTeleport.GetArray(i, rVec);
 			
+			if(!CanTeleportPlayerToPosition(client, rVec)) // Stuck check
+				continue;
+			
 			if(!SpyTeleport_RayCheck(i, rVec)) // Trace didn't hit anything
 				continue;
 			
 			distance = GetVectorDistance(rVec, tVec);
-			if( distance > min_dist && distance < max_dist ) // include all teleport points inside min and max distance
+			if(distance > min_dist && distance < max_dist) // include all teleport points inside min and max distance
 			{
 				aPos.Push(i);
 			}
@@ -914,7 +937,7 @@ bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1)
 			delete aPos;
 		}
 		
-		if( iBestCell != -1 )
+		if(iBestCell != -1)
 		{
 			g_aSpyTeleport.GetArray(iBestCell, origin);
 			return true;
@@ -968,7 +991,7 @@ bool SpyTeleport_RayCheck(const int id, float pos1[3], int iDebug = 0)
 
 // Gets an origin to teleport an engineer
 // returns true if a spot is found
-bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
+bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3], int client)
 {
 	float rVec[3], hatchpos[3];
 	int iBestCell = -1;
@@ -988,6 +1011,9 @@ bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3])
 	{
 	
 		g_aEngyTeleport.GetArray(i, rVec);
+		
+		if(!CanTeleportPlayerToPosition(client, rVec)) // Stuck Check
+			continue;
 		
 		current_dist = GetVectorDistance(rVec, bombpos);
 		
