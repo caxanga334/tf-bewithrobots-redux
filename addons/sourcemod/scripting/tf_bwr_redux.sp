@@ -190,9 +190,11 @@ enum
 	BotAttrib_BlastImmune = (1 << 13), // Applies TFCond_BlastImmune to the client
 	BotAttrib_FireImmune = (1 << 14), // Applies TFCond_FireImmune to the client
 	BotAttrib_BonkNerf = (1 << 15), // Nerf scout's energy drink when deploying the bomb
+	BotAttrib_RandomRazorback = (1 << 16), // Players have a random chance of spawning with a razorback
+	BotAttrib_DestroyBuildings = (1 << 17), // Destroy engineer's building on death
 };
 
-#define BOTATTRIB_MAX 16
+#define BOTATTRIB_MAX 18
 
 // Speak Concepts
 

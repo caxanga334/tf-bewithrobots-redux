@@ -1769,6 +1769,7 @@ void FrameEngineerDeath(int userid)
 	static const char strobjects[3][16] = { "obj_sentrygun", "obj_dispenser", "obj_teleporter" };
 	
 	int i;
+	RoboPlayer rp = RoboPlayer(client);
 	for(int x = 0;x < sizeof(strobjects);x++)
 	{
 		i = -1;
@@ -1778,8 +1779,16 @@ void FrameEngineerDeath(int userid)
 			{
 				if(client == GetEntPropEnt(i, Prop_Send, "m_hBuilder"))
 				{
-					SDKTFPlayerRemoveObject(client, i);
-					SetEntPropEnt(i, Prop_Send, "m_hBuilder", -1);
+					if(rp.Attributes & BotAttrib_DestroyBuildings)
+					{
+						SetVariantInt(10000);
+						AcceptEntityInput(i, "RemoveHealth");
+					}
+					else
+					{
+						SDKTFPlayerRemoveObject(client, i);
+						SetEntPropEnt(i, Prop_Send, "m_hBuilder", -1);
+					}
 				}
 			}
 		}

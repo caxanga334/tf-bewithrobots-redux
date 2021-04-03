@@ -10,8 +10,8 @@
 // Globals
 char g_strClassKey[10][16] = {"unknownclass" ,"scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"};
 char g_strWeaponsKey[MAX_ROBOTS_WEAPONS][32] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
-char g_strValidAttribs[BOTATTRIB_MAX][32] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire", "igniteonhit", "stunonhit", "bulletimmune", "blastimmune", "fireimmune", "bonknerf"};
-int g_AttribValue[BOTATTRIB_MAX] = {(1 << 0),(1 << 1),(1 << 2),(1 << 3),(1 << 4),(1 << 5),(1 << 6),(1 << 7),(1 << 8),(1 << 9),(1 << 10),(1 << 11),(1 << 12),(1 << 13),(1 << 14),(1 << 15)};
+char g_strValidAttribs[BOTATTRIB_MAX][32] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire", "igniteonhit", "stunonhit", "bulletimmune", "blastimmune", "fireimmune", "bonknerf", "randomrazorback", "destroybuildings"};
+int g_AttribValue[BOTATTRIB_MAX] = {(1 << 0),(1 << 1),(1 << 2),(1 << 3),(1 << 4),(1 << 5),(1 << 6),(1 << 7),(1 << 8),(1 << 9),(1 << 10),(1 << 11),(1 << 12),(1 << 13),(1 << 14),(1 << 15),(1 << 16),(1 << 17)};
 
 // Big list of arrays
 /**
@@ -68,9 +68,9 @@ enum
 };
 
 // remove items from the player
-void StripItems( int client, bool RemoveWeapons = true )
+void StripItems(int client, bool RemoveWeapons = true)
 {	
-	if( !IsClientInGame(client) || IsFakeClient( client ) || !IsPlayerAlive( client ) )
+	if(!IsClientInGame(client) || IsFakeClient(client) || !IsPlayerAlive(client))
 		return;
 		
 	int iEntity;
@@ -79,7 +79,7 @@ void StripItems( int client, bool RemoveWeapons = true )
 	if(RemoveWeapons)
 	{
 		iEntity = -1;
-		while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable_demoshield" ) ) > MaxClients )
+		while((iEntity = FindEntityByClassname(iEntity, "tf_wearable_demoshield")) > MaxClients)
 		{
 			iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
 			if( iOwner == client )
@@ -90,12 +90,12 @@ void StripItems( int client, bool RemoveWeapons = true )
 		}
 		
 		iEntity = -1;
-		while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable_razorback" ) ) > MaxClients )
+		while((iEntity = FindEntityByClassname(iEntity, "tf_wearable_razorback")) > MaxClients)
 		{
-			iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
-			if( iOwner == client )
+			iOwner = GetEntPropEnt(iEntity, Prop_Send, "m_hOwnerEntity");
+			if(iOwner == client)
 			{
-				TF2_RemoveWearable( client, iEntity );
+				TF2_RemoveWearable(client, iEntity);
 				RemoveEntity(iEntity);
 			}
 		}
@@ -103,17 +103,17 @@ void StripItems( int client, bool RemoveWeapons = true )
 		RemoveAllWeapons(client);
 	}
 	
-	if( !OR_IsHalloweenMission() || p_iBotType[client] == Bot_Buster ) // Allow players to have wearables on wave 666 unless the player is a sentry buster
+	if(!OR_IsHalloweenMission() || p_iBotType[client] == Bot_Buster) // Allow players to have wearables on wave 666 unless the player is a sentry buster
 	{
 		iEntity = -1;
-		while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable" ) ) > MaxClients )
+		while((iEntity = FindEntityByClassname(iEntity, "tf_wearable")) > MaxClients)
 		{
-			iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
-			if( iOwner == client )
+			iOwner = GetEntPropEnt(iEntity, Prop_Send, "m_hOwnerEntity");
+			if(iOwner == client)
 			{
 				int index = GetEntProp(iEntity, Prop_Send, "m_iItemDefinitionIndex");
 				if(!IsWearableAWeapon(index)) {
-					TF2_RemoveWearable( client, iEntity );
+					TF2_RemoveWearable(client, iEntity);
 					RemoveEntity(iEntity);
 				}
 			}
@@ -121,37 +121,37 @@ void StripItems( int client, bool RemoveWeapons = true )
 	}
 	
 	iEntity = -1;
-	while( ( iEntity = FindEntityByClassname( iEntity, "tf_powerup_bottle" ) ) > MaxClients )
+	while((iEntity = FindEntityByClassname(iEntity, "tf_powerup_bottle")) > MaxClients)
 	{
-		iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
-		if( iOwner == client ) {
+		iOwner = GetEntPropEnt(iEntity, Prop_Send, "m_hOwnerEntity");
+		if(iOwner == client) {
 			RemoveEntity(iEntity);
 		}
 	}
 	iEntity = -1;
-	while( ( iEntity = FindEntityByClassname( iEntity, "tf_usableitem" ) ) > MaxClients )
+	while((iEntity = FindEntityByClassname(iEntity, "tf_usableitem")) > MaxClients)
 	{
-		iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
-		if( iOwner == client ) {
+		iOwner = GetEntPropEnt(iEntity, Prop_Send, "m_hOwnerEntity");
+		if(iOwner == client) {
 			RemoveEntity(iEntity);
 		}
 	}
 }
 
 // remove items from the player
-void StripWeapons( int client )
+void StripWeapons(int client)
 {	
-	if( !IsClientInGame(client) || IsFakeClient( client ) || !IsPlayerAlive( client ) )
+	if(!IsClientInGame(client) || IsFakeClient(client) || !IsPlayerAlive(client))
 		return;
 		
 	int iEntity;
 	int iOwner;
 	
 	iEntity = -1;
-	while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable_demoshield" ) ) > MaxClients )
+	while((iEntity = FindEntityByClassname(iEntity, "tf_wearable_demoshield")) > MaxClients)
 	{
-		iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
-		if( iOwner == client )
+		iOwner = GetEntPropEnt(iEntity, Prop_Send, "m_hOwnerEntity");
+		if(iOwner == client)
 		{
 			TF2_RemoveWearable( client, iEntity );
 			RemoveEntity(iEntity);
@@ -159,12 +159,12 @@ void StripWeapons( int client )
 	}
 	
 	iEntity = -1;
-	while( ( iEntity = FindEntityByClassname( iEntity, "tf_wearable_razorback" ) ) > MaxClients )
+	while((iEntity = FindEntityByClassname(iEntity, "tf_wearable_razorback")) > MaxClients)
 	{
-		iOwner = GetEntPropEnt( iEntity, Prop_Send, "m_hOwnerEntity" );
-		if( iOwner == client )
+		iOwner = GetEntPropEnt(iEntity, Prop_Send, "m_hOwnerEntity");
+		if(iOwner == client)
 		{
-			TF2_RemoveWearable( client, iEntity );
+			TF2_RemoveWearable(client, iEntity);
 			RemoveEntity(iEntity);
 		}
 	}
@@ -471,6 +471,16 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 		case TFClass_Spy:
 		{
 			SpawnWeapon(client, "tf_weapon_pda_spy", 27, 1, 0, false); // Disguise Kit
+		}
+	}
+	
+	//Attribute based weapons
+	RoboPlayer rp = RoboPlayer(client);
+	if(rp.Attributes & BotAttrib_RandomRazorback)
+	{
+		if(Math_RandomChance(50)) // 50% chance to get a stock razorback
+		{
+			SpawnWeapon(client, "tf_wearable_razorback", 57, 1, 6, true); // Razorback
 		}
 	}
 }
