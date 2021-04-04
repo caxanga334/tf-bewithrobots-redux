@@ -130,6 +130,7 @@ Handle g_hSDKSpeakConcept;
 Handle g_hCTFPLayerCanBeForcedToLaugh;
 Handle g_hSDKPushAwayPlayers;
 Handle g_hSDKDropCurrency;
+Handle g_hCTeamGetNumPlayers;
 
 enum ParticleAttachment
 {
@@ -559,9 +560,13 @@ public void OnPluginStart()
 	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index that triggered the filter
 	
 	iOffset = GameConfGetOffset(hConf, "CTFPlayer::ShouldGib");
-	if(iOffset == -1) { SetFailState("Failed to get offset of CTFBot::ShouldGib"); }
+	if(iOffset == -1) { SetFailState("Failed to get offset of CTFPlayer::ShouldGib"); }
 	g_hCTFPlayerShouldGib = DHookCreate(iOffset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, CTFPlayer_ShouldGib);
 	DHookAddParam(g_hCTFPlayerShouldGib, HookParamType_ObjectPtr, -1, DHookPass_ByRef);
+	
+	iOffset = GameConfGetOffset(hConf, "CTeam::GetNumPlayers");
+	if(iOffset == -1) { SetFailState("Failed to get offset of CTeam::GetNumPlayers"); }
+	g_hCTeamGetNumPlayers = DHookCreate(iOffset, HookType_Entity, ReturnType_Int, ThisPointer_CBaseEntity, CTeam_GetNumPlayers);
 	
 	//This call gets the maximum clip 1 of a weapon
 	StartPrepSDKCall(SDKCall_Entity);
@@ -901,6 +906,10 @@ public void OnEntityCreated(int entity,const char[] name)
 	else if(strcmp(name, "tf_ammo_pack") == 0)
 	{
 		SDKHook(entity, SDKHook_SpawnPost, OnAmmoPackSpawnPost);
+	}
+	else if(strcmp(name, "tf_team") == 0)
+	{
+		DHookEntity(g_hCTeamGetNumPlayers, true, entity);
 	}
 }
 
@@ -1386,13 +1395,13 @@ public Action SDKOnPlayerTakeDamage(int victim, int& attacker, int& inflictor, f
 					DETOURS
 *****************************************************/
 
-// Crash fix for mvm_mannhattan & other gate maps. Prevents this function being called on human players.
+// Crash fix for maps that use event change attributes. Returns NULL (0) for human clients
 public MRESReturn CTFBot_GetEventChangeAttributes(int pThis, Handle hReturn, Handle hParams) 
 {
 	if(IsValidClient(pThis) && !IsFakeClient(pThis))
 	{
 #if defined DEBUG_CRASHFIX
-		LogMessage("CTFBot::CTFBot_GetEventChangeAttributes BLOCKED on client \"%L\"", pThis);
+		LogMessage("CTFBot::CTFBot_GetEventChangeAttributes returning NULL for client \"%L\"", pThis);
 #endif
 		
 		DHookSetReturn(hReturn, 0);
@@ -1407,7 +1416,7 @@ public MRESReturn CTFBot_GetEventChangeAttributes_Post(int pThis, Handle hReturn
 	if(IsValidClient(pThis) && !IsFakeClient(pThis))
 	{
 #if defined DEBUG_CRASHFIX	
-		LogMessage("CTFBot::CTFBot_GetEventChangeAttributes_Post BLOCKED on client \"%L\"", pThis);
+		LogMessage("CTFBot::CTFBot_GetEventChangeAttributes_Post returning NULL for client \"%L\"", pThis);
 #endif
 		
 		DHookSetReturn(hReturn, 0);
@@ -1509,6 +1518,34 @@ public MRESReturn CTFPlayer_ShouldGib(int pThis, Handle hReturn, Handle hParams)
 	return MRES_Ignored;
 }
 
+// Overrides the BLU team player count
+// This will fix the issue where human BLU players prevents bots from spawning because the game thinks there aren't any free slots.
+public MRESReturn CTeam_GetNumPlayers(int pThis, Handle hReturn)
+{
+	if(!GameRules_GetProp("m_bPlayingMannVsMachine")) // Don't care in non mvm
+		return MRES_Ignored;
+		
+	if(GetEntProp(pThis, Prop_Send, "m_iTeamNum") != view_as<int>(TFTeam_Blue)) // We only care about BLU team
+		return MRES_Ignored;
+		
+	int numplayers = DHookGetReturn(hReturn);
+	int humans = GetHumanRobotCount();
+	
+	if(humans <= 0) // No Humans in BLU team, don't care
+		return MRES_Ignored;
+		
+	numplayers -= humans; // subtract human count from player count
+	
+	if(numplayers < 0)
+		numplayers = 0;
+		
+	DHookSetReturn(hReturn, numplayers);
+	CPrintToChatAll("{green}CTeam::GetNumPlayers {snow}Player count for BLU team: %i", numplayers);
+	
+	return MRES_Supercede;
+}
+
+// Prevent human BLU players from being forced to laugh
 public MRESReturn CTFPLayer_CanBeForcedToLaugh(int pThis, Handle hReturn)
 {
 	if(TF2_GetClientTeam(pThis) == TFTeam_Blue && !IsFakeClient(pThis))

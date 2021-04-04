@@ -98,6 +98,11 @@
 				"windows"	"289"
 				"linux"		"290"
 			}
+			"CTeam::GetNumPlayers"
+			{
+				"windows"	"203"
+				"linux"		"204"			
+			}
 		}
 	}
 }
