@@ -388,6 +388,7 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 	int iClass = view_as<int>(TFClass);
 	int iWeapon;
 	char buffer[255];
+	char sValue[128];
 	
 	TF2Attrib_RemoveAll(client);
 	
@@ -401,7 +402,8 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 				for(int i = 0;i < g_BNCharAttrib[templateindex][iClass].Length;i++)
 				{
 					g_BNCharAttrib[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
-					TF2Attrib_SetByName(client, buffer, g_BNCharAttribValue[templateindex][iClass].Get(i));
+					g_BNCharAttribValue[templateindex][iClass].GetString(i, sValue, sizeof(sValue));
+					TF2Attrib_SetFromStringValue(client, buffer, sValue);
 				}
 			}
 			
@@ -419,7 +421,8 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 						for(int y = 0;y < g_BNWeapAttrib[templateindex][iClass][i].Length;y++)
 						{
 							g_BNWeapAttrib[templateindex][iClass][i].GetString(y, buffer, sizeof(buffer));
-							TF2Attrib_SetByName(iWeapon, buffer, g_BNWeapAttribValue[templateindex][iClass][i].Get(y));
+							g_BNWeapAttribValue[templateindex][iClass][i].GetString(y, sValue, sizeof(sValue));
+							TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
 						}
 					}
 					TF2Attrib_ClearCache(iWeapon);
@@ -437,7 +440,8 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 				for(int i = 0;i < g_BGCharAttrib[templateindex][iClass].Length;i++)
 				{
 					g_BGCharAttrib[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
-					TF2Attrib_SetByName(client, buffer, g_BGCharAttribValue[templateindex][iClass].Get(i));
+					g_BGCharAttribValue[templateindex][iClass].GetString(i, sValue, sizeof(sValue));
+					TF2Attrib_SetFromStringValue(client, buffer, sValue);
 				}
 			}
 
@@ -453,7 +457,8 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 						for(int y = 0;y < g_BGWeapAttrib[templateindex][iClass][i].Length;y++)
 						{
 							g_BGWeapAttrib[templateindex][iClass][i].GetString(y, buffer, sizeof(buffer));
-							TF2Attrib_SetByName(iWeapon, buffer, g_BGWeapAttribValue[templateindex][iClass][i].Get(y));
+							g_BGWeapAttribValue[templateindex][iClass][i].GetString(y, sValue, sizeof(sValue));
+							TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
 						}
 					}
 				}
@@ -971,16 +976,16 @@ void RT_InitArrays()
 		{
 			g_BNWeaponClass[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 			g_BNCharAttrib[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
-			g_BNCharAttribValue[i][y] = new ArrayList();
+			g_BNCharAttribValue[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 			g_BGWeaponClass[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 			g_BGCharAttrib[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
-			g_BGCharAttribValue[i][y] = new ArrayList();
+			g_BGCharAttribValue[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 			for(int x = 0;x < MAX_ROBOTS_WEAPONS;x++)
 			{
 				g_BNWeapAttrib[i][y][x] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
-				g_BNWeapAttribValue[i][y][x] = new ArrayList();
+				g_BNWeapAttribValue[i][y][x] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 				g_BGWeapAttrib[i][y][x] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
-				g_BGWeapAttribValue[i][y][x] = new ArrayList();
+				g_BGWeapAttribValue[i][y][x] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 			}
 		}
 	}
@@ -1143,8 +1148,16 @@ void RT_LoadCfgNormal()
 								do
 								{ // Store Player Attributes
 									kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
-									g_BNCharAttrib[iCounter][j].PushString(buffer); // Attribute Name
-									g_BNCharAttribValue[iCounter][j].Push(kv.GetFloat("")); // Attribute Value
+									if(TF2Attrib_IsValidAttributeName(buffer))
+									{
+										g_BNCharAttrib[iCounter][j].PushString(buffer); // Attribute Name
+										kv.GetString(NULL_STRING, buffer, sizeof(buffer)); // Retreive Attribute Name
+										g_BNCharAttribValue[iCounter][j].PushString(buffer); // Store Attribute Value
+									}
+									else
+									{
+										LogError("ERROR: Invalid player attribute \"%s\" in robot \"%s\"", buffer, g_BNTemplateName[iCounter][j]);
+									}
 								} while(kv.GotoNextKey(false));
 								kv.GoBack();
 							}
@@ -1166,8 +1179,16 @@ void RT_LoadCfgNormal()
 										do
 										{
 											kv.GetSectionName(buffer, sizeof(buffer));
-											g_BNWeapAttrib[iCounter][j][i].PushString(buffer); // Store Attribute Name
-											g_BNWeapAttribValue[iCounter][j][i].Push(kv.GetFloat("")); // Store Attribute Value
+											if(TF2Attrib_IsValidAttributeName(buffer))
+											{
+												g_BNWeapAttrib[iCounter][j][i].PushString(buffer); // Store Attribute Name
+												kv.GetString(NULL_STRING, buffer, sizeof(buffer)); // Retreive Attribute Name
+												g_BNWeapAttribValue[iCounter][j][i].PushString(buffer); // Store Attribute Value
+											}
+											else
+											{
+												LogError("ERROR: Invalid weapon attribute \"%s\" in robot \"%s\" weapon \"%s\"", buffer, g_BNTemplateName[iCounter][j], g_strWeaponsKey[i]);
+											}
 										} while(kv.GotoNextKey(false));
 										kv.GoBack();
 									}
@@ -1259,8 +1280,16 @@ void RT_LoadCfgGiant()
 								do
 								{ // Store Player Attributes
 									kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
-									g_BGCharAttrib[iCounter][j].PushString(buffer); // Attribute Name
-									g_BGCharAttribValue[iCounter][j].Push(kv.GetFloat("")); // Attribute Value
+									if(TF2Attrib_IsValidAttributeName(buffer))
+									{
+										g_BGCharAttrib[iCounter][j].PushString(buffer); // Attribute Name
+										kv.GetString(NULL_STRING, buffer, sizeof(buffer)); // Retreive Attribute Name
+										g_BGCharAttribValue[iCounter][j].PushString(buffer); // Store Attribute Value
+									}
+									else
+									{
+										LogError("ERROR: Invalid player attribute \"%s\" in robot \"%s\"", buffer, g_BGTemplateName[iCounter][j]);
+									}
 								} while(kv.GotoNextKey(false));
 								kv.GoBack();
 							}
@@ -1282,8 +1311,16 @@ void RT_LoadCfgGiant()
 										do
 										{
 											kv.GetSectionName(buffer, sizeof(buffer));
-											g_BGWeapAttrib[iCounter][j][i].PushString(buffer); // Store Attribute Name
-											g_BGWeapAttribValue[iCounter][j][i].Push(kv.GetFloat("")); // Store Attribute Value
+											if(TF2Attrib_IsValidAttributeName(buffer))
+											{
+												g_BGWeapAttrib[iCounter][j][i].PushString(buffer); // Store Attribute Name
+												kv.GetString(NULL_STRING, buffer, sizeof(buffer)); // Retreive Attribute Name
+												g_BGWeapAttribValue[iCounter][j][i].PushString(buffer); // Store Attribute Value
+											}
+											else
+											{
+												LogError("ERROR: Invalid weapon attribute \"%s\" in robot \"%s\" weapon \"%s\"", buffer, g_BGTemplateName[iCounter][j], g_strWeaponsKey[i]);
+											}
 										} while(kv.GotoNextKey(false));
 										kv.GoBack();
 									}

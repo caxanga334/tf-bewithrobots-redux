@@ -11,7 +11,7 @@ ArrayList g_TBusterCharAttribValue;
 void Buster_InitArrays()
 {
 	g_TBusterCharAttrib = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
-	g_TBusterCharAttribValue = new ArrayList();
+	g_TBusterCharAttribValue = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 }
 
 void Buster_ClearArrays()
@@ -306,7 +306,7 @@ void Buster_GiveInventory(int client)
 	if(IsFakeClient(client))
 		return;
 	
-	char buffer[128];
+	char buffer[128], sValue[128];
 	TF2Attrib_RemoveAll(client);
 	// Set Player Attributes
 	if(g_TBusterCharAttrib.Length > 0)
@@ -314,7 +314,8 @@ void Buster_GiveInventory(int client)
 		for(int i = 0;i < g_TBusterCharAttrib.Length;i++)
 		{
 			g_TBusterCharAttrib.GetString(i, buffer, sizeof(buffer));
-			TF2Attrib_SetByName(client, buffer, g_TBusterCharAttribValue.Get(i));
+			g_TBusterCharAttribValue.GetString(i, sValue, sizeof(sValue));
+			TF2Attrib_SetFromStringValue(client, buffer, sValue);
 		}
 	}
 	SpawnWeapon(client, "tf_weapon_stickbomb", 307, 1, 6, false);
@@ -379,8 +380,16 @@ bool Buster_LoadProfile(const char[] busterprofile)
 			do
 			{ // Store Player Attributes
 				kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
-				g_TBusterCharAttrib.PushString(buffer); // Attribute Name
-				g_TBusterCharAttribValue.Push(kv.GetFloat("")); // Attribute Value
+				if(TF2Attrib_IsValidAttributeName(buffer))
+				{
+					g_TBusterCharAttrib.PushString(buffer); // Attribute Name
+					kv.GetString(NULL_STRING, buffer, sizeof(buffer));
+					g_TBusterCharAttribValue.PushString(buffer); // Attribute Value
+				}
+				else
+				{
+					LogError("ERROR: Invalid player attribute \"%s\" in boss \"%s\"", buffer, g_TBossName);
+				}
 			} while(kv.GotoNextKey(false));
 			kv.GoBack();
 		}

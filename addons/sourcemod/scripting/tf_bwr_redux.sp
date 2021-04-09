@@ -130,7 +130,7 @@ Handle g_hSDKSpeakConcept;
 Handle g_hCTFPLayerCanBeForcedToLaugh;
 Handle g_hSDKPushAwayPlayers;
 Handle g_hSDKDropCurrency;
-Handle g_hCTeamGetNumPlayers;
+//Handle g_hCTeamGetNumPlayers;
 
 enum ParticleAttachment
 {
@@ -564,9 +564,9 @@ public void OnPluginStart()
 	g_hCTFPlayerShouldGib = DHookCreate(iOffset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, CTFPlayer_ShouldGib);
 	DHookAddParam(g_hCTFPlayerShouldGib, HookParamType_ObjectPtr, -1, DHookPass_ByRef);
 	
-	iOffset = GameConfGetOffset(hConf, "CTeam::GetNumPlayers");
+	/**iOffset = GameConfGetOffset(hConf, "CTeam::GetNumPlayers");
 	if(iOffset == -1) { SetFailState("Failed to get offset of CTeam::GetNumPlayers"); }
-	g_hCTeamGetNumPlayers = DHookCreate(iOffset, HookType_Entity, ReturnType_Int, ThisPointer_CBaseEntity, CTeam_GetNumPlayers);
+	g_hCTeamGetNumPlayers = DHookCreate(iOffset, HookType_Entity, ReturnType_Int, ThisPointer_CBaseEntity, CTeam_GetNumPlayers); **/
 	
 	//This call gets the maximum clip 1 of a weapon
 	StartPrepSDKCall(SDKCall_Entity);
@@ -907,10 +907,10 @@ public void OnEntityCreated(int entity,const char[] name)
 	{
 		SDKHook(entity, SDKHook_SpawnPost, OnAmmoPackSpawnPost);
 	}
-	else if(strcmp(name, "tf_team") == 0)
+	/**else if(strcmp(name, "tf_team") == 0)
 	{
 		DHookEntity(g_hCTeamGetNumPlayers, true, entity);
-	}
+	}**/
 }
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
@@ -1520,7 +1520,9 @@ public MRESReturn CTFPlayer_ShouldGib(int pThis, Handle hReturn, Handle hParams)
 
 // Overrides the BLU team player count
 // This will fix the issue where human BLU players prevents bots from spawning because the game thinks there aren't any free slots.
-public MRESReturn CTeam_GetNumPlayers(int pThis, Handle hReturn)
+// BUGBUG!! Sentry guns won't attack enemy players
+// TO DO: Find another way to fix this
+/**public MRESReturn CTeam_GetNumPlayers(int pThis, Handle hReturn)
 {
 	if(!GameRules_GetProp("m_bPlayingMannVsMachine")) // Don't care in non mvm
 		return MRES_Ignored;
@@ -1543,7 +1545,7 @@ public MRESReturn CTeam_GetNumPlayers(int pThis, Handle hReturn)
 	CPrintToChatAll("{green}CTeam::GetNumPlayers {snow}Player count for BLU team: %i", numplayers);
 	
 	return MRES_Supercede;
-}
+}**/
 
 // Prevent human BLU players from being forced to laugh
 public MRESReturn CTFPLayer_CanBeForcedToLaugh(int pThis, Handle hReturn)

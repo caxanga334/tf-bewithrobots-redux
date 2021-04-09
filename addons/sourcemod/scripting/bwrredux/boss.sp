@@ -127,7 +127,7 @@ void Boss_GiveInventory(int client)
 		return;
 
 	int iWeapon;
-	char buffer[255];
+	char buffer[255], sValue[128];
 	
 	TF2Attrib_RemoveAll(client);
 	
@@ -137,7 +137,8 @@ void Boss_GiveInventory(int client)
 		for(int i = 0;i < g_TBossCharAttrib.Length;i++)
 		{
 			g_TBossCharAttrib.GetString(i, buffer, sizeof(buffer));
-			TF2Attrib_SetByName(client, buffer, g_TBossCharAttribValue.Get(i));
+			g_TBossCharAttribValue.GetString(i, sValue, sizeof(sValue));
+			TF2Attrib_SetFromStringValue(client, buffer, sValue);
 		}
 	}
 
@@ -153,7 +154,8 @@ void Boss_GiveInventory(int client)
 				for(int y = 0;y < g_TBossWeapAttrib[i].Length;y++)
 				{
 					g_TBossWeapAttrib[i].GetString(y, buffer, sizeof(buffer));
-					TF2Attrib_SetByName(iWeapon, buffer, g_TBossWeapAttribValue[i].Get(y));
+					g_TBossWeapAttribValue[i].GetString(y, sValue, sizeof(sValue));
+					TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
 				}
 			}
 		}
@@ -214,11 +216,11 @@ void Boss_InitArrays()
 {
 	g_TBossWeaponClass = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 	g_TBossCharAttrib = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
-	g_TBossCharAttribValue = new ArrayList();
+	g_TBossCharAttribValue = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 	for(int x = 0;x < MAX_ROBOTS_WEAPONS;x++)
 	{
 		g_TBossWeapAttrib[x] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
-		g_TBossWeapAttribValue[x] = new ArrayList();
+		g_TBossWeapAttribValue[x] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 	}
 }
 
@@ -410,8 +412,16 @@ bool Boss_LoadProfile(char[] bossfile)
 			do
 			{ // Store Player Attributes
 				kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
-				g_TBossCharAttrib.PushString(buffer); // Attribute Name
-				g_TBossCharAttribValue.Push(kv.GetFloat("")); // Attribute Value
+				if(TF2Attrib_IsValidAttributeName(buffer))
+				{
+					g_TBossCharAttrib.PushString(buffer); // Attribute Name
+					kv.GetString(NULL_STRING, buffer, sizeof(buffer));
+					g_TBossCharAttribValue.PushString(buffer); // Attribute Value
+				}
+				else
+				{
+					LogError("ERROR: Invalid player attribute \"%s\" in boss \"%s\"", buffer, g_TBossName);
+				}
 			} while(kv.GotoNextKey(false));
 			kv.GoBack();
 		}
@@ -433,8 +443,16 @@ bool Boss_LoadProfile(char[] bossfile)
 					do
 					{
 						kv.GetSectionName(buffer, sizeof(buffer));
-						g_TBossWeapAttrib[i].PushString(buffer); // Store Attribute Name
-						g_TBossWeapAttribValue[i].Push(kv.GetFloat("")); // Store Attribute Value
+						if(TF2Attrib_IsValidAttributeName(buffer))
+						{
+							g_TBossWeapAttrib[i].PushString(buffer); // Store Attribute Name
+							kv.GetString(NULL_STRING, buffer, sizeof(buffer));
+							g_TBossWeapAttribValue[i].PushString(buffer); // Store Attribute Value
+						}
+						else
+						{
+							LogError("ERROR: Invalid player attribute \"%s\" in boss \"%s\" weapon \"%s\"", buffer, g_TBossName, g_strWeaponsKey[i]);
+						}
 					} while(kv.GotoNextKey(false));
 					kv.GoBack();
 				}
