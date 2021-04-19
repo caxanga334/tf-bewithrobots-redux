@@ -1634,7 +1634,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 		
-	if(array_avclass.Length < 1) // Block join BLU to avoid errors
+	if(!IsWaveDataBuilt()) // Block join BLU to avoid errors
 	{
 		PrintToChat(client, "Wave Data isn't ready, rebuilding... Please try again.");
 		OR_Update();
@@ -2273,7 +2273,7 @@ public Action Command_MoveTeam( int client, int nArgs )
 	{
 		if(NewTargetTeam == TFTeam_Blue)
 		{
-			if(array_avclass.Length < 1)
+			if(!IsWaveDataBuilt())
 			{
 				CReplyToCommand(client, "{springgreen}Wave data needs to be built. Building data...");
 				OR_Update();
@@ -3438,7 +3438,7 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 		CreateTimer(0.3, Timer_OnPlayerSpawn, client);
 	}
 	
-	if(array_avclass.Length < 1)
+	if(!IsWaveDataBuilt())
 	{
 		OR_Update();
 		UpdateClassArray();
@@ -4282,6 +4282,16 @@ int GetHumanRobotCount()
 		}
 	}
 	return count;
+}
+
+bool IsWaveDataBuilt()
+{
+	if(array_avclass.Length >= 1 || array_avgiants.Length >= 1)
+	{
+		return true
+	}
+	
+	return false
 }
 
 // updates array_avclass
