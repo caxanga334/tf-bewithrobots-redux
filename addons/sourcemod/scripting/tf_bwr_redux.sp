@@ -4288,10 +4288,10 @@ bool IsWaveDataBuilt()
 {
 	if(array_avclass.Length >= 1 || array_avgiants.Length >= 1)
 	{
-		return true
+		return true;
 	}
 	
-	return false
+	return false;
 }
 
 // updates array_avclass
