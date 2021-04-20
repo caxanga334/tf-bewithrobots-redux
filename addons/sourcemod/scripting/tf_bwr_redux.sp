@@ -778,6 +778,10 @@ public void TF2_OnWaitingForPlayersStart()
 	AddAdditionalSpawnRooms();
 	CreateTimer(1.0, Timer_CheckGates);
 	g_bFreezePlayers = true;
+	OR_Update();
+	Boss_LoadWaveConfig();
+	PushForcedClasses();
+	UpdateClassArray();
 }
 
 public void TF2_OnWaitingForPlayersEnd()
@@ -3324,12 +3328,13 @@ public int MenuHandler_Editor(Menu menu, MenuAction action, int param1, int para
 
 public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 {
+	Boss_LoadWaveConfig();
 	OR_Update();
+	PushForcedClasses();
 	UpdateClassArray();
 	CheckTeams();
 	g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
 	ResetRobotMenuCooldown();
-	Boss_LoadWaveConfig();
 	SetBLURespawnWaveTime(1.0);
 	CreateTimer(1.0, Timer_CheckGates);
 	for(int i = 1; i <= MaxClients; i++)
@@ -3343,7 +3348,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 {
-	CreateTimer(2.0, Timer_UpdateWaveData);
+	// CreateTimer(2.0, Timer_UpdateWaveData);
 	CreateTimer(2.0, Timer_CheckGates);
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -4014,13 +4019,15 @@ public Action Timer_Respawn(Handle timer, any client)
 	return Plugin_Stop;
 }
 
-public Action Timer_UpdateWaveData(Handle timer)
+/* public Action Timer_UpdateWaveData(Handle timer)
 {
 	OR_Update();
+	Boss_LoadWaveConfig();
+	PushForcedClasses();
 	UpdateClassArray();
 	
 	return Plugin_Stop;
-}
+} */
 
 public Action Timer_CheckGates(Handle timer)
 {

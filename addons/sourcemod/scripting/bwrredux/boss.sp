@@ -1,5 +1,9 @@
 // boss system
 
+// Forced class
+char g_sForcedNormals[64];
+char g_sForcedGiants[64];
+
 // boss wave data
 enum BossState
 {
@@ -246,6 +250,8 @@ void Boss_LoadWaveConfig()
 	
 	g_BossState = BossState_Unavailable;
 	Boss_ClearArrays();
+	strcopy(g_sForcedNormals, sizeof(g_sForcedNormals), "");
+	strcopy(g_sForcedGiants, sizeof(g_sForcedGiants), "");
 	
 	GetCurrentMap(buffer, sizeof(buffer));
 	
@@ -302,6 +308,8 @@ void Boss_LoadWaveConfig()
 			flDelay = kv.GetFloat("delay", 60.0);
 			g_BossRespawnDelay = kv.GetFloat("respawn_delay", 0.0);
 			kv.GetString("bosses", g_strBossList, sizeof(g_strBossList));
+			kv.GetString("forced_normal", g_sForcedNormals, sizeof(g_sForcedNormals));
+			kv.GetString("forced_giant", g_sForcedGiants, sizeof(g_sForcedGiants));
 #if defined DEBUG_GENERAL
 			LogMessage("Found config for wave %i. Mission: %s", iWave, buffer);
 #endif
@@ -326,6 +334,8 @@ void Boss_LoadWaveConfig()
 			flDelay = kv.GetFloat("delay", 60.0);
 			g_BossRespawnDelay = kv.GetFloat("respawn_delay", 0.0);
 			kv.GetString("bosses", g_strBossList, sizeof(g_strBossList));
+			kv.GetString("forced_normal", g_sForcedNormals, sizeof(g_sForcedNormals));
+			kv.GetString("forced_giant", g_sForcedGiants, sizeof(g_sForcedGiants));
 #if defined DEBUG_GENERAL
 			LogMessage("Using default config. Wave: %i Mission: %s", iWave, buffer);
 #endif
@@ -464,4 +474,92 @@ bool Boss_LoadProfile(char[] bossfile)
 	
 	delete kv;
 	return true;
+}
+
+void PushForcedClasses()
+{
+	char split[32][64];
+	int count = ExplodeString(g_sForcedNormals, ",", split, sizeof(split), sizeof(split[]));
+	
+	for(int i = 0;i < count;i++) // Push forced normal robots to available class array
+	{
+		if(strcmp(split[i], "scout", false) == 0)
+		{
+			OR_PushClass(scout_normal);
+		}
+		else if(strcmp(split[i], "soldier", false) == 0)
+		{
+			OR_PushClass(soldier_normal);
+		}
+		else if(strcmp(split[i], "pyro", false) == 0)
+		{
+			OR_PushClass(pyro_normal);
+		}
+		else if(strcmp(split[i], "demoman", false) == 0)
+		{
+			OR_PushClass(demoman_normal);
+		}
+		else if(strcmp(split[i], "heavy", false) == 0)
+		{
+			OR_PushClass(heavy_normal);
+		}
+		else if(strcmp(split[i], "engineer", false) == 0)
+		{
+			OR_PushClass(engineer_normal);
+		}
+		else if(strcmp(split[i], "medic", false) == 0)
+		{
+			OR_PushClass(medic_normal);
+		}
+		else if(strcmp(split[i], "sniper", false) == 0)
+		{
+			OR_PushClass(sniper_normal);
+		}
+		else if(strcmp(split[i], "spy", false) == 0)
+		{
+			OR_PushClass(spy_normal);
+		}
+	}
+	
+	count = ExplodeString(g_sForcedGiants, ",", split, sizeof(split), sizeof(split[]));
+	
+	for(int i = 0;i < count;i++)
+	{
+		if(strcmp(split[i], "scout", false) == 0)
+		{
+			OR_PushClass(scout_giant);
+		}
+		else if(strcmp(split[i], "soldier", false) == 0)
+		{
+			OR_PushClass(soldier_giant);
+		}
+		else if(strcmp(split[i], "pyro", false) == 0)
+		{
+			OR_PushClass(pyro_giant);
+		}
+		else if(strcmp(split[i], "demoman", false) == 0)
+		{
+			OR_PushClass(demoman_giant);
+		}
+		else if(strcmp(split[i], "heavy", false) == 0)
+		{
+			OR_PushClass(heavy_giant);
+		}
+		else if(strcmp(split[i], "engineer", false) == 0)
+		{
+			OR_PushClass(engineer_giant);
+		}
+		else if(strcmp(split[i], "medic", false) == 0)
+		{
+			OR_PushClass(medic_giant);
+		}
+		else if(strcmp(split[i], "sniper", false) == 0)
+		{
+			OR_PushClass(sniper_giant);
+		}
+		else if(strcmp(split[i], "spy", false) == 0)
+		{
+			OR_PushClass(spy_giant);
+		}
+	}
 }

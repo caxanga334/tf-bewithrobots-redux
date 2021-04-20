@@ -242,3 +242,12 @@ void OR_GetMissionName(char[] name, int size)
 {
 	strcopy(name, size, g_strMissionName);
 }
+
+// Forces a specific class to be available for the current wave
+void OR_PushClass(int classBits)
+{
+#if defined DEBUG_GENERAL
+	LogMessage("Force pushing class bit: %i", classBits);
+#endif
+	g_iAvailableClasses |= classBits;
+}
