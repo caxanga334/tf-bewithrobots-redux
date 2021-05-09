@@ -57,7 +57,6 @@ float g_flBombDeployTime[MAXPLAYERS + 1]; // Bomb deploy timer
 
 ArrayList array_avclass; // array containing available classes
 ArrayList array_avgiants; // array containing available giant classes
-ArrayList array_spawns; // spawn points for human players
 
 // others
 bool g_bUpgradeStation[MAXPLAYERS + 1]; // Player touched upgrade station
@@ -623,7 +622,6 @@ public void OnPluginStart()
 	
 	array_avclass = new ArrayList(10);
 	array_avgiants = new ArrayList(10);
-	array_spawns = new ArrayList();
 	
 	g_hHUDReload = CreateHudSynchronizer();
 	
@@ -5193,8 +5191,8 @@ int FindRandomSpawnPoint(SpawnType iType)
 {
 	int iEnt = -1;
 	char strSpawnName[64];
-	
-	array_spawns.Clear();
+	ArrayList array_spawns; // spawn points for human players
+	array_spawns = new ArrayList();
 	
 	while((iEnt = FindEntityByClassname( iEnt, "info_player_teamspawn")) != -1)
 	{
@@ -5249,9 +5247,12 @@ int FindRandomSpawnPoint(SpawnType iType)
 	}
 	if(array_spawns.Length > 0)
 	{
-		return array_spawns.Get(Math_GetRandomInt(0, (array_spawns.Length - 1)));
+		int spawn = array_spawns.Get(Math_GetRandomInt(0, (array_spawns.Length - 1)));
+		delete array_spawns;
+		return spawn;
 	}
-		
+	
+	delete array_spawns;
 	return -1;
 }
 
