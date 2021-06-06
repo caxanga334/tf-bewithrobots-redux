@@ -773,7 +773,7 @@ public void OnMapStart()
 public void TF2_OnWaitingForPlayersStart()
 {
 	AddAdditionalSpawnRooms();
-	CreateTimer(1.0, Timer_CheckGates);
+	CreateTimer(1.0, Timer_CheckGates, _, TIMER_FLAG_NO_MAPCHANGE);
 	g_bFreezePlayers = true;
 	OR_Update();
 	Boss_LoadWaveConfig();
@@ -829,7 +829,7 @@ public void OnClientDisconnect_Post(int client)
 
 public void OnClientPostAdminCheck(int client)
 {
-	CreateTimer(20.0, Timer_HelpUnstuck, GetClientUserId(client)); // unstuck players from spectator team.
+	CreateTimer(20.0, Timer_HelpUnstuck, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE); // unstuck players from spectator team.
 }
 
 stock void TF2Spawn_TouchingSpawn(int client,int entity)
@@ -1583,13 +1583,13 @@ public MRESReturn CTFPLayer_CanBeForcedToLaugh_Post(int pThis, Handle hReturn)
 
 void OnGateCaptureBLU(const char[] output, int caller, int activator, float delay)
 {
-	CreateTimer(1.0, Timer_GateCaptured);
+	CreateTimer(1.0, Timer_GateCaptured, _, TIMER_FLAG_NO_MAPCHANGE);
 	RequestFrame(GateCapturedByRobots);
 }
 
 void OnGateCaptureRED(const char[] output, int caller, int activator, float delay)
 {
-	CreateTimer(1.0, Timer_GateCaptured);
+	CreateTimer(1.0, Timer_GateCaptured, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 /****************************************************
@@ -2336,7 +2336,7 @@ public Action Command_BotClass( int client, int nArgs )
 		TF2_ResetFlag(flag);
 	}
 	PickRandomRobot(client);
-	CreateTimer(0.5, Timer_Respawn, client);
+	CreateTimer(0.5, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
 
 	return Plugin_Handled;
 }
@@ -3333,12 +3333,12 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
 	ResetRobotMenuCooldown();
 	SetBLURespawnWaveTime(1.0);
-	CreateTimer(1.0, Timer_CheckGates);
+	CreateTimer(1.0, Timer_CheckGates, _, TIMER_FLAG_NO_MAPCHANGE);
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) <= 1)
 		{ // Help players that may be stuck on spectator/unassigned team
-			CreateTimer(5.0, Timer_HelpUnstuck, GetClientUserId(i));
+			CreateTimer(5.0, Timer_HelpUnstuck, GetClientUserId(i), TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
 }
@@ -3346,12 +3346,12 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 {
 	// CreateTimer(2.0, Timer_UpdateWaveData);
-	CreateTimer(2.0, Timer_CheckGates);
+	CreateTimer(2.0, Timer_CheckGates, _, TIMER_FLAG_NO_MAPCHANGE);
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue)
 		{
-			CreateTimer(3.0, Timer_UpdateRobotClasses, i);
+			CreateTimer(3.0, Timer_UpdateRobotClasses, i, TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
 	ResetRobotMenuCooldown();
@@ -3362,7 +3362,7 @@ public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 	OR_Update();
 	UpdateClassArray();
 	ResetRobotMenuCooldown();
-	CreateTimer(2.0, Timer_RemoveFromSpec);
+	CreateTimer(2.0, Timer_RemoveFromSpec, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public Action E_MissionComplete(Event event, const char[] name, bool dontBroadcast)
@@ -3434,10 +3434,10 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if( IsFakeClient(client) ) {
-		CreateTimer(1.0, Timer_OnFakePlayerSpawn, client);
+		CreateTimer(1.0, Timer_OnFakePlayerSpawn, client, TIMER_FLAG_NO_MAPCHANGE);
 	}
 	else {
-		CreateTimer(0.3, Timer_OnPlayerSpawn, client);
+		CreateTimer(0.3, Timer_OnPlayerSpawn, client, TIMER_FLAG_NO_MAPCHANGE);
 	}
 	
 	if(!IsWaveDataBuilt())
@@ -3448,7 +3448,7 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 	
 	if(!IsFakeClient(client) && !g_bWelcomeMsg[client] && TF2_GetClientTeam(client) == TFTeam_Red)
 	{
-		CreateTimer(5.0, Timer_ShowWelcMsg, client);
+		CreateTimer(5.0, Timer_ShowWelcMsg, client, TIMER_FLAG_NO_MAPCHANGE);
 		g_bWelcomeMsg[client] = true;
 	}
 }
@@ -3665,7 +3665,7 @@ public Action E_BuildObject(Event event, const char[] name, bool dontBroadcast)
 	int index = event.GetInt("index");
 	if(!IsFakeClient(client) && GetEntProp( index, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue))
 	{
-		CreateTimer(0.1, Timer_BuildObject, index);
+		CreateTimer(0.1, Timer_BuildObject, index, TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
@@ -4044,7 +4044,7 @@ public Action Timer_GateCaptured(Handle timer)
 public Action Timer_UpdateRobotClasses(Handle timer, any client)
 {
 	PickRandomRobot(client);
-	CreateTimer(0.5, Timer_Respawn, client);
+	CreateTimer(0.5, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
 	
 	return Plugin_Stop;
 }
@@ -4431,7 +4431,7 @@ void PickRandomRobot(int client)
 		if(CheckCommandAccess(client, "bwrr_boss", 0) && Boss_CanSpawn())
 		{
 			Boss_SetupPlayer(client);
-			CreateTimer(0.1, Timer_SetRobotClass, client);
+			CreateTimer(0.1, Timer_SetRobotClass, client, TIMER_FLAG_NO_MAPCHANGE);
 			return;
 		}
 	
@@ -4440,7 +4440,7 @@ void PickRandomRobot(int client)
 		{
 			Buster_SetupClient(client);
 			g_flNextBusterTime = GetGameTime() + c_flBusterDelay.FloatValue;
-			CreateTimer(0.1, Timer_SetRobotClass, client);
+			CreateTimer(0.1, Timer_SetRobotClass, client, TIMER_FLAG_NO_MAPCHANGE);
 			return;
 		}
 	}
@@ -4533,7 +4533,7 @@ void PickRandomVariant(int client,TFClassType TFClass,bool bGiants = false)
 		iRandomMin = -1;
 	}
 	
-	CreateTimer(0.1, Timer_SetRobotClass, client);
+	CreateTimer(0.1, Timer_SetRobotClass, client, TIMER_FLAG_NO_MAPCHANGE);
 	if(bGiants)
 	{
 		// giant
@@ -4680,15 +4680,15 @@ void SetRobotOnPlayer(int client, int iVariant, int type, TFClassType TFClass)
 	else
 		SetVariantExtras(client, TFClass, iVariant);
 		
-	CreateTimer(0.1, Timer_SetRobotClass, client);
-	CreateTimer(0.5, Timer_Respawn, client);
+	CreateTimer(0.1, Timer_SetRobotClass, client, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(0.5, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 void SetBossOnPlayer(int client)
 {
 	Boss_SetupPlayer(client);
-	CreateTimer(0.1, Timer_SetRobotClass, client);
-	CreateTimer(0.5, Timer_Respawn, client);	
+	CreateTimer(0.1, Timer_SetRobotClass, client, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(0.5, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);	
 }
 
 /**
