@@ -4,11 +4,11 @@
 #define MAX_TEMPLATE_TYPE 2
 #define MAX_ROBOTS_TEMPLATE 40
 #define MAX_ROBOTS_WEAPONS 6
-#define CONST_ROBOT_CLASSES 10
+#define CONST_ROBOT_CLASSES 9
 #define MAXLEN_CONFIG_STRING 128
 
 // Globals
-char g_strClassKey[10][16] = {"unknownclass" ,"scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"};
+char g_strClassKey[CONST_ROBOT_CLASSES][16] = {"scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"};
 char g_strWeaponsKey[MAX_ROBOTS_WEAPONS][32] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
 char g_strValidAttribs[BOTATTRIB_MAX][32] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire", "igniteonhit", "stunonhit", "bulletimmune", "blastimmune", "fireimmune", "bonknerf", "destroybuildings"};
 int g_AttribValue[BOTATTRIB_MAX] = {(1 << 0),(1 << 1),(1 << 2),(1 << 3),(1 << 4),(1 << 5),(1 << 6),(1 << 7),(1 << 8),(1 << 9),(1 << 10),(1 << 11),(1 << 12),(1 << 13),(1 << 14),(1 << 15),(1 << 16)};
@@ -387,7 +387,7 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 		return;
 
 	TFClassType TFClass = TF2_GetPlayerClass(client);
-	int iClass = view_as<int>(TFClass);
+	int iClass = view_as<int>(TFClass) - 1; // - 1 because array starts at 0
 	int iWeapon;
 	char buffer[255];
 	char sValue[128];
@@ -490,7 +490,7 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 // Sets the robot health
 void RT_SetHealth(int client, TFClassType TFClass, int templateindex, int type = 0)
 {
-	int iClass = view_as<int>(TFClass);
+	int iClass = view_as<int>(TFClass) - 1;
 	int iHealth;
 	float flHealth;
 	
@@ -569,7 +569,7 @@ int RT_GetFullCritsChance(TFClassType TFClass, int templateindex, int type = 0)
 	if(templateindex < 0)
 		return 0;
 
-	int iClass = view_as<int>(TFClass);
+	int iClass = view_as<int>(TFClass) - 1;
 	switch(type)
 	{
 		case 0: // Normal
@@ -586,7 +586,7 @@ int RT_GetCurrency(TFClassType TFClass, int templateindex, int type = 0)
 	if(templateindex < 0)
 		return 0;
 
-	int iClass = view_as<int>(TFClass);
+	int iClass = view_as<int>(TFClass) - 1;
 	switch(type)
 	{
 		case 0: // Normal
@@ -602,7 +602,7 @@ int RT_GetCurrency(TFClassType TFClass, int templateindex, int type = 0)
 void RT_GetTemplateName(char[] tpltname, int size, TFClassType TFClass, int templateindex, int type = 0)
 {
 	char buffer[255];
-	int iClass = view_as<int>(TFClass);
+	int iClass = view_as<int>(TFClass) - 1;
 	
 	if(templateindex < 0)
 	{
@@ -683,7 +683,7 @@ void RT_GetTemplateName(char[] tpltname, int size, TFClassType TFClass, int temp
 void RT_GetDescription(char[] desc, int size, TFClassType TFClass, int templateindex, int type = 0)
 {
 	char buffer[255];
-	int iClass = view_as<int>(TFClass);
+	int iClass = view_as<int>(TFClass) - 1;
 	
 	if(templateindex < 0) { return; }
 	
@@ -712,7 +712,7 @@ void RT_GetDescription(char[] desc, int size, TFClassType TFClass, int templatei
 int RT_GetAttributesBits(TFClassType TFClass, int templateindex, int type = 0)
 {
 	int iBits = 0;
-	int iClass = view_as<int>(TFClass);
+	int iClass = view_as<int>(TFClass) - 1;
 	
 	switch( type )
 	{
@@ -739,7 +739,7 @@ int RT_GetAttributesBits(TFClassType TFClass, int templateindex, int type = 0)
 int RT_GetType(TFClassType TFClass, int templateindex, int type = 0)
 {
 	int iRobotType = 0;
-	int iClass = view_as<int>(TFClass);
+	int iClass = view_as<int>(TFClass) - 1;
 	
 	switch( type )
 	{
@@ -767,7 +767,7 @@ float RT_GetScale(TFClassType TFClass, int templateindex, int type = 0)
 {
 	if( templateindex < 0 ) { return 1.0; }
 	
-	int iClass = view_as<int>(TFClass);
+	int iClass = view_as<int>(TFClass) - 1;
 	
 	switch( type )
 	{
@@ -795,7 +795,7 @@ float RT_GetCooldown(TFClassType TFClass, int templateindex, int type = 0)
 {
 	if( templateindex < 0 ) { return 30.0; } // fixed 30 seconds cooldown for own loadouts
 	
-	int iClass = view_as<int>(TFClass);
+	int iClass = view_as<int>(TFClass) - 1;
 	
 	switch( type )
 	{
@@ -821,7 +821,7 @@ float RT_GetCooldown(TFClassType TFClass, int templateindex, int type = 0)
 // add attributes to own variants
 void SetOwnAttributes(int client , bool bGiant)
 {
-	if( IsFakeClient(client) )
+	if(IsFakeClient(client))
 		return;
 		
 	TF2Attrib_RemoveAll(client); // bug fix
@@ -830,9 +830,9 @@ void SetOwnAttributes(int client , bool bGiant)
 	TFClassType TFClass = TF2_GetPlayerClass(client);
 	int iWeapon;
 	
-	if( bGiant )
+	if(bGiant)
 	{
-		switch( TFClass )
+		switch(TFClass)
 		{
 			case TFClass_Scout:
 			{
@@ -918,7 +918,7 @@ void SetOwnAttributes(int client , bool bGiant)
 	}
 	else
 	{
-		switch( TFClass )
+		switch(TFClass)
 		{
 /* 			case TFClass_Scout:
 			{
@@ -969,7 +969,7 @@ void RT_InitArrays()
 {
 	for(int i = 0;i < MAX_ROBOTS_TEMPLATE;i++)
 	{
-		for(int y = 1;y < CONST_ROBOT_CLASSES;y++)
+		for(int y = 0;y < CONST_ROBOT_CLASSES;y++)
 		{
 			g_BNWeaponClass[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
 			g_BNCharAttrib[i][y] = new ArrayList(ByteCountToCells(MAXLEN_CONFIG_STRING));
@@ -992,7 +992,7 @@ void RT_ClearArrays()
 {
 	for(int i = 0;i < MAX_ROBOTS_TEMPLATE;i++)
 	{
-		for(int y = 1;y < CONST_ROBOT_CLASSES;y++)
+		for(int y = 0;y < CONST_ROBOT_CLASSES;y++)
 		{
 			// Normal
 			g_BNWeaponClass[i][y].Clear();
@@ -1019,7 +1019,7 @@ void RT_ClearArrays()
 	// Reset the number of robots template available
 	for(int i = 0;i < MAX_TEMPLATE_TYPE;i++)
 	{
-		for(int y = 1;y < CONST_ROBOT_CLASSES;y++)
+		for(int y = 0;y < CONST_ROBOT_CLASSES;y++)
 		{
 			g_nBotTemplate[i].numtemplates[y] = 0;
 		}
@@ -1034,7 +1034,7 @@ void RT_PostLoad()
 
 	for(int i = 0;i < MAX_ROBOTS_TEMPLATE;i++)
 	{
-		for(int y = 1;y < CONST_ROBOT_CLASSES;y++)
+		for(int y = 0;y < CONST_ROBOT_CLASSES;y++)
 		{
 			if(strlen(g_BNRobotAttribs[i][y]) > 0)
 			{
@@ -1058,7 +1058,7 @@ void RT_PostLoad()
 	
 	for(int i = 0;i < MAX_ROBOTS_TEMPLATE;i++)
 	{
-		for(int y = 1;y < CONST_ROBOT_CLASSES;y++)
+		for(int y = 0;y < CONST_ROBOT_CLASSES;y++)
 		{
 			if(strlen(g_BGRobotAttribs[i][y]) > 0)
 			{
@@ -1249,7 +1249,7 @@ void RT_LoadCfgGiant()
 	char buffer[255];
 	do
 	{
-		for(int j = 1;j < sizeof(g_strClassKey);j++)
+		for(int j = 0;j < sizeof(g_strClassKey);j++)
 		{
 			kv.GetSectionName(buffer, sizeof(buffer));
 			if(kv.JumpToKey(g_strClassKey[j]))
@@ -1352,34 +1352,35 @@ void RT_LoadCfgGiant()
 // Remember that the first 
 int RT_NumTemplates(bool bGiant = false,TFClassType Class)
 {
+	int iClass =  view_as<int>(Class) - 1;
 	if(bGiant)
 	{
-		switch( Class )
+		switch(Class)
 		{
-			case TFClass_Scout: return g_nBotTemplate[TemplateType_Giant].numtemplates[view_as<int>(TFClass_Scout)];
-			case TFClass_Sniper: return g_nBotTemplate[TemplateType_Giant].numtemplates[view_as<int>(TFClass_Sniper)];
-			case TFClass_Soldier: return g_nBotTemplate[TemplateType_Giant].numtemplates[view_as<int>(TFClass_Soldier)];
-			case TFClass_DemoMan: return g_nBotTemplate[TemplateType_Giant].numtemplates[view_as<int>(TFClass_DemoMan)];
-			case TFClass_Heavy: return g_nBotTemplate[TemplateType_Giant].numtemplates[view_as<int>(TFClass_Heavy)];
-			case TFClass_Pyro: return g_nBotTemplate[TemplateType_Giant].numtemplates[view_as<int>(TFClass_Pyro)];
-			case TFClass_Engineer: return g_nBotTemplate[TemplateType_Giant].numtemplates[view_as<int>(TFClass_Engineer)];
-			case TFClass_Medic: return g_nBotTemplate[TemplateType_Giant].numtemplates[view_as<int>(TFClass_Medic)];
-			case TFClass_Spy: return g_nBotTemplate[TemplateType_Giant].numtemplates[view_as<int>(TFClass_Spy)];
+			case TFClass_Scout: return g_nBotTemplate[TemplateType_Giant].numtemplates[iClass];
+			case TFClass_Sniper: return g_nBotTemplate[TemplateType_Giant].numtemplates[iClass];
+			case TFClass_Soldier: return g_nBotTemplate[TemplateType_Giant].numtemplates[iClass];
+			case TFClass_DemoMan: return g_nBotTemplate[TemplateType_Giant].numtemplates[iClass];
+			case TFClass_Heavy: return g_nBotTemplate[TemplateType_Giant].numtemplates[iClass];
+			case TFClass_Pyro: return g_nBotTemplate[TemplateType_Giant].numtemplates[iClass];
+			case TFClass_Engineer: return g_nBotTemplate[TemplateType_Giant].numtemplates[iClass];
+			case TFClass_Medic: return g_nBotTemplate[TemplateType_Giant].numtemplates[iClass];
+			case TFClass_Spy: return g_nBotTemplate[TemplateType_Giant].numtemplates[iClass];
 		}
 	}
 	else
 	{
-		switch( Class )
+		switch(Class)
 		{
-			case TFClass_Scout: return g_nBotTemplate[TemplateType_Normal].numtemplates[view_as<int>(TFClass_Scout)];
-			case TFClass_Sniper: return g_nBotTemplate[TemplateType_Normal].numtemplates[view_as<int>(TFClass_Sniper)];
-			case TFClass_Soldier: return g_nBotTemplate[TemplateType_Normal].numtemplates[view_as<int>(TFClass_Soldier)];
-			case TFClass_DemoMan: return g_nBotTemplate[TemplateType_Normal].numtemplates[view_as<int>(TFClass_DemoMan)];
-			case TFClass_Heavy: return g_nBotTemplate[TemplateType_Normal].numtemplates[view_as<int>(TFClass_Heavy)];
-			case TFClass_Pyro: return g_nBotTemplate[TemplateType_Normal].numtemplates[view_as<int>(TFClass_Pyro)];
-			case TFClass_Engineer: return g_nBotTemplate[TemplateType_Normal].numtemplates[view_as<int>(TFClass_Engineer)];
-			case TFClass_Medic: return g_nBotTemplate[TemplateType_Normal].numtemplates[view_as<int>(TFClass_Medic)];
-			case TFClass_Spy: return g_nBotTemplate[TemplateType_Normal].numtemplates[view_as<int>(TFClass_Spy)];
+			case TFClass_Scout: return g_nBotTemplate[TemplateType_Normal].numtemplates[iClass];
+			case TFClass_Sniper: return g_nBotTemplate[TemplateType_Normal].numtemplates[iClass];
+			case TFClass_Soldier: return g_nBotTemplate[TemplateType_Normal].numtemplates[iClass];
+			case TFClass_DemoMan: return g_nBotTemplate[TemplateType_Normal].numtemplates[iClass];
+			case TFClass_Heavy: return g_nBotTemplate[TemplateType_Normal].numtemplates[iClass];
+			case TFClass_Pyro: return g_nBotTemplate[TemplateType_Normal].numtemplates[iClass];
+			case TFClass_Engineer: return g_nBotTemplate[TemplateType_Normal].numtemplates[iClass];
+			case TFClass_Medic: return g_nBotTemplate[TemplateType_Normal].numtemplates[iClass];
+			case TFClass_Spy: return g_nBotTemplate[TemplateType_Normal].numtemplates[iClass];
 		}		
 	}
 	
