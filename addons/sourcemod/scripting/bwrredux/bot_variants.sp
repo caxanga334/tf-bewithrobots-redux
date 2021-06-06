@@ -10,8 +10,8 @@
 // Globals
 char g_strClassKey[10][16] = {"unknownclass" ,"scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"};
 char g_strWeaponsKey[MAX_ROBOTS_WEAPONS][32] = {"primaryweapon", "secondaryweapon", "meleeweapon", "pda1weapon", "pda2weapon", "pda3weapon"};
-char g_strValidAttribs[BOTATTRIB_MAX][32] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire", "igniteonhit", "stunonhit", "bulletimmune", "blastimmune", "fireimmune", "bonknerf", "randomrazorback", "destroybuildings"};
-int g_AttribValue[BOTATTRIB_MAX] = {(1 << 0),(1 << 1),(1 << 2),(1 << 3),(1 << 4),(1 << 5),(1 << 6),(1 << 7),(1 << 8),(1 << 9),(1 << 10),(1 << 11),(1 << 12),(1 << 13),(1 << 14),(1 << 15),(1 << 16),(1 << 17)};
+char g_strValidAttribs[BOTATTRIB_MAX][32] = {"alwayscrits", "fullcharge", "infinitecloak", "autodisguise", "alwaysminicrits", "teleporttohint", "nobomb", "noteleexit", "holdfirefullreload", "alwaysfire", "igniteonhit", "stunonhit", "bulletimmune", "blastimmune", "fireimmune", "bonknerf", "destroybuildings"};
+int g_AttribValue[BOTATTRIB_MAX] = {(1 << 0),(1 << 1),(1 << 2),(1 << 3),(1 << 4),(1 << 5),(1 << 6),(1 << 7),(1 << 8),(1 << 9),(1 << 10),(1 << 11),(1 << 12),(1 << 13),(1 << 14),(1 << 15),(1 << 16)};
 
 // Big list of arrays
 /**
@@ -36,6 +36,7 @@ ArrayList g_BNCharAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BNCharAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BNWeapAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
 ArrayList g_BNWeapAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
+int g_BNWeapChance[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES]; // Change for weapon to spawn
 // == STOCK GIANT ROBOTS ==
 char g_BGTemplateName[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STRING];
 char g_BGRobotAttribs[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAXLEN_CONFIG_STRING];
@@ -53,6 +54,7 @@ ArrayList g_BGCharAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BGCharAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES];
 ArrayList g_BGWeapAttrib[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
 ArrayList g_BGWeapAttribValue[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES][MAX_ROBOTS_WEAPONS];
+int g_BGWeapChance[MAX_ROBOTS_TEMPLATE][CONST_ROBOT_CLASSES]; // Change for weapon to spawn
 
 // enum structs for config files
 enum struct eRobotsGlobal
@@ -415,17 +417,19 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 				g_BNWeaponClass[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
 				if(strlen(buffer) > 3) // check if a weapon exists
 				{
-					iWeapon = SpawnWeapon(client, buffer, g_BNWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-					if(g_BNWeapAttrib[templateindex][iClass][i].Length > 0) // Does this weapon have custom attributes?
+					if(Math_RandomChance(g_BNWeapChance[templateindex][iClass])) // Check weapon spawn chance
 					{
-						for(int y = 0;y < g_BNWeapAttrib[templateindex][iClass][i].Length;y++)
+						iWeapon = SpawnWeapon(client, buffer, g_BNWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
+						if(g_BNWeapAttrib[templateindex][iClass][i].Length > 0) // Does this weapon have custom attributes?
 						{
-							g_BNWeapAttrib[templateindex][iClass][i].GetString(y, buffer, sizeof(buffer));
-							g_BNWeapAttribValue[templateindex][iClass][i].GetString(y, sValue, sizeof(sValue));
-							TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
+							for(int y = 0;y < g_BNWeapAttrib[templateindex][iClass][i].Length;y++)
+							{
+								g_BNWeapAttrib[templateindex][iClass][i].GetString(y, buffer, sizeof(buffer));
+								g_BNWeapAttribValue[templateindex][iClass][i].GetString(y, sValue, sizeof(sValue));
+								TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
+							}
 						}
 					}
-					TF2Attrib_ClearCache(iWeapon);
 				}
 			}
 		}
@@ -451,14 +455,17 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 				g_BGWeaponClass[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
 				if(strlen(buffer) > 3) // check if a weapon exists
 				{
-					iWeapon = SpawnWeapon(client, buffer, g_BGWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
-					if(g_BGWeapAttrib[templateindex][iClass][i].Length > 0) // Does this weapon have custom attributes?
+					if(Math_RandomChance(g_BGWeapChance[templateindex][iClass]))
 					{
-						for(int y = 0;y < g_BGWeapAttrib[templateindex][iClass][i].Length;y++)
+						iWeapon = SpawnWeapon(client, buffer, g_BGWeaponIndex[templateindex][iClass][i], 1, 6, IsWeaponWearable(buffer));
+						if(g_BGWeapAttrib[templateindex][iClass][i].Length > 0) // Does this weapon have custom attributes?
 						{
-							g_BGWeapAttrib[templateindex][iClass][i].GetString(y, buffer, sizeof(buffer));
-							g_BGWeapAttribValue[templateindex][iClass][i].GetString(y, sValue, sizeof(sValue));
-							TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
+							for(int y = 0;y < g_BGWeapAttrib[templateindex][iClass][i].Length;y++)
+							{
+								g_BGWeapAttrib[templateindex][iClass][i].GetString(y, buffer, sizeof(buffer));
+								g_BGWeapAttribValue[templateindex][iClass][i].GetString(y, sValue, sizeof(sValue));
+								TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
+							}
 						}
 					}
 				}
@@ -476,16 +483,6 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 		case TFClass_Spy:
 		{
 			SpawnWeapon(client, "tf_weapon_pda_spy", 27, 1, 0, false); // Disguise Kit
-		}
-	}
-	
-	//Attribute based weapons
-	RoboPlayer rp = RoboPlayer(client);
-	if(rp.Attributes & BotAttrib_RandomRazorback)
-	{
-		if(Math_RandomChance(50)) // 50% chance to get a stock razorback
-		{
-			SpawnWeapon(client, "tf_wearable_razorback", 57, 1, 6, true); // Razorback
 		}
 	}
 }
@@ -1171,6 +1168,7 @@ void RT_LoadCfgNormal()
 								kv.GetString("classname", buffer, sizeof(buffer), "");
 								g_BNWeaponClass[iCounter][j].SetString(i, buffer); // Store Weapon Classname
 								g_BNWeaponIndex[iCounter][j][i] = kv.GetNum("index"); // Store Weapon Definition Index
+								g_BNWeapChance[iCounter][j] = kv.GetNum("spawnchange", 100); // Store Weapon Spawn Chance
 								
 								if(kv.GotoFirstSubKey())
 								{
@@ -1303,6 +1301,7 @@ void RT_LoadCfgGiant()
 								kv.GetString("classname", buffer, sizeof(buffer), "");
 								g_BGWeaponClass[iCounter][j].SetString(i, buffer); // Store Weapon Classname
 								g_BGWeaponIndex[iCounter][j][i] = kv.GetNum("index"); // Store Weapon Definition Index
+								g_BGWeapChance[iCounter][j] = kv.GetNum("spawnchange", 100); // Store Weapon Spawn Chance
 								
 								if(kv.GotoFirstSubKey())
 								{
