@@ -1168,7 +1168,7 @@ void RT_LoadCfgNormal()
 								kv.GetString("classname", buffer, sizeof(buffer), "");
 								g_BNWeaponClass[iCounter][j].SetString(i, buffer); // Store Weapon Classname
 								g_BNWeaponIndex[iCounter][j][i] = kv.GetNum("index"); // Store Weapon Definition Index
-								g_BNWeapChance[iCounter][j] = kv.GetNum("spawnchange", 100); // Store Weapon Spawn Chance
+								g_BNWeapChance[iCounter][j] = kv.GetNum("spawnchance", 100); // Store Weapon Spawn Chance
 								
 								if(kv.GotoFirstSubKey())
 								{
@@ -1301,7 +1301,7 @@ void RT_LoadCfgGiant()
 								kv.GetString("classname", buffer, sizeof(buffer), "");
 								g_BGWeaponClass[iCounter][j].SetString(i, buffer); // Store Weapon Classname
 								g_BGWeaponIndex[iCounter][j][i] = kv.GetNum("index"); // Store Weapon Definition Index
-								g_BGWeapChance[iCounter][j] = kv.GetNum("spawnchange", 100); // Store Weapon Spawn Chance
+								g_BGWeapChance[iCounter][j] = kv.GetNum("spawnchance", 100); // Store Weapon Spawn Chance
 								
 								if(kv.GotoFirstSubKey())
 								{
