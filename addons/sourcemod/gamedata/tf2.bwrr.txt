@@ -75,33 +75,33 @@
 			}
 			"CFilterTFBotHasTag::PassesFilterImpl" //(CBaseEntity *, CBaseEntity *) use asherkin's vtable dumper
 			{
-				"windows"	"191"
-				"linux"		"192"
+				"windows"	"192"
+				"linux"		"193"
 			}
 			"CTFWeaponBase::GetMaxClip1" // int	CTFWeaponBase::GetMaxClip1( void ) const
 			{
-				"windows"	"317"
-				"linux"		"323"
+				"windows"	"318"
+				"linux"		"324"
 			}
 			"CTFWeaponBase::Clip1" // virtual int	Clip1() { return IsEnergyWeapon() ? Energy_GetEnergy() : m_iClip1; }
 			{
-				"windows"	"337"
-				"linux"		"343"
+				"windows"	"338"
+				"linux"		"344"
 			}
 			"CCaptureFlag::PickUp"
 			{
-				"windows"	"224"
-				"linux"		"262"
+				"windows"	"225"
+				"linux"		"263"
 			}
 			"CTFPlayer::ShouldGib"
 			{
-				"windows"	"289"
-				"linux"		"290"
+				"windows"	"290"
+				"linux"		"291"
 			}
 			"CTeam::GetNumPlayers"
 			{
-				"windows"	"203"
-				"linux"		"204"			
+				"windows"	"204"
+				"linux"		"205"			
 			}
 		}
 	}
