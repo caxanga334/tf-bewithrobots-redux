@@ -1116,7 +1116,7 @@ void RT_LoadCfgNormal()
 	char buffer[255];
 	do
 	{
-		for(int j = 1;j < sizeof(g_strClassKey);j++)
+		for(int j = 0;j < sizeof(g_strClassKey);j++)
 		{
 			kv.GetSectionName(buffer, sizeof(buffer));
 			if(kv.JumpToKey(g_strClassKey[j]))

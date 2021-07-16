@@ -205,6 +205,12 @@ bool Boss_CanSpawn()
 
 void Boss_SelectRandom(float flDelay = 0.0)
 {
+	if(strlen(g_strBossList) < 3) // allow empty boss string
+	{
+		g_BossState = BossState_Unavailable;
+		return;
+	}
+
 	char strSelectedBoss[64];
 	char splitBossProfile[32][64];
 	int iBossCount;
