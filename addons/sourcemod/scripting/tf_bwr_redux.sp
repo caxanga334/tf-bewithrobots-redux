@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.1.7"
+#define PLUGIN_VERSION "1.2.0"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -129,6 +129,7 @@ Handle g_hSDKSpeakConcept;
 Handle g_hCTFPLayerCanBeForcedToLaugh;
 Handle g_hSDKPushAwayPlayers;
 Handle g_hSDKDropCurrency;
+Handle g_hSDKCTFPlayerCanBuild;
 //Handle g_hCTeamGetNumPlayers;
 
 enum ParticleAttachment
@@ -212,6 +213,17 @@ enum
 	MP_CONCEPT_MVM_GIANT_KILLED_TEAMMATE = 116,
 };
 
+// Build checks will return one of these for a player
+
+enum
+{
+	CB_CAN_BUILD = 0,		// Player is allowed to build this object
+	CB_CANNOT_BUILD,		// Player is not allowed to build this object
+	CB_LIMIT_REACHED,		// Player has reached the limit of the number of these objects allowed
+	CB_NEED_RESOURCES,		// Player doesn't have enough resources to build this object
+	CB_NEED_ADRENALIN,		// Commando doesn't have enough adrenalin to build a rally flag
+	CB_UNKNOWN_OBJECT,		// Error message, tried to build unknown object
+};
 
 enum struct eDisguisedStruct
 {
@@ -605,6 +617,19 @@ public void OnPluginStart()
 	
 	if(!DHookEnableDetour(g_hCTFPLayerCanBeForcedToLaugh, false, CTFPLayer_CanBeForcedToLaugh)) { SetFailState("Failed to detour CTFPlayer::CanBeForcedToLaugh"); }
 	if(!DHookEnableDetour(g_hCTFPLayerCanBeForcedToLaugh, true, CTFPLayer_CanBeForcedToLaugh_Post)) { SetFailState("Failed to detour CTFPlayer::CanBeForcedToLaugh_Post"); }
+
+	// CTFPlayer::CanBuild
+	g_hSDKCTFPlayerCanBuild = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
+	if(!g_hSDKCTFPlayerCanBuild) { SetFailState("Failed to setup detour for CTFPlayer::CanBuild"); }
+
+	if(!DHookSetFromConf(g_hSDKCTFPlayerCanBuild, hConf, SDKConf_Signature, "CTFPlayer::CanBuild"))
+	{
+		LogError("Failed to load CTFPlayer::CanBuild signature from gamedata");
+		sigfailure = true;
+	}
+
+	if(!DHookEnableDetour(g_hSDKCTFPlayerCanBuild, false, CTFPlayer_CanBuild)) { SetFailState("Failed to detour CTFPlayer::CanBuild"); }
+	//if(!DHookEnableDetour(g_hSDKCTFPlayerCanBuild, false, CTFPlayer_CanBuild_Post)) { SetFailState("Failed to detour CTFPlayer::CanBuild_Post"); }
 	
 	delete hConf;
 	
@@ -1576,6 +1601,29 @@ public MRESReturn CTFPLayer_CanBeForcedToLaugh_Post(int pThis, Handle hReturn)
 	
 	return MRES_Ignored;
 }
+
+// Allow human BLU spies to "build" infinite sappers
+public MRESReturn CTFPlayer_CanBuild(int pThis, Handle hReturn, Handle hParams)
+{
+	if(TF2_GetClientTeam(pThis) == TFTeam_Blue && !IsFakeClient(pThis) && TF2_GetPlayerClass(pThis) == TFClass_Spy)
+	{
+		DHookSetReturn(hReturn, CB_CAN_BUILD);
+		return MRES_Supercede;
+	}
+	
+	return MRES_Ignored;
+}
+
+/* public MRESReturn CTFPlayer_CanBuild_Post(int pThis, Handle hReturn, Handle hParams)
+{
+	if(TF2_GetClientTeam(pThis) == TFTeam_Blue && !IsFakeClient(pThis) && TF2_GetPlayerClass(pThis) == TFClass_Spy)
+	{
+		DHookSetReturn(hReturn, CB_CAN_BUILD);
+		return MRES_Supercede;
+	}
+	
+	return MRES_Ignored;
+} */
 
 /****************************************************
 					ENTITY OUTPUTS
