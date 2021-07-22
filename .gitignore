@@ -1,3 +1,6 @@
 # Visual Studio code
 .vscode/
 *.code-workspace
+
+# Compiled plugin binary
+*.smx
