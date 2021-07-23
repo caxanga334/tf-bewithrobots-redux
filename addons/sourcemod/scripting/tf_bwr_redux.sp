@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.0"
+#define PLUGIN_VERSION "1.2.1"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -129,7 +129,7 @@ Handle g_hSDKSpeakConcept;
 Handle g_hCTFPLayerCanBeForcedToLaugh;
 Handle g_hSDKPushAwayPlayers;
 Handle g_hSDKDropCurrency;
-Handle g_hSDKCTFPlayerCanBuild;
+//Handle g_hSDKCTFPlayerCanBuild;
 //Handle g_hCTeamGetNumPlayers;
 
 enum ParticleAttachment
@@ -619,7 +619,7 @@ public void OnPluginStart()
 	if(!DHookEnableDetour(g_hCTFPLayerCanBeForcedToLaugh, true, CTFPLayer_CanBeForcedToLaugh_Post)) { SetFailState("Failed to detour CTFPlayer::CanBeForcedToLaugh_Post"); }
 
 	// CTFPlayer::CanBuild
-	g_hSDKCTFPlayerCanBuild = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
+/**	g_hSDKCTFPlayerCanBuild = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
 	if(!g_hSDKCTFPlayerCanBuild) { SetFailState("Failed to setup detour for CTFPlayer::CanBuild"); }
 
 	if(!DHookSetFromConf(g_hSDKCTFPlayerCanBuild, hConf, SDKConf_Signature, "CTFPlayer::CanBuild"))
@@ -630,7 +630,7 @@ public void OnPluginStart()
 
 	if(!DHookEnableDetour(g_hSDKCTFPlayerCanBuild, false, CTFPlayer_CanBuild)) { SetFailState("Failed to detour CTFPlayer::CanBuild"); }
 	//if(!DHookEnableDetour(g_hSDKCTFPlayerCanBuild, false, CTFPlayer_CanBuild_Post)) { SetFailState("Failed to detour CTFPlayer::CanBuild_Post"); }
-	
+**/	
 	delete hConf;
 	
 	if(sigfailure) { SetFailState("One or more signatures failed!"); }
@@ -1603,6 +1603,8 @@ public MRESReturn CTFPLayer_CanBeForcedToLaugh_Post(int pThis, Handle hReturn)
 }
 
 // Allow human BLU spies to "build" infinite sappers
+// Disabled until a working windows sig is found
+/**
 public MRESReturn CTFPlayer_CanBuild(int pThis, Handle hReturn, Handle hParams)
 {
 	if(TF2_GetClientTeam(pThis) == TFTeam_Blue && !IsFakeClient(pThis) && TF2_GetPlayerClass(pThis) == TFClass_Spy)
@@ -1613,7 +1615,7 @@ public MRESReturn CTFPlayer_CanBuild(int pThis, Handle hReturn, Handle hParams)
 	
 	return MRES_Ignored;
 }
-
+**/
 /* public MRESReturn CTFPlayer_CanBuild_Post(int pThis, Handle hReturn, Handle hParams)
 {
 	if(TF2_GetClientTeam(pThis) == TFTeam_Blue && !IsFakeClient(pThis) && TF2_GetPlayerClass(pThis) == TFClass_Spy)
