@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.1"
+#define PLUGIN_VERSION "1.2.2"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -941,7 +941,7 @@ public void OnEntityCreated(int entity,const char[] name)
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
-	if(IsFakeClient(client) || !IsPlayerAlive(client))
+	if(!IsClientInGame(client) || IsFakeClient(client) || !IsPlayerAlive(client))
 		return Plugin_Continue;
 		
 	RoboPlayer rp = RoboPlayer(client);
@@ -1368,7 +1368,7 @@ public Action SDKOnPlayerTakeDamage(int victim, int& attacker, int& inflictor, f
 		return Plugin_Continue;
 	}
 		
-	if(IsFakeClient(victim)) {
+	if(!IsClientInGame(victim) || IsFakeClient(victim)) {
 		return Plugin_Continue;
 	}
 		
