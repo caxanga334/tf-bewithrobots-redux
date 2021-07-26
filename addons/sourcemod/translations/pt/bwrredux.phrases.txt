@@ -137,4 +137,20 @@
 	{
 		"pt"	"{green}[SENTRY BUSTER] {cyan}Faça uma provocação ou aperte o botão esquerdo do mouse para explodir!"
 	}
+	"Menu_Engineer_Teleport"
+	{
+		"pt"	"Teletransportar para onde?"
+	}
+	"Menu_Item_Random"
+	{
+		"pt"	"Aleatório"
+	}
+	"Menu_Item_NearBomb"
+	{
+		"pt"	"Perto da Bomba"
+	}
+	"Menu_Item_NearAllies"
+	{
+		"pt"	"Perto de Aliados"
+	}
 }

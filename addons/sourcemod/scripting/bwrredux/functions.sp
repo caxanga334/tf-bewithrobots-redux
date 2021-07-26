@@ -5,6 +5,7 @@
 // Globals
 ArrayList g_aSpyTeleport;
 ArrayList g_aEngyTeleport;
+ArrayList g_aVecEngyTele; // Engineer teleport vector list. Config file + map entities combined
 ArrayList g_aSpawnRooms; // arraylist containing func_respawnroom that already exists in the map
 
 char g_strHatchTrigger[64];
@@ -19,6 +20,13 @@ float g_flGateStunDuration;
 bool g_bDisableGateBots; // Force gatebots to be unavailable
 bool g_bLimitRobotScale;
 bool g_bSkipSpawnRoom; // Should we skip creating additional spawn rooms?
+
+enum eEngineerTeleportType
+{
+	TeleportToRandom = 0, // Random position
+	TeleportToBomb, // Near bomb
+	TeleportToAlly // Near ally
+}
 
 /**
  * Checks if the given client index is valid.
@@ -113,6 +121,47 @@ bool IsMvM(bool forceRecalc = false)
 	return ismvm;
 }
 
+// Selects a random teammate, priorize humans
+int SelectRandomBLUTeammate(int client)
+{
+	int[] mates = new int[MaxClients];
+	int count = 0; // Valid clients counter
+	int humansinblu = GetHumanRobotCount();
+
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(i == client)
+			continue;
+
+		if(!IsClientInGame(i))
+			continue;
+
+		if(TF2_GetClientTeam(i) != TFTeam_Blue)
+			continue;
+
+		if(humansinblu > 1) // At least 2 humans on BLU team
+		{
+			if(IsFakeClient(i)) // Ignore bots on this case
+				continue;
+
+			mates[count] = i;
+			count++;
+		}
+		else
+		{
+			mates[count] = i;
+			count++;			
+		}
+	}
+
+	if(count > 0)
+	{
+		return mates[Math_GetRandomInt(0,count - 1)];
+	}
+
+	return -1;
+}
+
 /****************************************************
 					ROBOT SPY
 *****************************************************/
@@ -151,144 +200,208 @@ void TeleportSpyRobot(int client)
 					ROBOT ENGINEER
 *****************************************************/
 
-// searches for an engineer nest close to the bomb
-bool FindEngineerNestNearBomb(int client)
+/**
+ * Merges the vectors from the config file and map entities into a single arraylist to be used
+ *
+ * @return     void
+ */
+void ComputeEngineerTeleportVectors()
 {
-	float nVec[3], bVec[3], tVec[3]; // nest pos, bomb pos, tele pos
+	float origin[3];
+
+	int entity = -1;
+	while((entity = FindEntityByClassname(entity, "bot_hint_engineer_nest")) != -1)
+	{
+		if(!IsValidEntity(entity))
+			continue;
+
+		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+
+		g_aVecEngyTele.PushArray(origin);
+	}
+
+	for(int i = 0;i < g_aEngyTeleport.Length;i++)
+	{
+		g_aEngyTeleport.GetArray(i, origin);
+		g_aVecEngyTele.PushArray(origin);
+	}
+}
+
+/**
+ * Returns a random position from the engineer teleport array
+ *
+ * @param client	The client who will be teleported
+ * @return     The position origin vectors
+ */
+float[] GetRandomEngineerPosition(int client)
+{
+	float origin[3];
+	ArrayList list = new ArrayList();
+	for(int i = 0;i < g_aEngyTeleport.Length;i++)
+	{
+		g_aEngyTeleport.GetArray(i, origin);
+
+		if(CanTeleportPlayerToPosition(client, origin)) // Filter invalid locations
+		{
+			list.PushArray(origin);
+		}
+	}	
+	list.GetArray(Math_GetRandomInt(0,list.Length - 1), origin);
+	delete list;
+	return origin;
+}
+
+/**
+ * Returns the nearest position from the engineer teleport array
+ *
+ * @param client	The client who will be teleported
+ * @param target	The target origin to calculate distance
+ * @return     The position origin vectors
+ */
+float[] GetNearestEngineerPosition(int client, float target[3])
+{
+	float origin[3];
+	float currentdistance;
+	float bestdistance = 9999999.0;
+	int bestindex;
+
+	for(int i = 0;i < g_aEngyTeleport.Length;i++)
+	{
+		g_aEngyTeleport.GetArray(i, origin);
+
+		if(!CanTeleportPlayerToPosition(client, origin)) // Filter invalid locations
+			continue;
+
+		currentdistance = GetVectorDistance(origin, target);
+		if(currentdistance < bestdistance)
+		{
+			bestdistance = currentdistance;
+			bestindex = i;
+		}
+	}	
+
+	g_aEngyTeleport.GetArray(bestindex, origin);
+	return origin;
+}
+
+/**
+ * Finds the bomb closest to the bomb hatch
+ *
+ * @param bomb		The bomb index of the nearest bomb (REFERENCE)
+ * @param origin	The bomb origin
+ * @param ditance	The calculated distance between the bomb and the bomb hatch (REFERENCE)
+ * @return     no return
+ */
+void GetBombNearestToBombHatch(int &bomb, float origin[3], float &distance)
+{
+	int owner;
 	float hatchpos[3];
-	float current_dist;
-	float min_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_hint_min_distance_from_bomb"));
-	float max_back_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_sentry_hint_bomb_backward_range"));
-	float max_forw_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_sentry_hint_bomb_forward_range"));
-	float smallest_dist = 999999.0;
-	int iTargetNest = -1; // the closest nest found.
-	int iBomb = FindBestBomb();
-	int iBombOwner;
-	
-	if( iBomb == -1 )
-		return false; // no bomb found
-	
+	float bestdistance = 9999999.0;
+
 	hatchpos = TF2_GetBombHatchPosition();
-	iBombOwner = GetEntPropEnt(iBomb, Prop_Send, "m_hOwnerEntity");
-	if( iBombOwner == -1 || iBombOwner > MaxClients)
+
+	int entity = -1;
+	while((entity = FindEntityByClassname(entity, "item_teamflag")) != -1)
 	{
-		GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
-	}
-	else // if the bomb is carried by a player, use the eye position of the carrier instead
-	{
-		GetClientEyePosition(iBombOwner, bVec);
-	}
-	
-	// search for bot hints
-	int i = -1;
-	ArrayList anests;
-	anests = new ArrayList();
-	while((i = FindEntityByClassname(i, "bot_hint_engineer_nest")) != -1)
-	{
-		if(IsValidEntity(i))
+		if(!IsValidEntity(entity))
+			continue;
+
+		if(GetEntProp(entity, Prop_Send, "m_bDisabled") != 0)
+			continue;
+
+		if(GetEntProp(entity, Prop_Send, "m_iTeamNum") != view_as<int>(TFTeam_Blue))
+			continue;
+
+		if(TF2_IsFlagHome(entity))
+			continue;
+
+		owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+		if(owner > 0 && owner < MaxClients)
 		{
-			GetEntPropVector(i, Prop_Send, "m_vecOrigin", nVec); // nest
-			
-			if(!CanTeleportPlayerToPosition(client, nVec)) // Stuck check
-				continue;
-			
-			current_dist = GetVectorDistance(bVec, nVec);
-			
-			// if the nest is closer to the hatch than the bomb itself, it's a forward nest
-			if(GetVectorDistance(nVec, hatchpos) < GetVectorDistance(bVec, hatchpos)) // forward
-			{
-				if( current_dist < smallest_dist && current_dist > min_dist && current_dist < max_forw_dist )
-				{
-					anests.Push(i);
-					smallest_dist = current_dist;
-				}				
-			}
-			else // backward
-			{
-				if( current_dist < smallest_dist && current_dist > min_dist && current_dist < max_back_dist )
-				{
-					anests.Push(i);
-					smallest_dist = current_dist;
-				}
-			}
+			GetClientAbsOrigin(owner, origin);
+		}
+		else
+		{
+			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+		}
+
+		distance = GetVectorDistance(origin, hatchpos);
+		if(distance < bestdistance)
+		{
+			bestdistance = distance;
+			bomb = entity;
 		}
 	}
-	
-	if(anests.Length > 0)
-	{
-		iTargetNest = anests.Get(Math_GetRandomInt(0,anests.Length - 1));
-		delete anests;
-	}
-	
-	if( iTargetNest == -1 ) // no bot_hint_engineer_nest found
-	{
-		if( GetEngyTeleportFromConfig(tVec, bVec, client) )
-		{
-			TeleportEngineerToPosition(tVec, client);
-		}
-		else // No nest was found to teleport an engineer
-		{
-			return false;
-		}
-	}
-	else
-	{
-		GetEntPropVector(iTargetNest, Prop_Send, "m_vecOrigin", tVec);
-		TeleportEngineerToPosition(tVec, client);
-	}
-	
-	return true;
 }
 
-// returns an entity index of the best bomb
-int FindBestBomb()
-{
-	int index = -1, owner;
-	float bombpos[3], hatchpos[3];
-	float bestdist = 999999.0;
-	float searchdist;
-	
-	hatchpos = TF2_GetBombHatchPosition();
-	
-	int i = -1;
-	while((i = FindEntityByClassname(i, "item_teamflag" )) != -1)
-	{
-		if(IsValidEntity(i) && GetEntProp( i, Prop_Send, "m_bDisabled" ) == 0 && !TF2_IsFlagHome(i)) // ignore disabled bombs
-		{
-			owner = GetEntPropEnt(i, Prop_Send, "m_hOwnerEntity");
-			if(owner > 0 && owner < MaxClients)
-			{
-				GetClientAbsOrigin(owner, bombpos);
-			}
-			else
-			{
-				GetEntPropVector(i, Prop_Send, "m_vecOrigin", bombpos);
-			}
-			
-			searchdist = GetVectorDistance(bombpos, hatchpos);
-			if(searchdist < bestdist)
-			{
-				bestdist = searchdist;
-				index = i;
-			}
-		}
-	}
-	
-	return index;
-}
-
-// teleports a client to the ent origin.
-// also adds engineer spawn particle
+/**
+ * Teleports an engineer robot to the given position, adds particle effect
+ *
+ * @param origin		The origin to teleport to
+ * @param client		The client that should be teleported
+ * @param OffsetVec		Vector offset to apply
+ * @return     no return
+ */
 void TeleportEngineerToPosition(float origin[3], int client, float OffsetVec[3] = {0.0,0.0,0.0})
 {
 	float FinalVec[3];
+	float angles[3];
+	angles[0] = 0.0;
+	angles[1] = GetRandomFloat(0.0,359.0); // Random Angles
+	angles[2] = 0.0;
 	
 	TF2_PushAllPlayers(origin, 400.0, 500.0, view_as<int>(TFTeam_Red)); // Push players
 	BWRR_RemoveSpawnProtection(client);
 	AddVectors(origin, OffsetVec, FinalVec);
-	TeleportEntity(client, FinalVec, NULL_VECTOR, NULL_VECTOR);
+	TeleportEntity(client, FinalVec, angles, NULL_VECTOR);
 	CreateTEParticle("teleported_blue",FinalVec, _, _,3.0,-1,-1,-1);
 	CreateTEParticle("teleported_mvm_bot",FinalVec, _, _,3.0,-1,-1,-1);
+	if(GetClassCount(TFClass_Engineer, TFTeam_Blue, true, false) > 1)
+	{
+		EmitGSToRed("Announcer.MVM_Another_Engineer_Teleport_Spawned");
+	}
+	else
+	{
+		EmitGSToRed("Announcer.MVM_First_Engineer_Teleport_Spawned");
+	}
+}
+
+/**
+ * Teleports an engineer robot
+ *
+ * @param client		The client that should be teleported
+ * @param type			Teleport type (see enum)
+ * @return				True on sucess
+ */
+bool BWRR_TeleportEngineer(int client, eEngineerTeleportType type)
+{
+	float origin[3];
+	GetClientAbsOrigin(client, origin); // In case of failure, teleport to self
+	switch(type)
+	{
+		case TeleportToRandom: // Select a literal random position
+		{
+			origin = GetRandomEngineerPosition(client);
+		}
+		case TeleportToBomb: // Select a position nearest to the bomb
+		{
+			int bomb;
+			float bomborigin[3];
+			float dist;
+			GetBombNearestToBombHatch(bomb, bomborigin, dist);
+			origin = GetNearestEngineerPosition(client ,bomborigin);
+		}
+		case TeleportToAlly: // Select a position nearest to an ally
+		{
+			int ally = SelectRandomBLUTeammate(client);
+			if(ally != -1)
+			{
+				GetClientAbsOrigin(ally, origin);
+			}
+		}
+	}
+
+	TeleportEngineerToPosition(origin, client);
 }
 
 // searches for a teleporter exit 
@@ -989,69 +1102,11 @@ bool SpyTeleport_RayCheck(const int id, float pos1[3], int iDebug = 0)
 	return valid;
 }
 
-// Gets an origin to teleport an engineer
-// returns true if a spot is found
-bool GetEngyTeleportFromConfig(float origin[3], float bombpos[3], int client)
-{
-	float rVec[3], hatchpos[3];
-	int iBestCell = -1;
-	float current_dist, smallest_dist = 999999.0;
-	float min_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_hint_min_distance_from_bomb"));
-	float max_back_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_sentry_hint_bomb_backward_range"));
-	float max_forw_dist = GetConVarFloat(FindConVar("tf_bot_engineer_mvm_sentry_hint_bomb_forward_range"));
-	
-	if( g_aEngyTeleport.Length < 1 )
-		return false;
-		
-	ArrayList aPos;
-	aPos = new ArrayList();
-	hatchpos = TF2_GetBombHatchPosition();
-	
-	for(int i = 0;i < g_aEngyTeleport.Length;i++)
-	{
-	
-		g_aEngyTeleport.GetArray(i, rVec);
-		
-		if(!CanTeleportPlayerToPosition(client, rVec)) // Stuck Check
-			continue;
-		
-		current_dist = GetVectorDistance(rVec, bombpos);
-		
-		// if the nest is closer to the hatch than the bomb itself, it's a forward nest
-		if(GetVectorDistance(rVec, hatchpos) < GetVectorDistance(bombpos, hatchpos)) // forward
-		{
-			if( current_dist < smallest_dist && current_dist > min_dist && current_dist < max_forw_dist )
-			{
-				aPos.Push(i);
-				smallest_dist = current_dist;
-			}				
-		}
-		else // backward
-		{
-			if( current_dist < smallest_dist && current_dist > min_dist && current_dist < max_back_dist )
-			{
-				aPos.Push(i);
-				smallest_dist = current_dist;
-			}
-		}
-	}
-	
-	if(aPos.Length > 0)
-	{
-		iBestCell = aPos.Get(Math_GetRandomInt(0,aPos.Length - 1));
-		delete aPos;
-	}
-	
-	if( iBestCell != -1 )
-	{
-		g_aEngyTeleport.GetArray(iBestCell, origin);
-		return true;
-	}
-	else
-		return false;
-}
-
-// map specific config
+/**
+ * Loads the map configuration file
+ *
+ * @return     no return
+ */
 void Config_LoadMap()
 {
 	char mapname[64], buffer[256], strNormalSpawns[512], strGiantSpawns[512], strSniperSpawns[512], strSpySpawns[512], configfile[PLATFORM_MAX_PATH];
@@ -1300,6 +1355,13 @@ void DisableAnim(int userid)
 	}
 }
 
+/**
+ * Gets the entity world center
+ *
+ * @param ent		The entity to get the center from
+ * @param origin	origin vector to store
+ * @return     no return
+ */
 void GetEntityWorldCenter(int ent, float[] origin)
 {
 	if( !IsValidEntity(ent) )
@@ -1311,6 +1373,12 @@ void GetEntityWorldCenter(int ent, float[] origin)
 	SDKCall(g_hSDKWorldSpaceCenter, ent, origin);
 }
 
+/**
+ * Gets the MvM bomb hatch world position
+ *
+ * @param update	Send true to update the cached value.
+ * @return     origin vector
+ */
 float[] TF2_GetBombHatchPosition(bool update = false)
 {
 	static float origin[3];
@@ -2110,6 +2178,12 @@ bool CanWeaponBeUsedInsideSpawn(int index)
 					BOMB/FLAG
 *****************************************************/
 
+/**
+ * Checks if the given client is carrying a flag
+ *
+ * @param client	The client to check
+ * @return     True if carrying a flag
+ */
 bool TF2_HasFlag(int client)
 {
 	int iFlag = GetEntPropEnt(client, Prop_Send, "m_hItem");
@@ -2122,6 +2196,12 @@ bool TF2_HasFlag(int client)
 	return false;
 }
 
+/**
+ * Gets the entity index of the flag being carried by the client
+ *
+ * @param client	The client to get the flag from
+ * @return     Flag entity index or -1 if no flag was found
+ */
 int TF2_GetClientFlag(int client)
 {
 	int iFlag = GetEntPropEnt(client, Prop_Send, "m_hItem");
@@ -2134,16 +2214,35 @@ int TF2_GetClientFlag(int client)
 	return -1;	
 }
 
+/**
+ * Forces a client to pick up a flag
+ *
+ * @param client	The client to give the flag to
+ * @param flag		The flag entity to give to the client
+ * @return     no return
+ */
 void TF2_PickUpFlag(int client, int flag)
 {
 	SDKCall(g_hSDKPickupFlag, flag, client, true);
 }
 
+/**
+ * Checks if the flag is home
+ *
+ * @param flag		The flag entity index to check
+ * @return     True if the given flag is at home
+ */
 bool TF2_IsFlagHome(int flag)
 {
 	return SDKCall(g_hSDKIsFlagHome, flag);
 }
 
+/**
+ * Forces a flag to reset
+ *
+ * @param flag		The flag entity index to reset
+ * @return     no return
+ */
 void TF2_ResetFlag(int flag)
 {
 	if(IsValidEntity(flag))
@@ -2156,16 +2255,43 @@ void TF2_ResetFlag(int flag)
 					GENERIC SDK CALLS
 *****************************************************/
 
+/**
+ * Description
+ *
+ * @param concept		Speak Concept ID (see enum)
+ * @param team			Team ID to speak the concept
+ * @param modifiers		To do: What does this do?
+ * @return     no return
+ */
 void TF2_SpeakConcept(int concept, int team, char[] modifiers)
 {
 	SDKCall(g_hSDKSpeakConcept, concept, team, modifiers);
 }
 
+/**
+ * Pushes all player in the given position (MvM engineer Push)
+ *
+ * @param vPos			The origin to create the push
+ * @param range			The push effect range
+ * @param force			The push effect force
+ * @param team			Which team should be pushed
+ * @return     no return
+ */
 void TF2_PushAllPlayers(float vPos[3], float range, float force, int team)
 {
 	SDKCall(g_hSDKPushAwayPlayers, vPos, range, force, team, 0);
 }
 
+/**
+ * Spawns a currency pack
+ *
+ * @param client			The client to drop from
+ * @param type				Currency pack type
+ * @param amount			How much is this currency pack worth
+ * @param forceddistribute	Force distribution? (Instantly awards players the currency, same behavior when bots are killed by snipers)
+ * @param moneymaker		The client who triggered the drop (generally the client who killed the client sent to the first param)
+ * @return     no return
+ */
 void TF2_DropCurrencyPack(int client, int type, int amount, bool forcedistribute, int moneymaker)
 {
 	SDKCall(g_hSDKDropCurrency, client, type, amount, forcedistribute, moneymaker);

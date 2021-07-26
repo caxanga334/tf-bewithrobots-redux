@@ -137,4 +137,20 @@
 	{
 		"ru"	"{green}[SENTRY BUSTER] {cyan}Taunt or press the left mouse button to detonate!"
 	}
+	"Menu_Engineer_Teleport"
+	{
+		"ru"	"Teleport Where?"
+	}
+	"Menu_Item_Random"
+	{
+		"ru"	"Random"
+	}
+	"Menu_Item_NearBomb"
+	{
+		"ru"	"Near Bomb"
+	}
+	"Menu_Item_NearAllies"
+	{
+		"ru"	"Near Allies"
+	}
 }

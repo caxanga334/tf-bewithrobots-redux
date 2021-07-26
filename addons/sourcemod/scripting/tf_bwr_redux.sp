@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.2"
+#define PLUGIN_VERSION "1.2.3"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -746,6 +746,7 @@ public void OnMapStart()
 	BotNoticeBackstabChance(true);
 	BotNoticeBackstabMaxRange(true);
 	AnnounceBombDeployWarning(true);
+	ComputeEngineerTeleportVectors();
 	
 	// add custom tag
 	AddPluginTag("BWRR");
@@ -3369,6 +3370,57 @@ public int MenuHandler_Editor(Menu menu, MenuAction action, int param1, int para
 	}	
 }
 
+void MenuFunc_CreateEngineerTeleportMenu(int client)
+{
+	char buffer[64];
+
+	Menu menu = new Menu(MenuHandler_EngineerTeleport, MENU_ACTIONS_ALL);
+	menu.SetTitle("%T", "Menu_Engineer_Teleport", client);
+	FormatEx(buffer, sizeof(buffer), "%T", "Menu_Item_Random", client);
+	menu.AddItem("random", buffer);
+	FormatEx(buffer, sizeof(buffer), "%T", "Menu_Item_NearBomb", client);
+	menu.AddItem("nearbomb", buffer);
+	FormatEx(buffer, sizeof(buffer), "%T", "Menu_Item_NearAllies", client);
+	menu.AddItem("nearally", buffer);
+	menu.ExitButton = false;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_EngineerTeleport(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			char info[16];
+			bool bFound = menu.GetItem(param2, info, sizeof(info));
+			if(bFound)
+			{
+				if(strcmp(info, "random") == 0)
+				{
+					BWRR_TeleportEngineer(param1, TeleportToRandom);
+				}
+				else if(strcmp(info, "nearbomb") == 0)
+				{
+					BWRR_TeleportEngineer(param1, TeleportToBomb);
+				}
+				else if(strcmp(info, "nearally") == 0)
+				{
+					BWRR_TeleportEngineer(param1, TeleportToAlly);
+				}
+			}				
+		}
+		case MenuAction_Cancel:
+		{
+			BWRR_TeleportEngineer(param1, TeleportToRandom);
+		}
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}
+}
+
 /****************************************************
 					EVENTS
 *****************************************************/
@@ -3870,7 +3922,6 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				if(Math_RandomChance(RT_GetFullCritsChance(p_BotClass[client], p_iBotVariant[client], 1))) {
 					TF2_AddCondition(client, TFCond_CritOnFlagCapture, TFCondDuration_Infinite);
 				}
-				TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_CALLOUT, view_as<int>(TFTeam_Red), "");
 			}
 			case Bot_Boss:
 			{
@@ -3889,7 +3940,6 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				CPrintToChatAll("%t", "Boss_Spawn", plrname, bossname, Boss_ComputeHealth());
 				LogAction(client, -1, "Player \"%L\" spawned as a boss robot ( %s ).", client, bossname);
 				EmitGameSoundToAll("MVM.GiantHeavyEntrance", SOUND_FROM_PLAYER);
-				TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_CALLOUT, view_as<int>(TFTeam_Red), "");
 			}
 			case Bot_Buster:
 			{
@@ -3929,68 +3979,70 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		SetRobotModel(client,TFClass);
 		
 		// teleport player
-		if(GameRules_GetRoundState() == RoundState_RoundRunning && !IsGateStunActive())
+		if(GameRules_GetRoundState() == RoundState_RoundRunning)
 		{
-			switch(TFClass)
+			if(rp.Type == Bot_Giant || rp.Type == Bot_Boss)
+			{ // Don't speak during setup
+				TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_CALLOUT, view_as<int>(TFTeam_Red), "");
+			}
+
+			if(IsGateStunActive())
 			{
-				case TFClass_Spy: // spies should always spawn near RED players
+				TeleportToSpawnPoint(client, TFClass);
+			}
+			else
+			{
+				switch(TFClass)
 				{
-					TF2_AddCondition(client, TFCond_Stealthed, 7.0);
-					TeleportSpyRobot(client);
-					EmitGSToRed("Announcer.MVM_Spy_Alert");
-				}
-				case TFClass_Engineer:
-				{
-					iTeleTarget = FindBestBluTeleporter();
-					if(iTeleTarget != -1) // first search for teleporter
+					case TFClass_Spy: // spies should always spawn near RED players
 					{
-						SpawnOnTeleporter(iTeleTarget,client);						
+						TF2_AddCondition(client, TFCond_Stealthed, 7.0);
+						TeleportSpyRobot(client);
+						EmitGSToRed("Announcer.MVM_Spy_Alert");
 					}
-					else // no teleporter found
+					case TFClass_Engineer:
 					{
-						if(rp.Attributes & BotAttrib_TeleportToHint) // Check if we should teleport this engineer
+						iTeleTarget = FindBestBluTeleporter();
+						if(iTeleTarget != -1) // first search for teleporter
 						{
-							if(FindEngineerNestNearBomb(client)) // Returns true if a valid teleport position was found
+							SpawnOnTeleporter(iTeleTarget,client);						
+						}
+						else // no teleporter found
+						{
+							if(rp.Attributes & BotAttrib_TeleportToHint) // Check if we should teleport this engineer
 							{
-								if(GetClassCount(TFClass_Engineer, TFTeam_Blue, true, false) > 1)
-								{
-									EmitGSToRed("Announcer.MVM_Another_Engineer_Teleport_Spawned");
-								}
-								else
-								{
-									EmitGSToRed("Announcer.MVM_First_Engineer_Teleport_Spawned");
-								}
+								MenuFunc_CreateEngineerTeleportMenu(client); // Send the menu to allow the client to select where to teleport
 							}
+							else
+							{
+								TeleportToSpawnPoint(client, TFClass);
+							}
+						}
+					}
+					case TFClass_Sniper:
+					{
+						TF2_SpeakConcept(MP_CONCEPT_MVM_SNIPER_CALLOUT, view_as<int>(TFTeam_Red), "");
+						iTeleTarget = FindBestBluTeleporter();
+						if(iTeleTarget != -1) // found teleporter
+						{
+							SpawnOnTeleporter(iTeleTarget, client);
+						}
+						else
+						{
+							TeleportToSpawnPoint(client, TFClass);
+						}					
+					}
+					default: // other classes
+					{
+						iTeleTarget = FindBestBluTeleporter();
+						if(iTeleTarget != -1) // found teleporter
+						{
+							SpawnOnTeleporter(iTeleTarget, client);
 						}
 						else
 						{
 							TeleportToSpawnPoint(client, TFClass);
 						}
-					}
-				}
-				case TFClass_Sniper:
-				{
-					TF2_SpeakConcept(MP_CONCEPT_MVM_SNIPER_CALLOUT, view_as<int>(TFTeam_Red), "");
-					iTeleTarget = FindBestBluTeleporter();
-					if(iTeleTarget != -1) // found teleporter
-					{
-						SpawnOnTeleporter(iTeleTarget, client);
-					}
-					else
-					{
-						TeleportToSpawnPoint(client, TFClass);
-					}					
-				}
-				default: // other classes
-				{
-					iTeleTarget = FindBestBluTeleporter();
-					if(iTeleTarget != -1) // found teleporter
-					{
-						SpawnOnTeleporter(iTeleTarget, client);
-					}
-					else
-					{
-						TeleportToSpawnPoint(client, TFClass);
 					}
 				}
 			}
