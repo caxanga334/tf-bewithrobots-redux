@@ -236,10 +236,10 @@ void ComputeEngineerTeleportVectors()
 float[] GetRandomEngineerPosition(int client)
 {
 	float origin[3];
-	ArrayList list = new ArrayList();
-	for(int i = 0;i < g_aEngyTeleport.Length;i++)
+	ArrayList list = new ArrayList(3);
+	for(int i = 0;i < g_aVecEngyTele.Length;i++)
 	{
-		g_aEngyTeleport.GetArray(i, origin);
+		g_aVecEngyTele.GetArray(i, origin);
 
 		if(CanTeleportPlayerToPosition(client, origin)) // Filter invalid locations
 		{
@@ -265,9 +265,9 @@ float[] GetNearestEngineerPosition(int client, float target[3])
 	float bestdistance = 9999999.0;
 	int bestindex;
 
-	for(int i = 0;i < g_aEngyTeleport.Length;i++)
+	for(int i = 0;i < g_aVecEngyTele.Length;i++)
 	{
-		g_aEngyTeleport.GetArray(i, origin);
+		g_aVecEngyTele.GetArray(i, origin);
 
 		if(!CanTeleportPlayerToPosition(client, origin)) // Filter invalid locations
 			continue;
@@ -280,7 +280,7 @@ float[] GetNearestEngineerPosition(int client, float target[3])
 		}
 	}	
 
-	g_aEngyTeleport.GetArray(bestindex, origin);
+	g_aVecEngyTele.GetArray(bestindex, origin);
 	return origin;
 }
 
@@ -332,6 +332,11 @@ void GetBombNearestToBombHatch(int &bomb, float origin[3], float &distance)
 			bomb = entity;
 		}
 	}
+	distance = bestdistance;
+
+#if defined DEBUG_GENERAL
+	PrintToServer("GetBombNearestToBombHatch:: %i %.1f %.1f %.1f %.4f", bomb, origin[0], origin[1], origin[2], distance);
+#endif
 }
 
 /**
@@ -389,14 +394,16 @@ bool BWRR_TeleportEngineer(int client, eEngineerTeleportType type)
 			float bomborigin[3];
 			float dist;
 			GetBombNearestToBombHatch(bomb, bomborigin, dist);
-			origin = GetNearestEngineerPosition(client ,bomborigin);
+			origin = GetNearestEngineerPosition(client, bomborigin);
 		}
 		case TeleportToAlly: // Select a position nearest to an ally
 		{
 			int ally = SelectRandomBLUTeammate(client);
 			if(ally != -1)
 			{
-				GetClientAbsOrigin(ally, origin);
+				float allyorigin[3];
+				GetClientAbsOrigin(ally, allyorigin);
+				origin = GetNearestEngineerPosition(client, allyorigin);
 			}
 		}
 	}
@@ -1004,6 +1011,7 @@ void Config_Init()
 {
 	g_aSpyTeleport = new ArrayList(3);
 	g_aEngyTeleport = new ArrayList(3);
+	g_aVecEngyTele = new ArrayList(3);
 	g_aSpawnRooms = new ArrayList();
 }
 
@@ -1114,6 +1122,7 @@ void Config_LoadMap()
 	
 	g_aSpyTeleport.Clear();
 	g_aEngyTeleport.Clear();
+	g_aVecEngyTele.Clear();
 	
 	GetCurrentMap(buffer, sizeof(buffer));
 	
