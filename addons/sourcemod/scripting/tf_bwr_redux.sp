@@ -129,6 +129,7 @@ Handle g_hSDKSpeakConcept;
 Handle g_hCTFPLayerCanBeForcedToLaugh;
 Handle g_hSDKPushAwayPlayers;
 Handle g_hSDKDropCurrency;
+Handle g_hSDKPointInRespawnRoom;
 //Handle g_hSDKCTFPlayerCanBuild;
 //Handle g_hCTeamGetNumPlayers;
 
@@ -561,6 +562,16 @@ public void OnPluginStart()
 	PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_Pointer);	//CCaptureFlag
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//silent pickup? or maybe it doesnt exist im not sure.
 	if((g_hSDKPickupFlag = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CCaptureFlag::PickUp offset!"); sigfailure = true; }
+
+	// Checks if a point is inside a respawn room
+	// PointInRespawnRoom(CBaseEntity const*,Vector const&,bool)
+	StartPrepSDKCall(SDKCall_Static);
+	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "PointInRespawnRoom");
+	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL);
+	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_ByRef, _, VENCODE_FLAG_COPYBACK);
+	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);
+	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
+	if((g_hSDKPointInRespawnRoom = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for PointInRespawnRoom!"); sigfailure = true; }
 	
 	// Used to allow humans to capture gates
 	int iOffset = GameConfGetOffset(hConf, "CFilterTFBotHasTag::PassesFilterImpl");	
@@ -4086,7 +4097,9 @@ public Action Timer_OnFakePlayerSpawn(Handle timer, any client)
 	if(IsClientInGame(client) && TF2_GetPlayerClass(client) != TFClass_Spy)  // teleport bots to teleporters
 	{
 		iTeleTarget = FindBestBluTeleporter();
-		if(iTeleTarget != -1)
+		float center[3];
+		GetEntityWorldCenter(client, center);
+		if(iTeleTarget != -1 && TF2_IsPointInRespawnRoom(client, center, true))
 		{
 			SpawnOnTeleporter(iTeleTarget,client);
 		}

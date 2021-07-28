@@ -2306,6 +2306,19 @@ void TF2_DropCurrencyPack(int client, int type, int amount, bool forcedistribute
 	SDKCall(g_hSDKDropCurrency, client, type, amount, forcedistribute, moneymaker);
 }
 
+/**
+ * Checks if the given point is inside a func_respawnroom entity
+ *
+ * @param entity		Target entity. Can be a player or null (not tested)
+ * @param origin		Origin vector to check
+ * @param sameteamonly	If a player is passed in the first parameter and this parameter is true. Only check respawnroom entites belonging to the player's team.
+ * @return     True if the given point is inside a func_respawnroom
+ */
+bool TF2_IsPointInRespawnRoom(int entity, float origin[3], bool sameteamonly)
+{
+	return SDKCall(g_hSDKPointInRespawnRoom, entity, origin, sameteamonly);
+}
+
 /****************************************************
 					INSTRUCTIONS
 *****************************************************/

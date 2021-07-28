@@ -71,6 +71,12 @@
 				"windows" "\x55\x8B\xEC\x83\xEC\x0C\x53\x8B\x5D\x08\x57\x8B\xF9\x83\xFB\x03"
 				"linux" "@_ZN9CTFPlayer8CanBuildEii"
 			}
+			"PointInRespawnRoom"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x53\x33\xDB\x56\x57"
+				"linux"		"@_Z18PointInRespawnRoomPK11CBaseEntityRK6Vectorb"
+			}
 		}
 		"Offsets"
 		{
