@@ -2132,7 +2132,7 @@ void KillAmmoPack(int entref)
 	}
 }
 
-void FrameCheckForUnbalance(int client)
+void FrameCheckForUnbalance()
 {
 	// Balanced: BLU is empty
 	if( GetHumanRobotCount() == 0 )

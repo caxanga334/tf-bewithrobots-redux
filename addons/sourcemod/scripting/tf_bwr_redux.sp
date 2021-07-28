@@ -860,7 +860,7 @@ public void OnClientDisconnect_Post(int client)
 {
 	if(GameRules_GetRoundState() == RoundState_BetweenRounds)
 	{
-		RequestFrame(FrameCheckForUnbalance, client);
+		RequestFrame(FrameCheckForUnbalance);
 	}
 }
 
