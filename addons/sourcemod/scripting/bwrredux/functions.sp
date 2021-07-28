@@ -162,37 +162,83 @@ int SelectRandomBLUTeammate(int client)
 	return -1;
 }
 
+/**
+ * Adds RED players to the menu
+ *
+ * @param menu		The menu to add to
+ * @return     no return
+ */
+void AddREDPlayersToMenu(Menu menu)
+{
+	char info[4], name[MAX_NAME_LENGTH];
+
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(!IsClientInGame(i))
+			continue;
+
+		if(TF2_GetClientTeam(i) != TFTeam_Red)
+			continue;
+
+		GetClientName(i, name, sizeof(name));
+		FormatEx(info,sizeof(info), "%i", GetClientUserId(i));
+		menu.AddItem(info, name);
+	}
+}
+
 /****************************************************
 					ROBOT SPY
 *****************************************************/
 
-// Teleports a spy near a RED player
-void TeleportSpyRobot(int client)
+/**
+ * Part of the spy teleport behavior.
+ *
+ * @param client		The client to teleport
+ * @param target		If the client will be teleported near a player, then pass the player's index.
+ * @return     Return description
+ */
+void TeleportSpyRobot(int client, int target = 0)
 {
-	if(GetTeamClientCount(view_as<int>(TFTeam_Red)) == 0)
-		return; // No players in RED team.
-	
-	int target = GetRandomClientFromTeam(view_as<int>(TFTeam_Red), false);
-	float TelePos[3];
-	
-	if(!IsValidClient(target))
+	float origin[3];
+
+	if(target == 0) // Random
 	{
-		if(GetSpyTeleportFromConfig(TelePos, _, client))
-		{
-			BWRR_RemoveSpawnProtection(client);
-			TeleportEntity(client, TelePos, NULL_VECTOR, NULL_VECTOR);
-		}
+		origin = GetRandomSpyTeleportPoint(client);
 	}
 	else
 	{
-		if(GetSpyTeleportFromConfig(TelePos, target, client))
-		{
-			BWRR_RemoveSpawnProtection(client);
-			TeleportEntity(client, TelePos, NULL_VECTOR, NULL_VECTOR);
-			char name[MAX_NAME_LENGTH];
-			GetClientName(target, name, sizeof(name));
-			CPrintToChat(client, "%t", "Spy_Teleported", name);
-		}
+		float search[3];
+		GetClientAbsOrigin(target, search);
+		origin = GetNearestSpyTeleportPoint(client, search);
+	}
+
+	BWRR_TeleportSpy(client, origin, target);
+}
+
+/**
+ * Teleports a spy robot 
+ *
+ * @param client		The client to teleport
+ * @param origin		The origin to teleport the client to
+ * @param target		The target client if teleported near a player
+ * @return     no return
+ */
+void BWRR_TeleportSpy(int client, float origin[3], int target = 0)
+{
+	float angles[3];
+	angles[0] = 0.0;
+	angles[1] = GetRandomFloat(0.0, 359.0); // Random Angles
+	angles[2] = 0.0;
+
+	BWRR_RemoveSpawnProtection(client);
+	TeleportEntity(client, origin, angles, NULL_VECTOR);
+	TF2_AddCondition(client, TFCond_Stealthed, 7.0);
+
+	if(target > 0)
+	{
+		char name[MAX_NAME_LENGTH];
+		GetClientName(target, name, sizeof(name));
+		CPrintToChat(client, "%t", "Spy_Teleported", name);
 	}
 }
 
@@ -411,63 +457,6 @@ bool BWRR_TeleportEngineer(int client, eEngineerTeleportType type)
 	TeleportEngineerToPosition(origin, client);
 }
 
-// searches for a teleporter exit 
-int FindBestBluTeleporter()
-{
-	float nVec[3]; // nest pos
-	float bVec[3]; // bomb pos
-	float current_dist;
-	float smallest_dist = 15000.0;
-	int iTargetTele = -1; // the closest nest found.
-	int i = -1;
-	int iBomb = -1; // the bomb we're going to use to check distance.
-	int iBombOwner = -1;
-	
-	while( (i = FindEntityByClassname(i, "item_teamflag" )) != -1 )
-	{
-		if( IsValidEntity(i) && GetEntProp( i, Prop_Send, "m_bDisabled" ) == 0 ) // ignore disabled bombs
-		{
-			iBomb = i; // use the first bomb found.
-			iBombOwner = GetEntPropEnt( i, Prop_Send, "m_hOwnerEntity" );
-			break;
-		}
-	}
-	
-	if( iBomb == -1 )
-		return -1; // no bomb found
-	
-	i = -1;
-	while( (i = FindEntityByClassname(i, "obj_teleporter" )) != -1 )
-	{
-		if( IsValidEntity(i) )
-		{
-			if( GetEntProp( i, Prop_Send, "m_bHasSapper" ) == 0 && GetEntProp( i, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Blue) && GetEntPropFloat(i, Prop_Send, "m_flPercentageConstructed") >= 0.99 )
-			{
-				if( iBombOwner == -1 || iBombOwner > MaxClients)
-				{
-					GetEntPropVector(iBomb, Prop_Send, "m_vecOrigin", bVec); // bomb
-				}
-				else // if the bomb is carried by a player, use the eye position of the carrier instead
-				{
-					GetClientEyePosition(iBombOwner, bVec);
-				}
-				
-				GetEntPropVector(i, Prop_Send, "m_vecOrigin", nVec); // nest
-				
-				current_dist = GetVectorDistance(bVec, nVec);
-				
-				if( current_dist < smallest_dist )
-				{
-					iTargetTele = i;
-					smallest_dist = current_dist;
-				}
-			}
-		}
-	}
-	
-	return iTargetTele;
-}
-
 // announces when a robot engineer is killed.
 void AnnounceEngineerDeath(int client)
 {
@@ -503,12 +492,119 @@ void AnnounceEngineerDeath(int client)
 	}
 }
 
-// TeleportPlayerToEntity but for teleporters
+/**
+ * Checks if a teleporter is valid as a spawn point
+ *
+ * @param teleporter		The teleporter to check
+ * @return     TRUE if valid
+ */
+bool IsTeleporterValid(int teleporter)
+{
+	if(!IsValidEntity(teleporter)) // Valid entity?
+		return false;
+
+	if(GetEntProp(teleporter, Prop_Send, "m_iTeamNum") != view_as<int>(TFTeam_Blue)) // BLU team teleporter?
+		return false;
+
+	if(GetEntProp(teleporter, Prop_Send, "m_bDisabled") == 1) // Disabled?
+		return false;
+
+	if(GetEntProp(teleporter, Prop_Send, "m_bHasSapper") == 1) // Sapped?
+		return false;
+
+	if(GetEntPropFloat(teleporter, Prop_Send, "m_flPercentageConstructed") < 0.99) // Fully built?
+		return false;
+
+	return true;
+}
+
+/**
+ * Checks if there are ANY available BLU teleporter
+ *
+ * @return     TRUE if a teleporter was found
+ */
+bool CanSpawnOnTeleporter()
+{
+	int entity = -1;
+	while((entity = FindEntityByClassname(entity, "obj_teleporter")) != -1)
+	{
+		if(IsTeleporterValid(entity))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Finds the teleporter nearest to the bomb
+ *
+ * @param teleporter		Reference to store the teleporter index
+ * @return     TRUE if a teleporter was found
+ */
+bool FindBestTeleporter(int &teleporter)
+{
+	int bomb = -1;
+	float bomborigin[3], teleorigin[3];
+	float bombdist;
+	float bestdist = 9999999.0;
+	bool found = false;
+	GetBombNearestToBombHatch(bomb, bomborigin, bombdist);
+
+	if(bomb == -1)
+		return false; // failed to find bomb
+
+	int entity = -1;
+	while((entity = FindEntityByClassname(entity, "obj_teleporter")) != -1)
+	{
+		if(!IsTeleporterValid(entity))
+			continue;
+
+		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", teleorigin);
+		bombdist = GetVectorDistance(bomborigin, teleorigin);
+		if(bombdist < bestdist)
+		{
+			bestdist = bombdist;
+			teleporter = entity;
+			found = true;
+		}
+	}
+
+	return found;
+}
+
+/**
+ * Spawns a client on a teleporter
+ *
+ * @param client		The client to teleport to
+ * @return     no return
+ */
+void BWRR_SpawnOnTeleporter(int client)
+{
+	int teleporter;
+	if(FindBestTeleporter(teleporter))
+	{
+		SpawnOnTeleporter(teleporter, client);
+	}
+	else
+	{
+		TeleportToSpawnPoint(client, TF2_GetPlayerClass(client));
+	}
+}
+
+/**
+ * Teleport clients to a teleporter. Used for spawing robots on teleporters
+ *
+ * @param teleporter		The teleporter entity index
+ * @param client			The client index to teleport
+ * @return     no return
+ */
 void SpawnOnTeleporter(int teleporter,int client)
 {
 	float OriginVec[3];
 	float Scale = GetEntPropFloat(client, Prop_Send, "m_flModelScale");
-	if( IsValidEntity(teleporter) )
+	if(IsValidEntity(teleporter))
 	{
 		GetEntPropVector(teleporter, Prop_Send, "m_vecOrigin", OriginVec);
 		
@@ -1015,65 +1111,88 @@ void Config_Init()
 	g_aSpawnRooms = new ArrayList();
 }
 
-// Gets an origin to teleport a spy
-// If target_player is set, try to find one near the target
-// returns true if a spot is found
-bool GetSpyTeleportFromConfig(float origin[3], int target_player = -1, int client)
+/**
+ * Gets a random spy teleport point
+ *
+ * @param client		The client who will be teleported
+ * @return     teleport point origin vector
+ */
+float[] GetRandomSpyTeleportPoint(int client)
 {
-	float tVec[3], rVec[3]; // target_player's vector, return vector
-	int iBestCell = -1;
-	float distance;
-	static const float max_dist = 2048.0;
-	static const float min_dist = 256.0;
-	
-	if( g_aSpyTeleport.Length < 1 )
-		return false;
-		
-	ArrayList aPos;
-	aPos = new ArrayList();
-	
-	if(IsValidClient(target_player))
+	int[] list = new int[g_aSpyTeleport.Length];
+	int counter = -1;
+	float origin[3];
+
+	for(int i = 0;i < g_aSpyTeleport.Length;i++)
 	{
-		GetClientAbsOrigin(target_player, tVec);
-		for(int i = 0;i < g_aSpyTeleport.Length;i++)
-		{
-			g_aSpyTeleport.GetArray(i, rVec);
-			
-			if(!CanTeleportPlayerToPosition(client, rVec)) // Stuck check
-				continue;
-			
-			if(!SpyTeleport_RayCheck(i, rVec)) // Trace didn't hit anything
-				continue;
-			
-			distance = GetVectorDistance(rVec, tVec);
-			if(distance > min_dist && distance < max_dist) // include all teleport points inside min and max distance
-			{
-				aPos.Push(i);
-			}
-		}
-		
-		if(aPos.Length > 0)
-		{
-			iBestCell = aPos.Get(Math_GetRandomInt(0,aPos.Length - 1));
-			delete aPos;
-		}
-		
-		if(iBestCell != -1)
-		{
-			g_aSpyTeleport.GetArray(iBestCell, origin);
-			return true;
-		}
-		else
-			return false;
+		g_aSpyTeleport.GetArray(i, origin);
+
+		if(!CanTeleportPlayerToPosition(client, origin)) // Stuck check
+			continue;
+
+		if(!SpyTeleport_RayCheck(i, origin))
+			continue;
+
+		counter++;
+		list[counter] = i;
+	}
+
+	if(counter == -1) // Failed to find valid position
+	{
+		GetClientAbsOrigin(client, origin); // Failsafe
 	}
 	else
 	{
-		g_aSpyTeleport.GetArray(Math_GetRandomInt(0, (g_aSpyTeleport.Length - 1)), origin);
-		return true;
+		g_aSpyTeleport.GetArray(list[Math_GetRandomInt(0, counter - 1)], origin);
 	}
+
+	return origin;
 }
 
-// returns true if the trace hit something
+/**
+ * Gets the nearest spy teleport point
+ *
+ * @param client		The client who will be teleported
+ * @param search		The search point
+ * @return     teleport point origin vector
+ */
+float[] GetNearestSpyTeleportPoint(int client, float search[3])
+{
+	float dist;
+	float best = 99999999.0;
+	float origin[3];
+	int index;
+
+	for(int i = 0;i < g_aSpyTeleport.Length;i++)
+	{
+		g_aSpyTeleport.GetArray(i, origin);
+
+		if(!CanTeleportPlayerToPosition(client, origin)) // Stuck check
+			continue;
+
+		if(!SpyTeleport_RayCheck(i, origin))
+			continue;
+
+		dist = GetVectorDistance(origin, search);
+		if(dist < best)
+		{
+			best = dist;
+			index = i;
+		}
+	}
+
+	g_aSpyTeleport.GetArray(index, origin);
+	return origin;	
+}
+
+/**
+ * Performs a trace ray line of sight test for spy teleporting
+ *
+ * @param id		The spy teleport position ID
+ * @param pos1		The spy teleport positiion origin
+ * @param iDebug	Enable debug beams?
+ * @return     TRUE if the given spy teleport position is NOT visible to RED players
+ */
 bool SpyTeleport_RayCheck(const int id, float pos1[3], int iDebug = 0)
 {
 	pos1[2] += 45;
@@ -2323,6 +2442,12 @@ bool TF2_IsPointInRespawnRoom(int entity, float origin[3], bool sameteamonly)
 					INSTRUCTIONS
 *****************************************************/
 
+/**
+ * Handles the instruction system
+ *
+ * @param client		The client to process
+ * @return     no return
+ */
 void BWRR_InstructPlayer(int client)
 {
 	if(g_flinstructiontime[client] > GetGameTime()) { return; }
@@ -2463,6 +2588,12 @@ void BWRR_InstructPlayer(int client)
 	}
 }
 
+/**
+ * Removes spawn protection from a client
+ *
+ * @param client		The client to remove the protection from
+ * @return     no return
+ */
 void BWRR_RemoveSpawnProtection(int client)
 {
 	RoboPlayer rp = RoboPlayer(client);

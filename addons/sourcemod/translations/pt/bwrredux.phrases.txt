@@ -153,4 +153,12 @@
 	{
 		"pt"	"Perto de Aliados"
 	}
+	"Menu_Spy_Teleport"
+	{
+		"pt"	"Alvo do Teletransporte?"
+	}
+	"Menu_Spawn_On_Teleporter"
+	{
+		"pt"	"Reentrar no Teletransportador?"
+	}
 }

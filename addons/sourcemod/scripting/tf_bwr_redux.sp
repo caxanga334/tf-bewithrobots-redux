@@ -3382,6 +3382,12 @@ public int MenuHandler_Editor(Menu menu, MenuAction action, int param1, int para
 	}	
 }
 
+/**
+ * Builds the engineer teleport menu
+ *
+ * @param client		The client to show the menu to
+ * @return     no return
+ */
 void MenuFunc_CreateEngineerTeleportMenu(int client)
 {
 	char buffer[64];
@@ -3425,6 +3431,110 @@ public int MenuHandler_EngineerTeleport(Menu menu, MenuAction action, int param1
 		case MenuAction_Cancel:
 		{
 			BWRR_TeleportEngineer(param1, TeleportToRandom);
+		}
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}
+}
+
+/**
+ * Builds the spy teleport menu
+ *
+ * @param client		The client to show the menu to
+ * @return     no return
+ */
+void MenuFunc_CreateSpyTeleportMenu(int client)
+{
+	char buffer[64];
+
+	Menu menu = new Menu(MenuHandler_SpyTeleport, MENU_ACTIONS_ALL);
+	menu.SetTitle("%T", "Menu_Spy_Teleport", client);
+	FormatEx(buffer, sizeof(buffer), "%T", "Menu_Item_Random", client);
+	menu.AddItem("-1", buffer);
+	AddREDPlayersToMenu(menu);
+	menu.ExitButton = false;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_SpyTeleport(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			char info[16];
+			bool bFound = menu.GetItem(param2, info, sizeof(info));
+			if(bFound)
+			{
+				int iInfo = StringToInt(info);
+
+				if(iInfo == -1) // Random
+				{
+					TeleportSpyRobot(param1);
+				}
+				else
+				{
+					int target = GetClientOfUserId(iInfo); // returns 0 on invalid so the TeleportSpyRobot will teleport to a random place anyways
+					TeleportSpyRobot(param1, target);
+				}
+			}				
+		}
+		case MenuAction_Cancel:
+		{
+			TeleportSpyRobot(param1);
+		}
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+	}
+}
+
+/**
+ * Builds the teleporter spawn menu
+ *
+ * @param client		The client to show the menu to
+ * @return     no return
+ */
+void MenuFunc_CreateTeleSpawnMenu(int client)
+{
+	char buffer[64];
+
+	Menu menu = new Menu(MenuHandler_TeleSpawn, MENU_ACTIONS_ALL);
+	menu.SetTitle("%T", "Menu_Spawn_On_Teleporter", client);
+	FormatEx(buffer, sizeof(buffer), "%T", "Yes", client);
+	menu.AddItem("yes", buffer);
+	FormatEx(buffer, sizeof(buffer), "%T", "No", client);
+	menu.AddItem("no", buffer);
+	menu.ExitButton = false;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_TeleSpawn(Menu menu, MenuAction action, int param1, int param2)
+{
+	switch(action)
+	{
+		case MenuAction_Select:
+		{
+			char info[16];
+			bool bFound = menu.GetItem(param2, info, sizeof(info));
+			if(bFound)
+			{
+				if(strcmp(info, "yes", false) == 0)
+				{
+					BWRR_SpawnOnTeleporter(param1);
+				}
+				else
+				{
+					TeleportToSpawnPoint(param1, TF2_GetPlayerClass(param1));
+				}
+			}
+		}
+		case MenuAction_Cancel:
+		{
+			BWRR_SpawnOnTeleporter(param1);
 		}
 		case MenuAction_End:
 		{
@@ -3823,7 +3933,6 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		
 	TFClassType TFClass = p_BotClass[client];
 	char strBotName[255], strBotDesc[255];
-	int iTeleTarget = -1;
 	RoboPlayer rp = RoboPlayer(client);
 		
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
@@ -4008,16 +4117,14 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				{
 					case TFClass_Spy: // spies should always spawn near RED players
 					{
-						TF2_AddCondition(client, TFCond_Stealthed, 7.0);
-						TeleportSpyRobot(client);
 						EmitGSToRed("Announcer.MVM_Spy_Alert");
+						MenuFunc_CreateSpyTeleportMenu(client);
 					}
 					case TFClass_Engineer:
 					{
-						iTeleTarget = FindBestBluTeleporter();
-						if(iTeleTarget != -1) // first search for teleporter
+						if(CanSpawnOnTeleporter()) // first search for teleporter
 						{
-							SpawnOnTeleporter(iTeleTarget,client);						
+							MenuFunc_CreateTeleSpawnMenu(client);
 						}
 						else // no teleporter found
 						{
@@ -4034,10 +4141,9 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 					case TFClass_Sniper:
 					{
 						TF2_SpeakConcept(MP_CONCEPT_MVM_SNIPER_CALLOUT, view_as<int>(TFTeam_Red), "");
-						iTeleTarget = FindBestBluTeleporter();
-						if(iTeleTarget != -1) // found teleporter
+						if(CanSpawnOnTeleporter()) // found teleporter
 						{
-							SpawnOnTeleporter(iTeleTarget, client);
+							MenuFunc_CreateTeleSpawnMenu(client);
 						}
 						else
 						{
@@ -4046,10 +4152,9 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 					}
 					default: // other classes
 					{
-						iTeleTarget = FindBestBluTeleporter();
-						if(iTeleTarget != -1) // found teleporter
+						if(CanSpawnOnTeleporter()) // found teleporter
 						{
-							SpawnOnTeleporter(iTeleTarget, client);
+							MenuFunc_CreateTeleSpawnMenu(client);
 						}
 						else
 						{
@@ -4093,18 +4198,16 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 
 public Action Timer_OnFakePlayerSpawn(Handle timer, any client)
 {
-	int iTeleTarget = -1;
+	float center[3];
+	GetEntityWorldCenter(client, center);
 	
-	if(IsClientInGame(client) && TF2_GetPlayerClass(client) != TFClass_Spy)  // teleport bots to teleporters
+	if(IsClientInGame(client) && TF2_GetPlayerClass(client) != TFClass_Spy && TF2_IsPointInRespawnRoom(client, center, true))  // teleport bots to teleporters
 	{
-		iTeleTarget = FindBestBluTeleporter();
-		float center[3];
-		GetEntityWorldCenter(client, center);
-		if(iTeleTarget != -1 && TF2_IsPointInRespawnRoom(client, center, true))
+		int teleporter;
+		if(FindBestTeleporter(teleporter))
 		{
-			SpawnOnTeleporter(iTeleTarget,client);
+			SpawnOnTeleporter(teleporter, client);
 		}
-		return Plugin_Stop;
 	}
 	
 	return Plugin_Stop;

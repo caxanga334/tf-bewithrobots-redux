@@ -153,4 +153,12 @@
 	{
 		"en"	"Near Allies"
 	}
+	"Menu_Spy_Teleport"
+	{
+		"en"	"Teleport Target?"
+	}
+	"Menu_Spawn_On_Teleporter"
+	{
+		"en"	"Spawn on Teleporter?"
+	}
 }
