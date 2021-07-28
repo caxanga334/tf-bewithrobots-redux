@@ -1720,19 +1720,20 @@ public Action Command_JoinBLU( int client, int nArgs )
 	
 	// Denied: Not enough players in RED to join while a wave is running.
 	int iMinRed = c_iMinRedinProg.IntValue;
-	if(GameRules_GetRoundState() == RoundState_RoundRunning && GetTeamClientCount(2) < iMinRed)
+	int inred = GetTeamClientCount(2);
+	if(GameRules_GetRoundState() == RoundState_RoundRunning && inred < iMinRed)
 	{
 		CPrintToChat(client,"%t", "Not in Prog");
-		CPrintToChat(client,"%t","Num Red",iMinRed);
+		CPrintToChat(client,"%t","Num Red",iMinRed, inred);
 		return Plugin_Handled;
 	}
 	
 	// Denied: Not enough players in RED to join.
 	iMinRed = c_iMinRed.IntValue;
-	if(GetTeamClientCount(2) < iMinRed)
+	if(inred < iMinRed)
 	{
 		CPrintToChat(client,"%t","Need Red");
-		CPrintToChat(client,"%t","Num Red",iMinRed);
+		CPrintToChat(client,"%t","Num Red",iMinRed, inred);
 		return Plugin_Handled;
 	}
 	

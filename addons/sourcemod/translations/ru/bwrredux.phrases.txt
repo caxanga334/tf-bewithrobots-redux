@@ -24,7 +24,7 @@
 	"Num Red"
 	{
 		"#format"	"{1:d}"
-		"ru"	"{cyan}Должно быть как минимум {yellow}{1}{cyan} игроков в команде {red}Красных{cyan}."
+		"ru"	"{cyan}Должно быть как минимум {yellow}{1}{cyan} игроков в команде {red}Красных{cyan}. Currently there are {yellow}{2}{cyan} players on {red}RED{cyan}."
 	}
 	"Bot Spawn"
 	{

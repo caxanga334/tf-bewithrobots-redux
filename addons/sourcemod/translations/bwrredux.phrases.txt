@@ -23,8 +23,8 @@
 	}
 	"Num Red"
 	{
-		"#format"	"{1:d}"
-		"en"	"{cyan}There must be at least {yellow}{1}{cyan} players on {red}RED{cyan}."
+		"#format"	"{1:d},{2:d}"
+		"en"	"{cyan}There must be at least {yellow}{1}{cyan} players on {red}RED{cyan}. Currently there are {yellow}{2}{cyan} players on {red}RED{cyan}."
 	}
 	"Bot Spawn"
 	{

@@ -24,7 +24,7 @@
 	"Num Red"
 	{
 		"#format"	"{1:d}"
-		"pt"	"{cyan}Deve haver pelo menos {yellow}{1}{cyan} jogadores na equipe {red}RED{cyan}."
+		"pt"	"{cyan}Deve haver pelo menos {yellow}{1}{cyan} jogadores na equipe {red}RED{cyan}. Atualmente tem {yellow}{2}{cyan} jogadores na equipe {red}RED{cyan}."
 	}
 	"Bot Spawn"
 	{
