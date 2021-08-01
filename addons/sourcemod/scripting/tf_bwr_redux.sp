@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.3"
+#define PLUGIN_VERSION "1.2.4"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -4197,14 +4197,13 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 }
 
 public Action Timer_OnFakePlayerSpawn(Handle timer, any client)
-{
-	float center[3];
-	GetEntityWorldCenter(client, center);
-	
-	if(IsClientInGame(client) && TF2_GetPlayerClass(client) != TFClass_Spy && TF2_IsPointInRespawnRoom(client, center, true))  // teleport bots to teleporters
+{	
+	if(IsClientInGame(client) && TF2_GetPlayerClass(client) != TFClass_Spy)  // teleport bots to teleporters
 	{
 		int teleporter;
-		if(FindBestTeleporter(teleporter))
+		float center[3];
+		GetEntityWorldCenter(client, center);
+		if(TF2_IsPointInRespawnRoom(client, center, true) && FindBestTeleporter(teleporter))
 		{
 			SpawnOnTeleporter(teleporter, client);
 		}

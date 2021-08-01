@@ -1492,9 +1492,9 @@ void DisableAnim(int userid)
  */
 void GetEntityWorldCenter(int ent, float[] origin)
 {
-	if( !IsValidEntity(ent) )
+	if(!IsValidEntity(ent))
 	{
-		ThrowError("void GetEntityWorldCenter(int ent, float[] origin) received invalid ent!");
+		ThrowError("void GetEntityWorldCenter(int ent, float[] origin) received invalid ent! %i", ent);
 		return;
 	}
 	
