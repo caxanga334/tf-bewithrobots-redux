@@ -201,6 +201,9 @@ void TeleportSpyRobot(int client, int target = 0)
 {
 	float origin[3];
 
+	if(!IsClientInGame(client))
+		return;
+
 	if(target == 0) // Random
 	{
 		origin = GetRandomSpyTeleportPoint(client);
@@ -229,6 +232,9 @@ void BWRR_TeleportSpy(int client, float origin[3], int target = 0)
 	angles[0] = 0.0;
 	angles[1] = GetRandomFloat(0.0, 359.0); // Random Angles
 	angles[2] = 0.0;
+
+	if(!IsClientInGame(client))
+		return;
 
 	BWRR_RemoveSpawnProtection(client);
 	TeleportEntity(client, origin, angles, NULL_VECTOR);
@@ -422,12 +428,17 @@ void TeleportEngineerToPosition(float origin[3], int client, float OffsetVec[3] 
  *
  * @param client		The client that should be teleported
  * @param type			Teleport type (see enum)
- * @return				True on sucess
+ * @return				No return
  */
-bool BWRR_TeleportEngineer(int client, eEngineerTeleportType type)
+void BWRR_TeleportEngineer(int client, eEngineerTeleportType type)
 {
 	float origin[3];
+
+	if(!IsClientInGame(client))
+		return;
+
 	GetClientAbsOrigin(client, origin); // In case of failure, teleport to self
+
 	switch(type)
 	{
 		case TeleportToRandom: // Select a literal random position
