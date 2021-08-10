@@ -204,6 +204,12 @@ void TeleportSpyRobot(int client, int target = 0)
 	if(!IsClientInGame(client))
 		return;
 
+	if(TF2_GetClientTeam(client) != TFTeam_Blue)
+		return;
+
+	if(!IsPlayerAlive(client))
+		return;
+
 	if(target == 0) // Random
 	{
 		origin = GetRandomSpyTeleportPoint(client);
@@ -435,6 +441,12 @@ void BWRR_TeleportEngineer(int client, eEngineerTeleportType type)
 	float origin[3];
 
 	if(!IsClientInGame(client))
+		return;
+
+	if(TF2_GetClientTeam(client) != TFTeam_Blue)
+		return;
+
+	if(!IsPlayerAlive(client))
 		return;
 
 	GetClientAbsOrigin(client, origin); // In case of failure, teleport to self
