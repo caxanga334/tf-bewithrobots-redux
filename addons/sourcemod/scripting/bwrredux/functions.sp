@@ -210,6 +210,9 @@ void TeleportSpyRobot(int client, int target = 0)
 	if(!IsPlayerAlive(client))
 		return;
 
+	if(TF2_GetPlayerClass(client) != TFClass_Spy)
+		return;
+
 	if(target == 0) // Random
 	{
 		origin = GetRandomSpyTeleportPoint(client);
@@ -447,6 +450,9 @@ void BWRR_TeleportEngineer(int client, eEngineerTeleportType type)
 		return;
 
 	if(!IsPlayerAlive(client))
+		return;
+
+	if(TF2_GetPlayerClass(client) != TFClass_Engineer)
 		return;
 
 	GetClientAbsOrigin(client, origin); // In case of failure, teleport to self
