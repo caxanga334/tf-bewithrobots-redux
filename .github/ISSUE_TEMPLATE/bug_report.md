@@ -7,26 +7,21 @@ assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+# Help us help you
+  - [ ] I have checked that my issue [doesn't exist yet](https://github.com/caxanga334/tf-bewithrobots-redux/issues).
+  - [ ] I have tried my absolute best to reduce the problem-space and have provided the absolute smallest test-case possible.
+  - [ ] I can always reproduce the issue with the provided description below.
+  - [ ] I have checked that my issue still occours when using the plugin's default settings.
+  - [ ] I am running the original plugin without third-party modifications.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+# Environment
+ * SourceMod version: 
+ * Plugin version: 
+ * [ ] I have updated the plugin to the latest version available in the repository and my issue still happens.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+# Description
 
-**Version:**
-- Plugin version:
-- Sourcemod version:
-- Output of `sm exts list`:
 
-**Additional context**
-Add any other context about the problem here.
+# Steps to reproduce
+
