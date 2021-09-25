@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.8"
+#define PLUGIN_VERSION "1.2.9"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -4313,6 +4313,10 @@ public Action Timer_BuildObject(Handle timer, any index)
 		else if(strcmp(classname, "obj_teleporter", false) == 0)
 		{
 			int iBuilder = GetEntPropEnt( index, Prop_Send, "m_hBuilder" );
+			
+			if(!IsValidClient(iBuilder))
+				return Plugin_Stop;
+
 			if(p_iBotAttrib[iBuilder] & BotAttrib_CannotBuildTele)
 			{ // This engineer variant can't building teleporters
 				SetVariantInt(9999);
