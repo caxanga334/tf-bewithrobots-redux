@@ -631,6 +631,9 @@ void BWRR_SpawnOnTeleporter(int client)
  */
 void SpawnOnTeleporter(int teleporter,int client)
 {
+	if(!IsClientInGame(client)) // Validate client
+		return;
+
 	float OriginVec[3];
 	float Scale = GetEntPropFloat(client, Prop_Send, "m_flModelScale");
 	if(IsValidEntity(teleporter))
