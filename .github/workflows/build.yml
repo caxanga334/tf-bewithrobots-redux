@@ -74,10 +74,11 @@ jobs:
         uses: montudor/action-zip@v1
 
       - name: Zip output
-        run: zip -qq -r tf-bwrr-${{ matrix.SM_VERSION }}.zip build
+        run: zip -qq -r tf-bwrr-${{ matrix.SM_VERSION }}.zip tf_bwr_redux.smx
+        working-directory: ${{ env.BUILD_PATH }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
           name: tf-bwrr-${{ matrix.SM_VERSION }}.zip
-          path: $GITHUB_WORKSPACE/*.zip
+          path: ${{ env.SCRIPTS_PATH }}/*.zip
