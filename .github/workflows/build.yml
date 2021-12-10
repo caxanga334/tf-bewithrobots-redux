@@ -74,7 +74,7 @@ jobs:
           mv $GITHUB_WORKSPACE/dhooks/sourcemod_files/scripting/include/dhooks.inc $INCLUDES_PATH
           mv $GITHUB_WORKSPACE/tf2items/pawn/tf2items.inc $INCLUDES_PATH
           mv $GITHUB_WORKSPACE/multicolors/addons/sourcemod/scripting/include/multicolors.inc $INCLUDES_PATH
-          mv $GITHUB_WORKSPACE/multicolors/addons/sourcemod/scripting/include/multicolors $INCLUDES_PATH/multicolors
+          # mv $GITHUB_WORKSPACE/multicolors/addons/sourcemod/scripting/include/multicolors $INCLUDES_PATH/multicolors
           mv $GITHUB_WORKSPACE/autoexecconfig/autoexecconfig.inc $INCLUDES_PATH
           mv $GITHUB_WORKSPACE/smincludelib/include/steamworks.inc $INCLUDES_PATH
 
