@@ -77,6 +77,8 @@ jobs:
           # mv $GITHUB_WORKSPACE/multicolors/addons/sourcemod/scripting/include/multicolors $INCLUDES_PATH/multicolors
           mv $GITHUB_WORKSPACE/autoexecconfig/autoexecconfig.inc $INCLUDES_PATH
           mv $GITHUB_WORKSPACE/smincludelib/include/steamworks.inc $INCLUDES_PATH
+          echo "Done moving include files"
+          ls -la $INCLUDES_PATH
 
       - name: Setup SourcePawn Compiler ${{ matrix.SM_VERSION }}
         id: setup_sp
@@ -86,7 +88,7 @@ jobs:
 
       - name: Compile plugins
         run: |
-          for file in tf-bewithrobots-redux.sp
+          for file in tf_bwr_redux.sp
           do
             echo -e "\nCompiling $file..."
             spcomp -E -w234 -O2 -v2 -i include $file
@@ -106,7 +108,8 @@ jobs:
       - name: Zip output
         run: zip -qq -r tf-bwrr-${{ github.sha }}.zip build
 
-      - uses: actions/upload-artifact@v2
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
         with:
           name: tf-bwrr-${{ github.sha }}.zip
           path: /*.zip
