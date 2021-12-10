@@ -10,7 +10,7 @@
 #include <tf2attributes>
 #include <tf2wearables>
 #undef REQUIRE_EXTENSIONS
-#include <SteamWorks>
+#include <steamworks>
 #define REQUIRE_EXTENSIONS
 #define AUTOLOAD_EXTENSIONS
 #include <sdkhooks>
@@ -342,7 +342,7 @@ public Plugin myinfo =
 	url = "https://github.com/caxanga334/tf-bewithrobots-redux"
 };
 
-stock APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	EngineVersion ev = GetEngineVersion();
 	g_bLateLoad = late;
