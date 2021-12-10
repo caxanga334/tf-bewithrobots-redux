@@ -10,7 +10,7 @@
 #include <tf2attributes>
 #include <tf2wearables>
 #undef REQUIRE_EXTENSIONS
-#include <SteamWorks>
+#include <steamworks>
 #define REQUIRE_EXTENSIONS
 #define AUTOLOAD_EXTENSIONS
 #include <sdkhooks>
