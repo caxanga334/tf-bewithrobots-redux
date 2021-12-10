@@ -23,7 +23,7 @@ jobs:
           echo "BUILD_PATH=$BUILD_PATH" >> $GITHUB_ENV
           echo "SCRIPTS_PATH=$SOURCEMOD_PATH/scripting" >> $GITHUB_ENV
           echo "INCLUDES_PATH=$SOURCEMOD_PATH/scripting/include" >> $GITHUB_ENV
-          echo "PLUGINS_PATH=$SOURCEMOD_PATH/plugins" >> $GITHUB_EN
+          echo "PLUGINS_PATH=$SOURCEMOD_PATH/plugins" >> $GITHUB_ENV
 
       - name: Checkout TF2 Attributes
         uses: actions/checkout@v2
