@@ -69,19 +69,20 @@ jobs:
         run: |
           echo "Creating build folder"
           mkdir build
-          mv $SCRIPTS_PATH/tf_bwr_redux.smx $BUILD_PATH/plugins
+          mkdir -p build/addons/sourcemod/configs/bwrr/
+          mkdir -p build/addons/sourcemod/gamedata
+          mkdir -p build/addons/sourcemod/plugins
+          mkdir -p build/addons/sourcemod/translations
+          mv $SCRIPTS_PATH/tf_bwr_redux.smx $BUILD_PATH/addons/sourcemod/plugins/tf_bwr_redux.smx
+          mv $SOURCEMOD_PATH/configs/bwrr/* $BUILD_PATH/addons/sourcemod/configs/bwrr/
+          mv $SOURCEMOD_PATH/gamedata/tf2.bwrr.txt $BUILD_PATH/addons/sourcemod/gamedata/tf2.bwrr.txt
+          mv $SOURCEMOD_PATH/translations/* $BUILD_PATH/addons/sourcemod/translations/
           cd build
           ls -la
-
-      - name: Install zip
-        uses: montudor/action-zip@v1
-
-      - name: Zip output
-        run: zip -qq -r tf-bwrr-${{ matrix.SM_VERSION }}.zip plugins
-        working-directory: ${{ env.BUILD_PATH }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
           name: tf-bwrr-${{ matrix.SM_VERSION }}.zip
-          path: ${{ env.BUILD_PATH }}/*.zip
+          path: |
+              ${{ env.BUILD_PATH }}/*
