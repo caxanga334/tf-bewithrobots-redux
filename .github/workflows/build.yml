@@ -25,61 +25,23 @@ jobs:
           echo "INCLUDES_PATH=$SOURCEMOD_PATH/scripting/include" >> $GITHUB_ENV
           echo "PLUGINS_PATH=$SOURCEMOD_PATH/plugins" >> $GITHUB_ENV
 
-      - name: Checkout TF2 Attributes
-        uses: actions/checkout@v2
-        with:
-          repository: nosoop/tf2attributes
-          path: tf2attributes
-
-      - name: Checkout TF2 Wearables API
-        uses: actions/checkout@v2
-        with:
-          repository: nosoop/sourcemod-tf2wearables
-          path: tf2wearables
-
-      - name: Checkout DHooks2
-        uses: actions/checkout@v2
-        with:
-          repository: peace-maker/DHooks2
-          path: dhooks
-
-      - name: Checkout TF2items
-        uses: actions/checkout@v2
-        with:
-          repository: asherkin/TF2Items
-          path: tf2items
-
-      - name: Checkout Multicolors
-        uses: actions/checkout@v2
-        with:
-          repository: Bara/Multi-Colors
-          path: multicolors
-
-      - name: Checkout AutoExecConfig
-        uses: actions/checkout@v2
-        with:
-          repository: Impact123/AutoExecConfig
-          path: autoexecconfig
-
-      - name: Checkout Include Lib for SteamWorks
-        uses: actions/checkout@v2
-        with:
-          repository: JoinedSenses/SourceMod-IncludeLibrary
-          path: smincludelib
-
-      - name: Copy Include Files
+      - name: Get Include Files
         run: |
-          mv $GITHUB_WORKSPACE/tf2attributes/scripting/include/tf2attributes.inc $INCLUDES_PATH
-          mv $GITHUB_WORKSPACE/tf2wearables/addons/sourcemod/scripting/include/tf2wearables.inc $INCLUDES_PATH
-          mv $GITHUB_WORKSPACE/dhooks/sourcemod_files/scripting/include/dhooks.inc $INCLUDES_PATH
-          mv $GITHUB_WORKSPACE/tf2items/pawn/tf2items.inc $INCLUDES_PATH
-          mv $GITHUB_WORKSPACE/multicolors/addons/sourcemod/scripting/include/multicolors.inc $INCLUDES_PATH
-          # mv $GITHUB_WORKSPACE/multicolors/addons/sourcemod/scripting/include/multicolors $INCLUDES_PATH/multicolors
-          mv $GITHUB_WORKSPACE/autoexecconfig/autoexecconfig.inc $INCLUDES_PATH
-          mv $GITHUB_WORKSPACE/smincludelib/include/steamworks.inc $INCLUDES_PATH
-          echo "Done moving include files"
-          ls -la $INCLUDES_PATH
-
+          echo "Begin downloading include files"
+          wget https://raw.githubusercontent.com/JoinedSenses/SourceMod-IncludeLibrary/master/include/steamworks.inc -O steamworks.inc
+          wget https://raw.githubusercontent.com/nosoop/tf2attributes/master/scripting/include/tf2attributes.inc -O tf2attributes.inc
+          wget https://raw.githubusercontent.com/nosoop/sourcemod-tf2wearables/master/addons/sourcemod/scripting/include/tf2wearables.inc -O tf2wearables.inc
+          wget https://raw.githubusercontent.com/asherkin/TF2Items/master/pawn/tf2items.inc -O tf2items.inc
+          wget https://raw.githubusercontent.com/peace-maker/DHooks2/dynhooks/sourcemod_files/scripting/include/dhooks.inc -O dhooks.inc
+          wget https://raw.githubusercontent.com/Impact123/AutoExecConfig/development/autoexecconfig.inc -O autoexecconfig.inc
+          wget https://raw.githubusercontent.com/Bara/Multi-Colors/master/addons/sourcemod/scripting/include/multicolors.inc -O multicolors.inc
+          mkdir multicolors
+          wget https://raw.githubusercontent.com/Bara/Multi-Colors/master/addons/sourcemod/scripting/include/multicolors/colors.inc -O colors.inc -P multicolors
+          wget https://raw.githubusercontent.com/Bara/Multi-Colors/master/addons/sourcemod/scripting/include/multicolors/morecolors.inc -O morecolors.inc -P multicolors
+          echo "Done downloading include files."
+          ls
+        working-directory: ${{ env.INCLUDES_PATH }}
+          
       - name: Setup SourcePawn Compiler ${{ matrix.SM_VERSION }}
         id: setup_sp
         uses: rumblefrog/setup-sp@master
@@ -106,10 +68,10 @@ jobs:
         uses: montudor/action-zip@v1
 
       - name: Zip output
-        run: zip -qq -r tf-bwrr-${{ github.sha }}.zip build
+        run: zip -qq -r tf-bwrr-${{ matrix.SM_VERSION }}.zip build
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: tf-bwrr-${{ github.sha }}.zip
+          name: tf-bwrr-${{ matrix.SM_VERSION }}.zip
           path: /*.zip
