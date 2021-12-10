@@ -31,6 +31,11 @@ jobs:
         with:
           version: ${{ matrix.SM_VERSION }}
 
+      - name: Make Folders
+        run: |
+          mkdir include
+        working-directory: ${{ env.SCRIPTS_PATH }}
+
       - name: Get Include Files
         run: |
           echo "Begin downloading include files"
