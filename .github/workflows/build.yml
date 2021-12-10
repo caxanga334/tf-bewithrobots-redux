@@ -68,7 +68,7 @@ jobs:
       - name: Post Build
         run: |
           mkdir build
-          mv $SCRIPTS_PATH/tf-bewithrobots-redux.smx $BUILD_PATH/plugins
+          mv $SCRIPTS_PATH/tf_bwr_redux.smx $BUILD_PATH/plugins
 
       - name: Install zip
         uses: montudor/action-zip@v1
