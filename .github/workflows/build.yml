@@ -1,0 +1,112 @@
+name: Compile Plugin
+
+on:
+  push:
+    branches: master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        SM_VERSION: ["1.10"]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set environment variables
+        run: |
+          SOURCEMOD_PATH=$GITHUB_WORKSPACE/addons/sourcemod
+          BUILD_PATH=$GITHUB_WORKSPACE/build
+          echo "SOURCEMOD_PATH=$SOURCEMOD_PATH" >> $GITHUB_ENV
+          echo "BUILD_PATH=$BUILD_PATH" >> $GITHUB_ENV
+          echo "SCRIPTS_PATH=$SOURCEMOD_PATH/scripting" >> $GITHUB_ENV
+          echo "INCLUDES_PATH=$SOURCEMOD_PATH/scripting/include" >> $GITHUB_ENV
+          echo "PLUGINS_PATH=$SOURCEMOD_PATH/plugins" >> $GITHUB_EN
+
+      - name: Checkout TF2 Attributes
+        uses: actions/checkout@v2
+        with:
+          repository: nosoop/tf2attributes
+          path: tf2attributes
+
+      - name: Checkout TF2 Wearables API
+        uses: actions/checkout@v2
+        with:
+          repository: nosoop/sourcemod-tf2wearables
+          path: tf2wearables
+
+      - name: Checkout DHooks2
+        uses: actions/checkout@v2
+        with:
+          repository: peace-maker/DHooks2
+          path: dhooks
+
+      - name: Checkout TF2items
+        uses: actions/checkout@v2
+        with:
+          repository: asherkin/TF2Items
+          path: tf2items
+
+      - name: Checkout Multicolors
+        uses: actions/checkout@v2
+        with:
+          repository: Bara/Multi-Colors
+          path: multicolors
+
+      - name: Checkout AutoExecConfig
+        uses: actions/checkout@v2
+        with:
+          repository: Impact123/AutoExecConfig
+          path: autoexecconfig
+
+      - name: Checkout Include Lib for SteamWorks
+        uses: actions/checkout@v2
+        with:
+          repository: JoinedSenses/SourceMod-IncludeLibrary
+          path: smincludelib
+
+      - name: Copy Include Files
+        run: |
+          mv $GITHUB_WORKSPACE/tf2attributes/scripting/include/tf2attributes.inc $INCLUDES_PATH
+          mv $GITHUB_WORKSPACE/tf2wearables/addons/sourcemod/scripting/include/tf2wearables.inc $INCLUDES_PATH
+          mv $GITHUB_WORKSPACE/dhooks/sourcemod_files/scripting/include/dhooks.inc $INCLUDES_PATH
+          mv $GITHUB_WORKSPACE/tf2items/pawn/tf2items.inc $INCLUDES_PATH
+          mv $GITHUB_WORKSPACE/multicolors/addons/sourcemod/scripting/include/multicolors.inc $INCLUDES_PATH
+          mv $GITHUB_WORKSPACE/multicolors/addons/sourcemod/scripting/include/multicolors $INCLUDES_PATH/multicolors
+          mv $GITHUB_WORKSPACE/autoexecconfig/autoexecconfig.inc $INCLUDES_PATH
+          mv $GITHUB_WORKSPACE/smincludelib/include/steamworks.inc $INCLUDES_PATH
+
+      - name: Setup SourcePawn Compiler ${{ matrix.SM_VERSION }}
+        id: setup_sp
+        uses: rumblefrog/setup-sp@master
+        with:
+          version: ${{ matrix.SM_VERSION }}
+
+      - name: Compile plugins
+        run: |
+          for file in tf-bewithrobots-redux.sp
+          do
+            echo -e "\nCompiling $file..."
+            spcomp -E -w234 -O2 -v2 -i include $file
+          done
+          echo "===OUT FILES==="
+          ls
+        working-directory: ${{ env.SCRIPTS_PATH }}
+
+      - name: Post Build
+        run: |
+          mkdir build
+          mv $SCRIPTS_PATH/tf-bewithrobots-redux.smx $BUILD_PATH/plugins
+
+      - name: Install zip
+        uses: montudor/action-zip@v1
+
+      - name: Zip output
+        run: zip -qq -r tf-bwrr-${{ github.sha }}.zip build
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: tf-bwrr-${{ github.sha }}.zip
+          path: /*.zip
