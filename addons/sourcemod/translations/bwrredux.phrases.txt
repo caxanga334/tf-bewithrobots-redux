@@ -1,164 +1,22 @@
 "Phrases"
 {
-	"Used Upgrade"
+	"Error_MinRed"
 	{
-		"en"	"{yellow}[BWRR]{cyan} You need to refund your upgrades in order to join BLU."
+		"en"		"[SM] Not enough players to join BLU/Robot team."
 	}
-	"Need Red"
+
+	"Error_Already_BLU"
 	{
-		"en"	"{yellow}[BWRR]{cyan} You can't join BLU. There aren't enough players in RED team."
+		"en"		"[SM] You're already on BLU team."
 	}
-	"Not in Prog"
+
+	"Error_BLU_Full"
 	{
-		"en"	"{yellow}[BWRR]{cyan} You can't join BLU while the wave is in progress. There aren't enough players in RED team."
+		"en"		"[SM] BLU team is currently full."
 	}
-	"Blu Full"
+
+	"Director_Added"
 	{
-		"en"	"{yellow}[BWRR]{cyan} You can't join BLU because BLU team is full."
-	}
-	"Blu_Banned"
-	{
-		"#format"	"{1:.1f}"
-		"en"	"{yellow}[BWRR]{cyan} You can't join BLU while on cooldown, please wait for {green}{1}{cyan} seconds."
-	}
-	"Num Red"
-	{
-		"#format"	"{1:d},{2:d}"
-		"en"	"{cyan}There must be at least {yellow}{1}{cyan} players on {red}RED{cyan}. Currently there are {yellow}{2}{cyan} players on {red}RED{cyan}."
-	}
-	"Bot Spawn"
-	{
-		"#format"	"{1:s}"
-		"en"	"{yellow}[BWRR]{cyan} You've spawned as {springgreen}{1}{cyan}."
-	}
-	"Unready"
-	{
-		"en"	"{yellow}[BWRR]{cyan} You cannot join BLU while ready."
-	}
-	"Moved Blu Full"
-	{
-		"en"	"{yellow}[BWRR]{cyan} You were moved to RED because BLU team is full."
-	}
-	"Moved Blu Balance"
-	{
-		"en"	"{yellow}[BWRR]{cyan} You were moved to RED to balance teams."
-	}
-	"Bomb Deploy"
-	{
-		"#format"	"{1:s}"
-		"en"	"{yellow}[BWRR]{blue} {1} {cyan}deployed the bomb."
-	}
-	"BotClassFailMsg"
-	{
-		"en"	"{red}This command can only be used inside spawn."
-	}
-	"CmdErrorBLUOnly"
-	{
-		"en"	"{red}This command can only be used by BLU team."
-	}
-	"EngyTeleSpaceError"
-	{
-		"en"	"{red}Not enough space to build a teleporter."
-	}
-	"No BLU Access"
-	{
-		"en"	"{red}You don't have permission to join BLU."
-	}
-	"Wait Secs to Use"
-	{
-		"#format"	"{1:.1f}"
-		"en"	"{cyan}You must wait {yellow}{1}{cyan} seconds before using this command again."
-	}
-	"Menu_Help" // this is not a chat message, don't add color tags
-	{
-		"en"	"Help Menu"
-	}
-	"Help_JoinBLU"
-	{
-		"en"	"{cyan}To join BLU, type {yellow}!joinblu{cyan} in chat."
-	}
-	"Help_SelectRobot"
-	{
-		"en"	"{cyan}To change your robot, type {yellow}!robotmenu{cyan} or {yellow}!rm"
-	}
-	"Help_SentryBusterP1"
-	{
-		"en"	"{cyan}Players spawns as a sentry buster automatically when a sentry gun is present and the following conditions are met."
-	}
-	"Help_SentryBusterP2"
-	{
-		"#format"	"{1:d},{2:d}" // delay between busters, sentry kills
-		"en"	"{cyan}More than {yellow}{1}{cyan} seconds have passed since the last (human controlled) buster spawned. Any sentry gun on RED have {yellow}{2}{cyan} or more kills."
-	}
-	"Help_Spies"
-	{
-		"en"	"{cyan}Spies are announced when they spawn and when all of them are killed. They are also teleported near a random RED player."
-	}
-	"Help_EngineersP1"
-	{
-		"en"	"{cyan}Engineers are announced when they spawn and when they are killed. RED players will know if an engineer's teleporter is present."
-	}
-	"Help_EngineersP2"
-	{
-		"en"	"{cyan}RED players will also receive an announcement when a teleporter is active."
-	}
-	"Help_EngineersP3"
-	{
-		"en"	"{cyan}Some engineers spawns by teleporting near the bomb current location."
-	}
-	"Welcome_Msg"
-	{
-		"en"	"{cyan}This server is running Be With Robot Redux. Type {yellow}!bwrrhelp{cyan} for more information."
-	}
-	"Spy_Teleported"
-	{
-		"#format"	"{1:s}"
-		"en"	"{cyan}You spawned near {yellow}{1}"
-	}
-	"Boss_Spawn"
-	{
-		"#format"	"{1:s},{2:s},{3:d}"
-		"en"	"{red}[BOSS]{cyan} Player {yellow}{1}{cyan} spawned as {yellow}{2}{cyan} with {yellow}{3}{cyan} health."
-	}
-	"Spec_Stuck"
-	{
-		"en"	"{cyan}If you're stuck in spectator, type {green}!joinred{cyan} in chat."
-	}
-	"Unbalance_Warning"
-	{
-		"en"	"{red}[BWRR]{yellow} Warning! Teams are unbalanced, random player(s) will be moved to {red}RED{yellow} team when the wave starts."
-	}
-	// === JOIN TEAM MENU ===
-	"Menu_Team_Title"
-	{
-		"en"	"Select a Team"
-	}
-	"SB_Instructions" // Sentry buster instructions
-	{
-		"en"	"{green}[SENTRY BUSTER] {cyan}Taunt or press the left mouse button to detonate!"
-	}
-	"Menu_Engineer_Teleport"
-	{
-		"en"	"Teleport Where?"
-	}
-	"Menu_Item_Random"
-	{
-		"en"	"Random"
-	}
-	"Menu_Item_NearBomb"
-	{
-		"en"	"Near Bomb"
-	}
-	"Menu_Item_NearAllies"
-	{
-		"en"	"Near Allies"
-	}
-	"Menu_Spy_Teleport"
-	{
-		"en"	"Teleport Target?"
-	}
-	"Menu_Spawn_On_Teleporter"
-	{
-		"en"	"Spawn on Teleporter?"
+		"en"		"[SM] You've joined the BLU team queue."
 	}
 }
