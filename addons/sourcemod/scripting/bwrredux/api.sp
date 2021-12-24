@@ -4,6 +4,7 @@ GlobalForward g_OnJoinRobotForward;
 GlobalForward g_OnRobotDeath;
 GlobalForward g_OnRobotSpawn;
 GlobalForward g_OnInventoryRequest;
+GlobalForward g_OnApplyModel;
 
 void SetupForwards()
 {
@@ -11,6 +12,7 @@ void SetupForwards()
 	g_OnRobotDeath = new GlobalForward("BWRR_OnRobotDeath", ET_Ignore, Param_Cell, Param_String, Param_Any, Param_Cell, Param_Cell);
 	g_OnRobotSpawn = new GlobalForward("BWRR_OnRobotSpawn", ET_Ignore, Param_Cell, Param_String, Param_Any, Param_Cell, Param_Cell);
 	g_OnInventoryRequest = new GlobalForward("BWRR_OnInventoryRequest", ET_Ignore, Param_Cell, Param_String, Param_Any, Param_Cell, Param_Cell);
+	g_OnApplyModel = new GlobalForward("BWRR_OnApplyModel", ET_Event, Param_Cell, Param_String, Param_Any, Param_Cell, Param_Cell, Param_String);
 }
 
 void SetupNatives()

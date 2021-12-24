@@ -5,8 +5,6 @@ Handle g_hGetEventChangeAttributes;
 Handle g_hSDKWorldSpaceCenter;
 Handle g_hCFilterTFBotHasTag;
 Handle g_hSDKRemoveObject;
-Handle g_hSDKGetMaxClip;
-Handle g_hSDKGetClip;
 Handle g_hSDKPickupFlag;
 Handle g_hCTFPlayerShouldGib;
 Handle g_hSDKSpeakConcept;

@@ -189,11 +189,19 @@ void DirectorFrame_OnRobotDeath(int serial)
 void DirectorFrame_SelectRobot(int serial)
 {
 	int client = GetClientFromSerial(serial);
+	int robots = Robots_GetMax();
+	int template = -1;
 
-	// To-do: Robot Selection
+	if(robots >= 0)
+	{
+		template = Math_GetRandomInt(0, robots); // temp selection for testing
+	}
 
 	if(client)
 	{
+		RobotPlayer rp = RobotPlayer(client);
+		rp.templateindex = template;
+		rp.type = g_eTemplates[template].type;
 		RequestFrame(DirectorFrame_PreSpawn, serial);
 	}
 }
@@ -204,6 +212,8 @@ void DirectorFrame_PreSpawn(int serial)
 
 	if(client)
 	{
+		RobotPlayer rp = RobotPlayer(client);
+		TF2_SetPlayerClass(client, Robots_GetClass(rp.templateindex), _, true);
 		TF2_RespawnPlayer(client);
 	}
 }
@@ -226,6 +236,8 @@ void DirectorFrame_PostSpawn(int serial)
 			Call_PushCell(g_eTemplates[rp.templateindex].type);
 			Call_Finish();
 		}
+
+		Robots_SetModel(client, TF2_GetPlayerClass(client));
 	}
 }
 

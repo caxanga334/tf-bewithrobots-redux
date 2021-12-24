@@ -74,6 +74,19 @@ forward void BWRR_OnRobotSpawn(int client, const char[] pluginname, TFClassType 
  */
 forward void BWRR_OnInventoryRequest(int client, const char[] pluginname, TFClassType class, int index, int type);
 
+/**
+ * Called when applying a model to a robot client.
+ *
+ * @param client		The client index who spawned
+ * @param pluginname	The name of the plugin responside for the client current robot
+ * @param class			The client class
+ * @param index			The robot internal index
+ * @param type			The robot type
+ * @param model			The model to use
+ * @return				Return Plugin_Changed to change models or Plugin_Handled|Plugin_Stop to NOT apply any model.
+ */
+forward Action BWRR_OnApplyModel(int client, const char[] pluginname, TFClassType class, int index, int type, char[] model);
+
 public SharedPlugin __pl_tf_bwr_redux =
 {
 	name = "tf_bwr_redux",

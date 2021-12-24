@@ -101,7 +101,39 @@ public Action Event_Inventory(Event event, const char[] name, bool dontBroadcast
 
 public Action Event_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast)
 {
-	PrintToServer("Teamplay Flag");
+	if(event.GetInt("eventtype") == TF_FLAGEVENT_PICKEDUP)
+	{
+		int client = event.GetInt("player");
+		RobotPlayer rp = RobotPlayer(client);
+		if(!IsFakeClient(client) && TF2_GetClientTeam(client) == TFTeam_Blue)
+		{
+			rp.carrier = true;
+			if(TF2_IsGiant(client))
+			{
+				rp.bomblevel = 4;
+				TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_HAS_BOMB, view_as<int>(TFTeam_Red), "");
+			}
+			else
+			{
+				rp.bomblevel = 0;
+				rp.nextbombupgradetime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_1st_upgrade"));
+				TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_PICKUP, view_as<int>(TFTeam_Red), "");
+			}
+			//RequestFrame(UpdateBombHud, GetClientUserId(client));
+		}
+	}
+	if(event.GetInt("eventtype") == TF_FLAGEVENT_DROPPED)
+	{
+		int client = event.GetInt("player");
+		RobotPlayer rp = RobotPlayer(client);
+		if(!IsFakeClient(client) && TF2_GetClientTeam(client) == TFTeam_Blue)
+		{
+			rp.carrier = false;
+			rp.deploying = false;
+			rp.deployingtime = 0.0;
+			rp.nextbombupgradetime = 0.0;
+		}
+	}
 }
 
 void Frame_OnWaveStart()

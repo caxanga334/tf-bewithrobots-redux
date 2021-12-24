@@ -18,18 +18,6 @@ void SetupDetours(GameData gm, bool &sigfailure)
 	if(iOffset == -1) { SetFailState("Failed to get offset of CTeam::GetNumPlayers"); }
 	g_hCTeamGetNumPlayers = DHookCreate(iOffset, HookType_Entity, ReturnType_Int, ThisPointer_CBaseEntity, CTeam_GetNumPlayers); **/
 	
-	//This call gets the maximum clip 1 of a weapon
-	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(gm, SDKConf_Virtual, "CTFWeaponBase::GetMaxClip1");
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Clip
-	if((g_hSDKGetMaxClip = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFWeaponBase::GetMaxClip1 offset!"); sigfailure = true; }
-	
-	//This call gets clip 1 of a weapon
-	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(gm, SDKConf_Virtual, "CTFWeaponBase::Clip1");
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Clip
-	if((g_hSDKGetClip = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFWeaponBase::GetMaxClip1 offset!"); sigfailure = true; }
-	
 	//CTFBot::GetEventChangeAttributes
 	g_hGetEventChangeAttributes = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
 	if(!g_hGetEventChangeAttributes) { SetFailState("Failed to setup detour for CTFBot::GetEventChangeAttributes"); }

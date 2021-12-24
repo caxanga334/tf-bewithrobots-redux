@@ -41,6 +41,11 @@ enum
 ArrayList g_subplugins_robots; // List of robots sub plugins
 bool g_islateload;
 
+char g_strModelRobots[][] = {"", "models/bots/scout/bot_scout.mdl", "models/bots/sniper/bot_sniper.mdl", "models/bots/soldier/bot_soldier.mdl", "models/bots/demo/bot_demo.mdl", "models/bots/medic/bot_medic.mdl", "models/bots/heavy/bot_heavy.mdl", "models/bots/pyro/bot_pyro.mdl", "models/bots/spy/bot_spy.mdl", "models/bots/engineer/bot_engineer.mdl"};
+int g_iModelIndexRobots[sizeof(g_strModelRobots)];
+char g_strModelHumans[][] =  {"", "models/player/scout.mdl", "models/player/sniper.mdl", "models/player/soldier.mdl", "models/player/demo.mdl", "models/player/medic.mdl", "models/player/heavy.mdl", "models/player/pyro.mdl", "models/player/spy.mdl", "models/player/engineer.mdl"};
+int g_iModelIndexHumans[sizeof(g_strModelHumans)];
+
 enum struct erobotplayer
 {
 	bool isrobot; // Is a robot player
@@ -206,6 +211,9 @@ public void OnMapStart()
 	{
 		SetFailState("This plugins is for Mann vs Machine only!");
 	}
+
+	for(int x = 1;x < sizeof(g_iModelIndexHumans);x++) { g_iModelIndexHumans[x] = PrecacheModel(g_strModelHumans[x]); }
+	for(int x = 1;x < sizeof(g_iModelIndexRobots);x++) { g_iModelIndexRobots[x] = PrecacheModel(g_strModelRobots[x]); }
 }
 
 public void TF2_OnWaitingForPlayersStart()

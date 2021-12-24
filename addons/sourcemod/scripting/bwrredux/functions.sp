@@ -39,6 +39,7 @@ void BWRR_ChangeClientTeam(int client, TFTeam team)
 	}
 	else
 	{
+		Robots_ClearModel(client);
 		TF2MvM_ChangeClientTeam(client, team);
 	}
 }
@@ -63,8 +64,6 @@ void TF2_ClearClient(int client, bool removeweapons = true, bool removewearables
 {
 	if(!IsClientInGame(client) || IsFakeClient(client) || !IsPlayerAlive(client))
 		return;
-
-	LogStackTrace("TF2_ClearClient");
 
 	int entity, owner;
 
@@ -200,4 +199,10 @@ stock float[] TF2_GetBombHatchPosition(bool update = false)
 	{
 		return origin;
 	}
+}
+
+// checks if a player is giant
+bool TF2_IsGiant(int client)
+{
+	return view_as<bool>(GetEntProp(client, Prop_Send, "m_bIsMiniBoss"));
 }

@@ -7,6 +7,7 @@ void SetupPluginCommands()
 	RegAdminCmd("sm_joinblu", Cmd_JoinRobots, 0, "Joins the queue to the BLU/Robot team.");
 	RegAdminCmd("sm_bwr", Cmd_JoinRobots, 0, "Joins the queue to the BLU/Robot team.");
 	RegAdminCmd("sm_bwrr", Cmd_JoinRobots, 0, "Joins the queue to the BLU/Robot team.");
+	RegAdminCmd("sm_bwrr_debug_player", Cmd_DebugPlayer, ADMFLAG_ROOT, "Player debug command.");
 }
 
 void SetupCommandListeners()
@@ -59,6 +60,19 @@ public Action Cmd_JoinRobots(int client, int args)
 	}
 
 	BWRR_ChangeClientTeam(client, TFTeam_Blue);
+	return Plugin_Handled;
+}
+
+public Action Cmd_DebugPlayer(int client, int args)
+{
+	if(!client)
+		return Plugin_Handled;
+
+	RobotPlayer rp = RobotPlayer(client);
+
+	ReplyToCommand(client, "Robot: %i, Carrier: %i, Deploying: %i, Gatebot: %i", rp.isrobot, rp.carrier, rp.deploying, rp.gatebot);
+	ReplyToCommand(client, "Template Index: %i, Type: %i, Bomb Level: %i", rp.templateindex, rp.type, rp.bomblevel);
+
 	return Plugin_Handled;
 }
 

@@ -23,24 +23,6 @@
 				"windows"	"\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x33\xF6\x39\xB7\x50\x27\x00\x00"
 				"linux"		"@_ZNK6CTFBot24GetEventChangeAttributesEPKc"
 			}
-			"DispatchParticleEffect"	//"MODEL '%S' DOESN'T HAVE ATTACHMENT '%S' TO ATTACH PARTICLE SYSTEM '%S' TO.\N"
-			{
-				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x56\x8B\x75\x10\x57\x83\xCF\xFF"
-				"linux"		"@_Z22DispatchParticleEffectPKc20ParticleAttachment_tP11CBaseEntityS0_b"
-			}
-			"CBaseTrigger::PointIsWithin"
-			{
-				"library"	"server"
-				"windows"	"\x53\x8B\xDC\x83\xEC\x2A\x83\xE4\x2A\x83\xC4\x2A\x55\x8B\x6B\x2A\x89\x6C\x2A\x2A\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x8B\x43\x2A\x56\x50\x8B\xF1"	
-				"linux"		"@_ZN12CBaseTrigger13PointIsWithinERK6Vector"
-			}
-			"CCaptureFlag::IsHome" // CTFBotAttackFlagDefenders::Update // string --> "Flag was dropped"
-			{
-				"library"	"server"
-				"windows"	"\x83\xB9\x60\x06\x00\x00\x00"	
-				"linux"		"@_ZN12CCaptureFlag6IsHomeEv"
-			}
 			"CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed" // string --> "MVM.SentryBusterExplode"
 			{
 				"library"	"server"
@@ -65,18 +47,6 @@
 				"windows"	"\x55\x8B\xEC\x83\xEC\x18\x57\x8B\xF9\x8B\x07"
 				"linux"		"@_ZN9CTFPlayer16DropCurrencyPackE17CurrencyRewards_tibP11CBasePlayer"					
 			}
-			"CTFPlayer::CanBuild" // string "Dispenser built" in function CTFBotEngineerBuildDispenser::Update
-			{ // DISABLED
-				"library" "server"
-				"windows" "\x55\x8B\xEC\x83\xEC\x0C\x53\x8B\x5D\x08\x57\x8B\xF9\x83\xFB\x03"
-				"linux" "@_ZN9CTFPlayer8CanBuildEii"
-			}
-			"PointInRespawnRoom"
-			{
-				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x53\x33\xDB\x56\x57"
-				"linux"		"@_Z18PointInRespawnRoomPK11CBaseEntityRK6Vectorb"
-			}
 		}
 		"Offsets"
 		{
@@ -90,16 +60,6 @@
 				"windows"	"195"
 				"linux"		"196"
 			}
-			"CTFWeaponBase::GetMaxClip1" // int	CTFWeaponBase::GetMaxClip1( void ) const
-			{
-				"windows"	"321"
-				"linux"		"327"
-			}
-			"CTFWeaponBase::Clip1" // virtual int	Clip1() { return IsEnergyWeapon() ? Energy_GetEnergy() : m_iClip1; }
-			{
-				"windows"	"341"
-				"linux"		"347"
-			}
 			"CCaptureFlag::PickUp"
 			{
 				"windows"	"228"
@@ -109,11 +69,6 @@
 			{
 				"windows"	"293"
 				"linux"		"294"
-			}
-			"CTeam::GetNumPlayers"
-			{
-				"windows"	"207"
-				"linux"		"208"			
 			}
 		}
 	}

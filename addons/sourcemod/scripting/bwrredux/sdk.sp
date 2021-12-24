@@ -5,24 +5,13 @@ stock void TF2_PlaySequence(int client, const char[] sequence)
 	SDKCall(g_hSDKPlaySpecificSequence, client, sequence);
 }
 
-stock int GetWeaponMaxClip(int weapon)
-{
-	return SDKCall(g_hSDKGetMaxClip, weapon);
-}
-
-stock int GetWeaponClip(int weapon)
-{
-	return SDKCall(g_hSDKGetClip, weapon);
-}
-
-stock void SetWeaponClip(int weapon, int clip)
-{
-	int offset = FindSendPropInfo("CTFWeaponBase", "m_iClip1");
-	SetEntData(weapon, offset, clip, 4, true);
-}
-
-// remove objects from the given player
-stock void SDKTFPlayerRemoveObject(int client, int obj)
+/**
+ * Removes an object from a player
+ *
+ * @param client		The client to remove from
+ * @param obj			The object entity index to remove
+ */
+stock void TF2_RemoveObject(int client, int obj)
 {
 	SDKCall(g_hSDKRemoveObject, client, obj);
 }
@@ -53,7 +42,7 @@ stock void GetEntityWorldCenter(int ent, float[] origin)
  * @param modifiers		To do: What does this do?
  * @return     no return
  */
-stock void TF2_SpeakConcept(int concept, int team, char[] modifiers)
+void TF2_SpeakConcept(int concept, int team, char[] modifiers)
 {
 	SDKCall(g_hSDKSpeakConcept, concept, team, modifiers);
 }
