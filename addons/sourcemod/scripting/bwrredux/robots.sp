@@ -148,3 +148,49 @@ void Robots_ClearModel(int client)
 	SetVariantString("");
 	AcceptEntityInput(client, "SetCustomModel");
 }
+
+float Robots_GetScaleSize(int client)
+{
+	RobotPlayer rp = RobotPlayer(client);
+	float scale = 1.0;
+
+	switch(rp.type)
+	{
+		case BWRR_RobotType_Boss: scale = 1.9;
+		case BWRR_RobotType_Buster, BWRR_RobotType_Giant: scale = 1.75;
+		default: scale = 1.0;
+	}
+
+	Call_StartForward(g_OnApplyScale);
+	Call_PushCell(client);
+	Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+	Call_PushCell(TF2_GetPlayerClass(client));
+	Call_PushCell(g_eTemplates[rp.templateindex].index);
+	Call_PushCell(g_eTemplates[rp.templateindex].type);
+	Call_PushFloatRef(scale);
+	Call_Finish();
+
+	return scale;
+}
+
+void Robots_SetScale(int client, const float scale)
+{
+	float mins[3],maxs[3];
+	TF2_GetPlayerHullSize(mins, maxs);
+	ScaleVector(mins, scale);
+	ScaleVector(maxs, scale);
+
+	SetEntPropVector(client, Prop_Send, "m_vecSpecifiedSurroundingMins", mins);
+	SetEntPropVector(client, Prop_Send, "m_vecSpecifiedSurroundingMaxs", maxs);
+	SetEntPropFloat(client, Prop_Send, "m_flModelScale", scale);
+}
+
+void Robots_ClearScale(int client)
+{
+	float mins[3],maxs[3];
+	TF2_GetPlayerHullSize(mins, maxs);
+
+	SetEntPropVector(client, Prop_Send, "m_vecSpecifiedSurroundingMins", mins);
+	SetEntPropVector(client, Prop_Send, "m_vecSpecifiedSurroundingMaxs", maxs);
+	SetEntPropFloat(client, Prop_Send, "m_flModelScale", 1.0);
+}

@@ -20,7 +20,7 @@ public Action Cmd_JoinDefenders(int client, int args)
 	if(!client)
 		return Plugin_Handled;
 
-	BWRR_ChangeClientTeam(client, TFTeam_Red);
+	TF2BWR_ChangeClientTeam(client, TFTeam_Red);
 	return Plugin_Handled;
 }
 
@@ -47,7 +47,7 @@ public Action Cmd_JoinRobots(int client, int args)
 		return Plugin_Handled;
 	}
 
-	if(BWRR_GetNumberofBLUPlayers() >= c_maxblu.IntValue)
+	if(Director_GetNumberofBLUPlayers() >= c_maxblu.IntValue)
 	{
 		ReplyToCommand(client, "%t", "Error_BLU_Full");
 		return Plugin_Handled;		
@@ -59,7 +59,7 @@ public Action Cmd_JoinRobots(int client, int args)
 		return Plugin_Handled;
 	}
 
-	BWRR_ChangeClientTeam(client, TFTeam_Blue);
+	TF2BWR_ChangeClientTeam(client, TFTeam_Blue);
 	return Plugin_Handled;
 }
 
@@ -100,7 +100,7 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 	}
 	else if(strcmp(strTeam, "spectate", false) == 0 || strcmp(strTeam, "spectator", false) == 0)
 	{
-		BWRR_ChangeClientTeam(client, TFTeam_Spectator);
+		TF2BWR_ChangeClientTeam(client, TFTeam_Spectator);
 		return Plugin_Handled;
 	}
 	

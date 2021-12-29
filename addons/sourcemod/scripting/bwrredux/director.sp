@@ -14,12 +14,22 @@ void Director_AddResources(int amount)
 }
 
 /**
+ * Sets how many resources the AI director has
+ *
+ * @param amount		Amount of resources to set
+ */
+void Director_SetResources(int amount)
+{
+	g_eDirector.resources = amount;
+}
+
+/**
  * Gets the number of players on the BLU team queue
  * They may be on BLU or spectator.
  *
  * @return          Number of players
  */
-int BWRR_GetNumberofBLUPlayers()
+int Director_GetNumberofBLUPlayers()
 {
 	int count = 0;
 
@@ -94,6 +104,12 @@ void Director_RemoveClientFromBLU(int client)
 	TF2MvM_ChangeClientTeam(client, TFTeam_Spectator);	
 }
 
+// Removes a client from the BLU team and moves them to RED team.
+void Director_MoveClientToRED(int client)
+{
+	TF2BWR_ChangeClientTeam(client, TFTeam_Red);
+}
+
 // Spawns a player that is sitting in spectator in BLU team
 void Director_SpawnPlayer(int client)
 {
@@ -122,6 +138,8 @@ public Action Director_Think(Handle timer)
 
 void Director_OnWaveStart()
 {
+	Director_SetResources(1000); // To-do: Add cvar
+
 	if(g_eDirector.timer == null)
 	{
 		g_eDirector.timer = CreateTimer(1.0, Director_Think, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
@@ -136,6 +154,7 @@ void Director_OnWaveEnd()
 void Director_OnWaveFailed()
 {
 	delete g_eDirector.timer;
+	RequestFrame(DirectorFrame_ClearPlayers);
 }
 
 void Director_OnPlayerDeath(int victim, int killer)
@@ -238,6 +257,7 @@ void DirectorFrame_PostSpawn(int serial)
 		}
 
 		Robots_SetModel(client, TF2_GetPlayerClass(client));
+		Robots_SetScale(client, Robots_GetScaleSize(client));
 	}
 }
 
@@ -281,5 +301,24 @@ void DirectorFrame_RequestInventory(int serial)
 			Call_PushCell(g_eTemplates[rp.templateindex].type);
 			Call_Finish();
 		}		
-	}	
+	}
+}
+
+void DirectorFrame_ClearPlayers()
+{
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(!IsClientInGame(i))
+			continue;
+
+		if(IsFakeClient(i) || IsClientSourceTV(i) || IsClientReplay(i))
+			continue;
+
+		RobotPlayer rp = RobotPlayer(i);
+
+		if(rp.isrobot)
+		{
+			Director_MoveClientToRED(i);
+		}
+	}
 }

@@ -33,6 +33,14 @@ native void BWRR_RegisterRobotPlugin(char[] name);
 native void BWRR_RegisterRobotTemplate(char[] pluginname, TFClassType class, int cost, int index, int type, int supply, float percent);
 
 /**
+ * Changes the client team
+ *
+ * @param client			The client to change team
+ * @param team				The client's new team
+ */
+native void BWRR_ChangeClientTeam(int client, TFTeam team);
+
+/**
  * Called when a client requests to join robot team.
  *
  * @param client		The client index who requested
@@ -66,7 +74,7 @@ forward void BWRR_OnRobotSpawn(int client, const char[] pluginname, TFClassType 
  * Called when requesting an inventory for a client.
  * Use this to give weapons to players.
  *
- * @param client		The client index who spawned
+ * @param client		The client index
  * @param pluginname	The name of the plugin responside for the client current robot
  * @param class			The client class
  * @param index			The robot internal index
@@ -77,7 +85,7 @@ forward void BWRR_OnInventoryRequest(int client, const char[] pluginname, TFClas
 /**
  * Called when applying a model to a robot client.
  *
- * @param client		The client index who spawned
+ * @param client		The client index
  * @param pluginname	The name of the plugin responside for the client current robot
  * @param class			The client class
  * @param index			The robot internal index
@@ -86,6 +94,19 @@ forward void BWRR_OnInventoryRequest(int client, const char[] pluginname, TFClas
  * @return				Return Plugin_Changed to change models or Plugin_Handled|Plugin_Stop to NOT apply any model.
  */
 forward Action BWRR_OnApplyModel(int client, const char[] pluginname, TFClassType class, int index, int type, char[] model);
+
+/**
+ * Called when setting the model scale on a client.
+ *
+ * @param client		The client index
+ * @param pluginname	The name of the plugin responside for the client current robot
+ * @param class			The client class
+ * @param index			The robot internal index
+ * @param type			The robot type
+ * @param scale		The robot scale
+ * @return				Return Plugin_Changed to override the scale.
+ */
+forward Action BWRR_OnApplyScale(int client, const char[] pluginname, TFClassType class, int index, int type, float &scale);
 
 public SharedPlugin __pl_tf_bwr_redux =
 {

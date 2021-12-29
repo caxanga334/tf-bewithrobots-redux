@@ -19,8 +19,13 @@ stock bool IsMvMWaveRunning()
 	return GameRules_GetRoundState() == RoundState_RoundRunning;
 }
 
-// Changes the client team while handling BWRR stuff
-void BWRR_ChangeClientTeam(int client, TFTeam team)
+/**
+ * Changes the client team and clears them of BWRR related stuff
+ *
+ * @param client			The client to be moved
+ * @param team				The team to move the client to
+ */
+void TF2BWR_ChangeClientTeam(int client, TFTeam team)
 {
 	int flag = TF2_GetClientFlag(client);
 	
@@ -40,6 +45,7 @@ void BWRR_ChangeClientTeam(int client, TFTeam team)
 	else
 	{
 		Robots_ClearModel(client);
+		Robots_ClearScale(client);
 		TF2MvM_ChangeClientTeam(client, team);
 	}
 }
