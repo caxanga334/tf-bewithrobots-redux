@@ -117,7 +117,8 @@ void TF2_ClearClient(int client, bool removeweapons = true, bool removewearables
 		while((entity = FindEntityByClassname(entity, "tf_powerup_bottle")) > MaxClients)
 		{
 			owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-			if(owner == client) {
+			if(owner == client) 
+			{
 				RemoveEntity(entity);
 			}
 		}
@@ -126,7 +127,8 @@ void TF2_ClearClient(int client, bool removeweapons = true, bool removewearables
 		while((entity = FindEntityByClassname(entity, "tf_usableitem")) > MaxClients)
 		{
 			owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-			if(owner == client) {
+			if(owner == client) 
+			{
 				RemoveEntity(entity);
 			}
 		}
@@ -142,11 +144,14 @@ void RemoveAllWeapons(int client)
 	for(int i = 0; i <= TFWeaponSlot_Item2; i++)
 	{
 		entity = TF2Util_GetPlayerLoadoutEntity(client, i, true);
-		if(entity != -1) {
-			if(TF2Util_IsEntityWearable(entity)) {
+		if(entity != -1) 
+		{
+			if(TF2Util_IsEntityWearable(entity)) 
+			{
 				TF2_RemoveWearable(client, entity);
 			}
-			else {
+			else 
+			{
 				RemovePlayerItem(client, entity);
 			}
 
@@ -162,7 +167,7 @@ void RemoveAllWeapons(int client)
  * @param flag		The flag entity to give to the client
  * @return     no return
  */
-stock void TF2_PickUpFlag(int client, int flag)
+void TF2_PickUpFlag(int client, int flag)
 {
 	SDKCall(g_hSDKPickupFlag, flag, client, true);
 }
@@ -191,7 +196,7 @@ stock float[] TF2_GetBombHatchPosition(bool update = false)
 {
 	static float origin[3];
 	
-	if( update )
+	if(update)
 	{
 		int i = -1;
 		while ((i = FindEntityByClassname(i, "func_capturezone")) != -1)
@@ -211,4 +216,56 @@ stock float[] TF2_GetBombHatchPosition(bool update = false)
 bool TF2_IsGiant(int client)
 {
 	return view_as<bool>(GetEntProp(client, Prop_Send, "m_bIsMiniBoss"));
+}
+
+ArrayList CollectValidSpawnPoints(int client)
+{
+	ArrayList spawns = new ArrayList();
+	int entity;
+	float origin[3];
+
+	while((entity = FindEntityByClassname(entity, "info_player_teamspawn")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntProp(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Blue) && GetEntProp(entity, Prop_Data, "m_bDisabled") == 0)
+		{
+			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+			// To-do: Add nav mesh validation
+			if(IsSafeAreaToTeleport(client, origin))
+			{
+				spawns.Push(entity);
+			}
+		}
+	}
+
+	return spawns;
+}
+
+/**
+ * Performs a trace hull to check if it's safe to teleport (client won't get stuck)
+ *
+ * @param client			The client to get the bounds from
+ * @param origin			The origin to test
+ * @return					TRUE if the area is safe
+ */
+bool IsSafeAreaToTeleport(int client, float origin[3])
+{
+	Handle trace = null;
+	float mins[3], maxs[3];
+	GetEntPropVector(client, Prop_Send, "m_vecMins", mins);
+	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
+	trace = TR_TraceHullFilterEx(origin, origin, mins, maxs, MASK_PLAYERSOLID, TraceFilter_IgnorePlayers);
+	bool result = TR_DidHit(trace);
+	delete trace;
+	return !result;
+}
+
+// Trace filter that ignores all clients/players
+bool TraceFilter_IgnorePlayers(int entity, int contentsMask)
+{
+	if(entity > 0 && entity <= MaxClients)
+	{
+		return false;
+	}
+
+	return true;
 }

@@ -3,6 +3,8 @@
 #endif
 #define _bwrr_stocks_included
 
+#include <tf2_stocks>
+
 #define SIZE_OF_INT         2147483647 // without 0
 
 enum
@@ -68,6 +70,29 @@ stock bool TF2_IsFlagStolen(int flag)
 stock bool TF2_IsFlagDropped(int flag)
 {
 	return TF2_GetFlagStatus(flag) == TF_FLAGINFO_DROPPED;
+}
+
+/**
+ * Gets a random flag for the given team that is sitting at home
+ * 
+ * @param team     The flag's team
+ * @return         Entity index if found or -1 if not found
+ */
+stock int TF2_GetRandomFlagAtHome(int team)
+{
+	int entity = INVALID_ENT_REFERENCE;
+	while((entity = FindEntityByClassname(entity, "item_teamflag")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntProp(entity, Prop_Send, "m_iTeamNum") == team && GetEntProp(entity, Prop_Send, "m_bDisabled") == 0)
+		{
+			if(TF2_IsFlagHome(entity))
+			{
+				return entity;
+			}
+		}
+	}
+
+	return INVALID_ENT_REFERENCE;
 }
 
 /**

@@ -108,6 +108,40 @@ forward Action BWRR_OnApplyModel(int client, const char[] pluginname, TFClassTyp
  */
 forward Action BWRR_OnApplyScale(int client, const char[] pluginname, TFClassType class, int index, int type, float &scale);
 
+/**
+ * Called when giving a flag (bomb) to the player.
+ * Returning Plugin_Handled or Plugin_Stop will prevent giving the flag.
+ *
+ * @param client		The client index
+ * @param pluginname	The name of the plugin responside for the client current robot
+ * @param class			The client class
+ * @param index			The robot internal index
+ * @param type			The robot type
+ */
+forward Action BWRR_OnGiveFlag(int client, const char[] pluginname, TFClassType class, int index, int type);
+
+/**
+ * Called when a client enters the spawnroom
+ *
+ * @param client		The client index
+ * @param pluginname	The name of the plugin responside for the client current robot
+ * @param class			The client class
+ * @param index			The robot internal index
+ * @param type			The robot type
+ */
+forward void BWRR_OnEnterSpawn(int client, const char[] pluginname, TFClassType class, int index, int type);
+
+/**
+ * Called when a client leaves the spawnroom
+ *
+ * @param client		The client index
+ * @param pluginname	The name of the plugin responside for the client current robot
+ * @param class			The client class
+ * @param index			The robot internal index
+ * @param type			The robot type
+ */
+forward void BWRR_OnLeaveSpawn(int client, const char[] pluginname, TFClassType class, int index, int type);
+
 public SharedPlugin __pl_tf_bwr_redux =
 {
 	name = "tf_bwr_redux",

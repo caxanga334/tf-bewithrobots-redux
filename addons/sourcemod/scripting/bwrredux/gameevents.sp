@@ -18,28 +18,33 @@ public Action Event_WaveStart(Event event, const char[] name, bool dontBroadcast
 {
 	PrintToServer("Wave Start");
 	RequestFrame(Frame_OnWaveStart);
+	return Plugin_Continue;
 }
 
 public Action Event_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 {
 	PrintToServer("Wave End");
 	RequestFrame(Frame_OnWaveEnd);
+	return Plugin_Continue;
 }
 
 public Action Event_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 {
 	PrintToServer("Wave Failed");
 	RequestFrame(Frame_OnWaveFailed);
+	return Plugin_Continue;
 }
 
 public Action Event_MissionComplete(Event event, const char[] name, bool dontBroadcast)
 {
 	PrintToServer("Mission Complete");
+	return Plugin_Continue;
 }
 
 public Action Event_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 {
 	PrintToServer("Change class");
+	return Plugin_Continue;
 }
 
 public Action Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
@@ -72,6 +77,8 @@ public Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 			RequestFrame(DirectorFrame_PostSpawn, GetClientSerial(client));
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
@@ -97,6 +104,8 @@ public Action Event_Inventory(Event event, const char[] name, bool dontBroadcast
 	{
 		RequestFrame(DirectorFrame_ApplyInventory, GetClientSerial(client));
 	}
+
+	return Plugin_Continue;
 }
 
 public Action Event_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast)
@@ -134,6 +143,8 @@ public Action Event_Teamplay_Flag(Event event, const char[] name, bool dontBroad
 			rp.nextbombupgradetime = 0.0;
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 void Frame_OnWaveStart()

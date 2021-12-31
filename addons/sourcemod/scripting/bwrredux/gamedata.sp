@@ -14,7 +14,7 @@ Handle g_hSDKDropCurrency;
 
 void SetupGamedata()
 {
-	GameData gm = new GameData("tf2.bwrr");
+	GameData gm = new GameData("bwrr.games");
 	bool sigfailure;
 	
 	// bool CTFPlayer::PlaySpecificSequence( const char *pAnimationName )

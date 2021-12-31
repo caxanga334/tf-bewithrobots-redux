@@ -52,6 +52,7 @@ enum struct erobotplayer
 	bool carrier; // Is a bomb carrier
 	bool deploying; // Is deploying the bomb
 	bool gatebot; // Is a gatebot
+	bool inspawn; // Player is inside spawnroom
 	int templateindex; // Index of the current template
 	int type; // Current robot type
 	int bomblevel; // Current bomb level
@@ -87,6 +88,11 @@ methodmap RobotPlayer
 	{
 		public get() { return g_eRobotPlayer[this.index].gatebot; }
 		public set( bool value ) { g_eRobotPlayer[this.index].gatebot = value; }
+	}
+	property bool inspawn
+	{
+		public get() { return g_eRobotPlayer[this.index].inspawn; }
+		public set( bool value ) { g_eRobotPlayer[this.index].inspawn = value; }
 	}
 	property int templateindex
 	{
@@ -128,6 +134,7 @@ methodmap RobotPlayer
 		g_eRobotPlayer[this.index].carrier = false;
 		g_eRobotPlayer[this.index].deploying = false;
 		g_eRobotPlayer[this.index].gatebot = false;
+		g_eRobotPlayer[this.index].inspawn = false;
 		g_eRobotPlayer[this.index].templateindex = -1;
 		g_eRobotPlayer[this.index].type = BWRR_RobotType_Invalid;
 		g_eRobotPlayer[this.index].bomblevel = 0;
@@ -140,24 +147,39 @@ methodmap RobotPlayer
 		g_eRobotPlayer[this.index].carrier = false;
 		g_eRobotPlayer[this.index].deploying = false;
 		g_eRobotPlayer[this.index].gatebot = false;
+		g_eRobotPlayer[this.index].inspawn = false;
 		g_eRobotPlayer[this.index].templateindex = -1;
 		g_eRobotPlayer[this.index].type = BWRR_RobotType_Invalid;
 		g_eRobotPlayer[this.index].bomblevel = 0;
 		g_eRobotPlayer[this.index].nextbombupgradetime = 0.0;
 		g_eRobotPlayer[this.index].deployingtime = 0.0;	
 	}
+	public void OnSpawn()
+	{
+		g_eRobotPlayer[this.index].lastspawntime = GetGameTime();
+	}
+	public void SetRobot(int type, int index)
+	{
+		g_eRobotPlayer[this.index].type = type;
+		g_eRobotPlayer[this.index].templateindex = index;
+	}
+	public void GetRobot(int &type, int &index)
+	{
+		type = g_eRobotPlayer[this.index].type;
+		index = g_eRobotPlayer[this.index].templateindex;
+	}
 }
 
 #include "bwrredux/api.sp"
 #include "bwrredux/gamedata.sp"
 #include "bwrredux/detours.sp"
-#include "bwrredux/sdk.sp"
 #include "bwrredux/convars.sp"
 #include "bwrredux/commands.sp"
 #include "bwrredux/gameevents.sp"
 #include "bwrredux/functions.sp"
 #include "bwrredux/robots.sp"
 #include "bwrredux/director.sp"
+#include "bwrredux/sdk.sp"
 
 public Plugin myinfo =
 {
@@ -235,4 +257,12 @@ public void OnClientDisconnect(int client)
 {
 	RobotPlayer rp = RobotPlayer(client);
 	rp.ResetData();
+}
+
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if(strcmp(classname, "func_respawnroom", false) == 0)
+	{
+		SetupHook_SpawnRoom(entity);
+	}
 }

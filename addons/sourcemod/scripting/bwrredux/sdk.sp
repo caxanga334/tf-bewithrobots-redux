@@ -75,3 +75,89 @@ stock void TF2_DropCurrencyPack(int client, int type, int amount, bool forcedist
 {
 	SDKCall(g_hSDKDropCurrency, client, type, amount, forcedistribute, moneymaker);
 }
+
+void SetupHook_SpawnRoom(int spawnroom)
+{
+	SDKHook(spawnroom, SDKHook_StartTouchPost, OnStartTouchSpawnRoom);
+	SDKHook(spawnroom, SDKHook_EndTouchPost, OnEndTouchSpawnRoom);
+	SDKHook(spawnroom, SDKHook_TouchPost, OnTouchSpawnRoom);
+}
+
+void OnStartTouchSpawnRoom(int entity, int other)
+{
+	if(IsValidClient(other))
+	{
+		TF2BWR_OnClientStartTouchSpawn(other);
+	}
+}
+
+void OnEndTouchSpawnRoom(int entity, int other)
+{
+	if(IsValidClient(other))
+	{
+		TF2BWR_OnClientEndTouchSpawn(other);
+	}
+}
+
+void OnTouchSpawnRoom(int entity, int other)
+{
+	if(IsValidClient(other))
+	{
+		TF2BWR_OnClientTouchSpawn(other);
+	}
+}
+
+void TF2BWR_OnClientStartTouchSpawn(int client)
+{
+	RobotPlayer rp = RobotPlayer(client);
+	rp.inspawn = true;
+
+	if(rp.isrobot && rp.templateindex >= 0)
+	{
+		Call_StartForward(g_OnEnterSpawn);
+		Call_PushCell(client);
+		Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+		Call_PushCell(TF2_GetPlayerClass(client));
+		Call_PushCell(g_eTemplates[rp.templateindex].index);
+		Call_PushCell(g_eTemplates[rp.templateindex].type);
+		Call_Finish();
+	}
+}
+
+void TF2BWR_OnClientEndTouchSpawn(int client)
+{
+	RobotPlayer rp = RobotPlayer(client);
+	rp.inspawn = false;
+
+	if(rp.isrobot && rp.templateindex >= 0)
+	{
+		Call_StartForward(g_OnLeaveSpawn);
+		Call_PushCell(client);
+		Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+		Call_PushCell(TF2_GetPlayerClass(client));
+		Call_PushCell(g_eTemplates[rp.templateindex].index);
+		Call_PushCell(g_eTemplates[rp.templateindex].type);
+		Call_Finish();
+	}
+}
+
+void TF2BWR_OnClientTouchSpawn(int client)
+{
+	RobotPlayer rp = RobotPlayer(client);
+
+	if(!rp.inspawn)
+	{
+		rp.inspawn = true;
+
+		if(rp.isrobot && rp.templateindex >= 0)
+		{
+			Call_StartForward(g_OnEnterSpawn);
+			Call_PushCell(client);
+			Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+			Call_PushCell(TF2_GetPlayerClass(client));
+			Call_PushCell(g_eTemplates[rp.templateindex].index);
+			Call_PushCell(g_eTemplates[rp.templateindex].type);
+			Call_Finish();	
+		}
+	}
+}

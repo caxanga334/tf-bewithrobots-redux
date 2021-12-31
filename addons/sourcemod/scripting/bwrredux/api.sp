@@ -6,6 +6,9 @@ GlobalForward g_OnRobotSpawn;
 GlobalForward g_OnInventoryRequest;
 GlobalForward g_OnApplyModel;
 GlobalForward g_OnApplyScale;
+GlobalForward g_OnGiveFlag;
+GlobalForward g_OnEnterSpawn;
+GlobalForward g_OnLeaveSpawn;
 
 void SetupForwards()
 {
@@ -15,6 +18,9 @@ void SetupForwards()
 	g_OnInventoryRequest = new GlobalForward("BWRR_OnInventoryRequest", ET_Ignore, Param_Cell, Param_String, Param_Any, Param_Cell, Param_Cell);
 	g_OnApplyModel = new GlobalForward("BWRR_OnApplyModel", ET_Event, Param_Cell, Param_String, Param_Any, Param_Cell, Param_Cell, Param_String);
 	g_OnApplyScale = new GlobalForward("BWRR_OnApplyScale", ET_Event, Param_Cell, Param_String, Param_Any, Param_Cell, Param_Cell, Param_FloatByRef);
+	g_OnGiveFlag = new GlobalForward("BWRR_OnGiveFlag", ET_Event, Param_Cell, Param_String, Param_Any, Param_Cell, Param_Cell);
+	g_OnEnterSpawn = new GlobalForward("BWRR_OnEnterSpawn", ET_Ignore, Param_Cell, Param_String, Param_Any, Param_Cell, Param_Cell);
+	g_OnLeaveSpawn = new GlobalForward("BWRR_OnLeaveSpawn", ET_Ignore, Param_Cell, Param_String, Param_Any, Param_Cell, Param_Cell);
 }
 
 void SetupNatives()
@@ -32,11 +38,11 @@ public any Native_RegisterRobotPlugin(Handle plugin, int numParams)
 	if(g_subplugins_robots.FindString(pluginname) != -1)
 	{
 		ThrowNativeError(SP_ERROR_NATIVE, "Plugin \"%s\" is already registered!", pluginname);
-		return;
+		return 0;
 	}
 
 	g_subplugins_robots.PushString(pluginname);
-	return;
+	return 0;
 }
 
 public any Native_RegisterRobotTemplate(Handle plugin, int numParams)
@@ -45,6 +51,7 @@ public any Native_RegisterRobotTemplate(Handle plugin, int numParams)
 	GetNativeString(1, pluginname, sizeof(pluginname));
 
 	RegisterRobotTemplate(pluginname, GetNativeCell(2), GetNativeCell(3), GetNativeCell(4), GetNativeCell(5), GetNativeCell(6), GetNativeCell(7));
+	return 0;
 }
 
 public any Native_ChangeClientTeam(Handle plugin, int numParams)
@@ -53,4 +60,5 @@ public any Native_ChangeClientTeam(Handle plugin, int numParams)
 	TFTeam team = GetNativeCell(2);
 
 	TF2BWR_ChangeClientTeam(client, team);
+	return 0;
 }

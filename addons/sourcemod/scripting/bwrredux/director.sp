@@ -58,7 +58,7 @@ int Director_GetNumberofBLUPlayers()
 int Director_GetRandomPlayerInQueue()
 {
 	int count = 0;
-	int[] players = new int[MaxClients];
+	int[] players = new int[MaxClients+1];
 
 	for(int i = 1;i < MaxClients;i++)
 	{
@@ -96,7 +96,7 @@ void Director_AddClientToQueue(int client)
 	PrintToChat(client, "%t", "Director_Added");
 }
 
-// Resets client data and places them in the spector team
+// Resets client data and places them in the spectator team
 void Director_RemoveClientFromBLU(int client)
 {
 	RobotPlayer rp = RobotPlayer(client);
@@ -134,6 +134,8 @@ public Action Director_Think(Handle timer)
 		PrintToChatAll("[AI Director] Spawning player %N", randomplayer);
 		Director_SpawnPlayer(randomplayer);
 	}
+
+	return Plugin_Continue;
 }
 
 void Director_OnWaveStart()
@@ -155,6 +157,33 @@ void Director_OnWaveFailed()
 {
 	delete g_eDirector.timer;
 	RequestFrame(DirectorFrame_ClearPlayers);
+}
+
+void Director_TeleportPlayer(int client)
+{
+	ArrayList spawns = CollectValidSpawnPoints(client);
+	float destination[3], angles[3];
+
+	if(spawns.Length == 0)
+	{
+		delete spawns;
+		ThrowError("[AI Director] No valid spawn found!");
+	}
+
+	int entity = spawns.Get(Math_GetRandomInt(0, spawns.Length - 1));
+	delete spawns;
+	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", destination);
+	GetEntPropVector(entity, Prop_Send, "m_angRotation", angles);	
+	TeleportEntity(client, destination, angles, NULL_VECTOR);
+
+	float mins[3], maxs[3], scale;
+	GetEntPropVector(client, Prop_Send, "m_vecMins", mins);
+	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
+	scale = GetEntPropFloat(client, Prop_Send, "m_flModelScale");
+	PrintToChat(client, "Spawn: %.2f %.2f %.2f - %.2f", destination[0], destination[1], destination[2], angles[1]);
+	PrintToChat(client, "Mins: %.2f %.2f %.2f", mins[0], mins[1], mins[2]);
+	PrintToChat(client, "Maxs: %.2f %.2f %.2f", maxs[0], maxs[1], maxs[2]);
+	PrintToChat(client, "Scale: %.2f", scale);
 }
 
 void Director_OnPlayerDeath(int victim, int killer)
@@ -219,12 +248,12 @@ void DirectorFrame_SelectRobot(int serial)
 	if(client)
 	{
 		RobotPlayer rp = RobotPlayer(client);
-		rp.templateindex = template;
-		rp.type = g_eTemplates[template].type;
+		rp.SetRobot(g_eTemplates[template].type, template);
 		RequestFrame(DirectorFrame_PreSpawn, serial);
 	}
 }
 
+// Called by DirectorFrame_SelectRobot
 void DirectorFrame_PreSpawn(int serial)
 {
 	int client = GetClientFromSerial(serial);
@@ -237,6 +266,7 @@ void DirectorFrame_PreSpawn(int serial)
 	}
 }
 
+// Called when the player spawn event is fired
 void DirectorFrame_PostSpawn(int serial)
 {
 	int client = GetClientFromSerial(serial);
@@ -258,6 +288,7 @@ void DirectorFrame_PostSpawn(int serial)
 
 		Robots_SetModel(client, TF2_GetPlayerClass(client));
 		Robots_SetScale(client, Robots_GetScaleSize(client));
+		RequestFrame(DirectorFrame_PreTeleport, serial);
 	}
 }
 
@@ -265,10 +296,10 @@ void DirectorFrame_PostSpawn(int serial)
 void DirectorFrame_ApplyInventory(int serial)
 {
 	int client = GetClientFromSerial(serial);
-	RobotPlayer rp = RobotPlayer(client);
 
 	if(client)
 	{
+		RobotPlayer rp = RobotPlayer(client);
 		if(rp.templateindex >= 0)
 		{
 			TF2_ClearClient(client, true, true); // Clear player first
@@ -304,6 +335,7 @@ void DirectorFrame_RequestInventory(int serial)
 	}
 }
 
+// Used to move players to RED team
 void DirectorFrame_ClearPlayers()
 {
 	for(int i = 1;i <= MaxClients;i++)
@@ -319,6 +351,48 @@ void DirectorFrame_ClearPlayers()
 		if(rp.isrobot)
 		{
 			Director_MoveClientToRED(i);
+		}
+	}
+}
+
+// Called after DirectorFrame_PostSpawn. Teleports client into a proper spawn.
+void DirectorFrame_PreTeleport(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if(client)
+	{
+		Director_TeleportPlayer(client);
+		RequestFrame(DirectorFrame_GiveBomb, serial);		
+	}
+}
+
+// Called by DirectorFrame_PreTeleport. Gives the player the bomb
+void DirectorFrame_GiveBomb(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if(client)
+	{
+		int flag = TF2_GetRandomFlagAtHome(view_as<int>(TFTeam_Blue));
+		Address attribute = TF2Attrib_GetByName(client, "cannot pick up intelligence");
+		RobotPlayer rp = RobotPlayer(client);
+
+		if(flag != INVALID_ENT_REFERENCE && attribute == Address_Null)
+		{
+			Action result;
+			Call_StartForward(g_OnGiveFlag);
+			Call_PushCell(client);
+			Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+			Call_PushCell(TF2_GetPlayerClass(client));
+			Call_PushCell(g_eTemplates[rp.templateindex].index);
+			Call_PushCell(g_eTemplates[rp.templateindex].type);
+			Call_Finish(result);
+
+			if(result == Plugin_Continue)
+			{
+				TF2_PickUpFlag(client, flag);
+			}
 		}
 	}
 }
