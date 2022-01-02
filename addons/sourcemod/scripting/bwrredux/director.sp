@@ -271,7 +271,7 @@ void DirectorFrame_PostSpawn(int serial)
 {
 	int client = GetClientFromSerial(serial);
 
-	if(client)
+	if(client && TF2_GetClientTeam(client) == TFTeam_Blue)
 	{
 		RobotPlayer rp = RobotPlayer(client);
 
@@ -297,7 +297,7 @@ void DirectorFrame_ApplyInventory(int serial)
 {
 	int client = GetClientFromSerial(serial);
 
-	if(client)
+	if(client && TF2_GetClientTeam(client) == TFTeam_Blue)
 	{
 		RobotPlayer rp = RobotPlayer(client);
 		if(rp.templateindex >= 0)
@@ -378,7 +378,7 @@ void DirectorFrame_GiveBomb(int serial)
 		Address attribute = TF2Attrib_GetByName(client, "cannot pick up intelligence");
 		RobotPlayer rp = RobotPlayer(client);
 
-		if(flag != INVALID_ENT_REFERENCE && attribute == Address_Null)
+		if(flag != INVALID_ENT_REFERENCE && attribute == Address_Null && rp.templateindex >= 0)
 		{
 			Action result;
 			Call_StartForward(g_OnGiveFlag);
@@ -392,6 +392,7 @@ void DirectorFrame_GiveBomb(int serial)
 			if(result == Plugin_Continue)
 			{
 				TF2_PickUpFlag(client, flag);
+				RequestFrame(Frame_UpdateBombHUD, GetClientSerial(client));
 			}
 		}
 	}

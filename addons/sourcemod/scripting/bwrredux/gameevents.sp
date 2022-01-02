@@ -125,10 +125,10 @@ public Action Event_Teamplay_Flag(Event event, const char[] name, bool dontBroad
 			else
 			{
 				rp.bomblevel = 0;
-				rp.nextbombupgradetime = GetGameTime() + GetConVarFloat(FindConVar("tf_mvm_bot_flag_carrier_interval_to_1st_upgrade"));
+				rp.nextbombupgradetime = GetGameTime() + c_bomb_upgrade1.FloatValue;
 				TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_PICKUP, view_as<int>(TFTeam_Red), "");
 			}
-			//RequestFrame(UpdateBombHud, GetClientUserId(client));
+			RequestFrame(Frame_UpdateBombHUD, GetClientSerial(client));
 		}
 	}
 	if(event.GetInt("eventtype") == TF_FLAGEVENT_DROPPED)
@@ -150,6 +150,7 @@ public Action Event_Teamplay_Flag(Event event, const char[] name, bool dontBroad
 void Frame_OnWaveStart()
 {
 	Director_OnWaveStart();
+	Robots_ResetWaveData();
 }
 
 void Frame_OnWaveEnd()

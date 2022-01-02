@@ -1,6 +1,6 @@
 // SDK calls, SDK hooks
 
-stock void TF2_PlaySequence(int client, const char[] sequence)
+void TF2_PlaySequence(int client, const char[] sequence)
 {
 	SDKCall(g_hSDKPlaySpecificSequence, client, sequence);
 }
@@ -112,6 +112,11 @@ void TF2BWR_OnClientStartTouchSpawn(int client)
 	RobotPlayer rp = RobotPlayer(client);
 	rp.inspawn = true;
 
+	if(rp.carrier)
+	{
+		RequestFrame(Frame_UpdateBombHUD, GetClientSerial(client));
+	}
+
 	if(rp.isrobot && rp.templateindex >= 0)
 	{
 		Call_StartForward(g_OnEnterSpawn);
@@ -128,16 +133,34 @@ void TF2BWR_OnClientEndTouchSpawn(int client)
 {
 	RobotPlayer rp = RobotPlayer(client);
 	rp.inspawn = false;
-
-	if(rp.isrobot && rp.templateindex >= 0)
+	
+	if(rp.carrier)
 	{
-		Call_StartForward(g_OnLeaveSpawn);
-		Call_PushCell(client);
-		Call_PushString(g_eTemplates[rp.templateindex].pluginname);
-		Call_PushCell(TF2_GetPlayerClass(client));
-		Call_PushCell(g_eTemplates[rp.templateindex].index);
-		Call_PushCell(g_eTemplates[rp.templateindex].type);
-		Call_Finish();
+		switch(rp.bomblevel)
+		{
+			case 0: rp.nextbombupgradetime = GetGameTime() + c_bomb_upgrade1.FloatValue;
+			case 1: rp.nextbombupgradetime = GetGameTime() + c_bomb_upgrade2.FloatValue;
+			case 2: rp.nextbombupgradetime = GetGameTime() + c_bomb_upgrade3.FloatValue;
+			case 3,4: rp.nextbombupgradetime = GetGameTime();
+		}
+		RequestFrame(Frame_UpdateBombHUD, GetClientSerial(client));
+	}
+
+	if(rp.isrobot)
+	{
+		SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 1.0);
+		TF2_RemoveCondition(client, TFCond_UberchargedHidden);
+
+		if(rp.templateindex >= 0)
+		{
+			Call_StartForward(g_OnLeaveSpawn);
+			Call_PushCell(client);
+			Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+			Call_PushCell(TF2_GetPlayerClass(client));
+			Call_PushCell(g_eTemplates[rp.templateindex].index);
+			Call_PushCell(g_eTemplates[rp.templateindex].type);
+			Call_Finish();
+		}
 	}
 }
 
@@ -159,5 +182,33 @@ void TF2BWR_OnClientTouchSpawn(int client)
 			Call_PushCell(g_eTemplates[rp.templateindex].type);
 			Call_Finish();	
 		}
+	}
+}
+
+void OnStartTouchCaptureZone(int entity, int other)
+{
+	if(IsValidClient(other))
+	{
+		RobotPlayer rp = RobotPlayer(other);
+
+		if(rp.carrier)
+		{
+			rp.StartDeploying(FindConVar("tf_deploying_bomb_time").FloatValue + 0.5);
+			TF2BWR_DeployBomb(other);
+		}
+	}
+}
+
+void OnEndTouchCaptureZone(int entity, int other)
+{
+	if(IsValidClient(other))
+	{
+		RobotPlayer rp = RobotPlayer(other);
+
+		if(rp.carrier)
+		{
+			rp.StopDeploying();
+			TF2BWR_CancelDeployBomb(other);
+		}		
 	}
 }

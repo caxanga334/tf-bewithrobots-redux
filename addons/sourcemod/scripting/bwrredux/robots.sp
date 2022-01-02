@@ -51,7 +51,7 @@ void Robots_ResetWaveData()
 	for(int i = 0;i < g_maxrobots;i++)
 	{
 		g_eTemplates[i].spawns = 0;
-		g_eTemplates[i].lastspawn = 0.0;
+		g_eTemplates[i].lastspawn = -1.0;
 	}
 }
 

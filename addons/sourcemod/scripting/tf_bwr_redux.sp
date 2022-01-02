@@ -46,6 +46,8 @@ int g_iModelIndexRobots[sizeof(g_strModelRobots)];
 char g_strModelHumans[][] =  {"", "models/player/scout.mdl", "models/player/sniper.mdl", "models/player/soldier.mdl", "models/player/demo.mdl", "models/player/medic.mdl", "models/player/heavy.mdl", "models/player/pyro.mdl", "models/player/spy.mdl", "models/player/engineer.mdl"};
 int g_iModelIndexHumans[sizeof(g_strModelHumans)];
 
+float g_flNextCommand[MAXPLAYERS + 1]; // delayed command timer
+
 enum struct erobotplayer
 {
 	bool isrobot; // Is a robot player
@@ -168,6 +170,16 @@ methodmap RobotPlayer
 		type = g_eRobotPlayer[this.index].type;
 		index = g_eRobotPlayer[this.index].templateindex;
 	}
+	public void StartDeploying(float time)
+	{
+		g_eRobotPlayer[this.index].deployingtime = time + GetGameTime();
+		g_eRobotPlayer[this.index].deploying = true;
+	}
+	public void StopDeploying()
+	{
+		g_eRobotPlayer[this.index].deployingtime = 0.0;
+		g_eRobotPlayer[this.index].deploying = false;
+	}
 }
 
 #include "bwrredux/api.sp"
@@ -236,6 +248,10 @@ public void OnMapStart()
 
 	for(int x = 1;x < sizeof(g_iModelIndexHumans);x++) { g_iModelIndexHumans[x] = PrecacheModel(g_strModelHumans[x]); }
 	for(int x = 1;x < sizeof(g_iModelIndexRobots);x++) { g_iModelIndexRobots[x] = PrecacheModel(g_strModelRobots[x]); }
+
+	PrecacheScriptSound("MVM.DeployBombSmall");
+	PrecacheScriptSound("MVM.DeployBombGiant");
+	PrecacheScriptSound("MVM.Warning");
 }
 
 public void TF2_OnWaitingForPlayersStart()
@@ -265,4 +281,78 @@ public void OnEntityCreated(int entity, const char[] classname)
 	{
 		SetupHook_SpawnRoom(entity);
 	}
+	else if(strcmp(classname, "func_capturezone", false) == 0)
+	{
+		SDKHook(entity, SDKHook_StartTouchPost, OnStartTouchCaptureZone);
+		SDKHook(entity, SDKHook_EndTouchPost, OnEndTouchCaptureZone);
+	}
+}
+
+public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
+{
+	if(IsFakeClient(client))
+		return Plugin_Continue;
+
+	RobotPlayer rp = RobotPlayer(client);
+	TFTeam team = TF2_GetClientTeam(client);
+
+	if(rp.isrobot && team == TFTeam_Blue && IsPlayerAlive(client))
+	{
+		if(rp.inspawn)
+		{
+			SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.5);
+			TF2_AddCondition(client, TFCond_UberchargedHidden, 0.100);
+		}
+
+		if(rp.deploying)
+		{
+			if(rp.deployingtime <= GetGameTime())
+			{
+				rp.StopDeploying();
+				TF2BWR_TriggerBombHatch(client);
+			}
+		}
+
+		if(rp.carrier && !rp.inspawn)
+		{
+			if(rp.nextbombupgradetime <= GetGameTime() && rp.bomblevel < 3 && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1)
+			{
+				FakeClientCommandThrottled(client, "taunt");
+
+				if(TF2_IsPlayerInCondition(client, TFCond_Taunting))
+				{
+					rp.bomblevel++;
+					EmitGameSoundToAll("MVM.Warning", SOUND_FROM_WORLD);
+					RequestFrame(Frame_UpdateBombHUD, GetClientSerial(client));
+
+					switch(rp.bomblevel)
+					{
+						case 1:
+						{
+							rp.nextbombupgradetime = GetGameTime() + c_bomb_upgrade2.FloatValue;
+							TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE1, view_as<int>(TFTeam_Red), "");
+						}
+						case 2:
+						{
+							Address pRegen = TF2Attrib_GetByName(client, "health regen");
+							float flRegen = 0.0;
+							if(pRegen != Address_Null)
+							{
+								flRegen = TF2Attrib_GetValue(pRegen);
+							}
+							TF2Attrib_SetByName(client, "health regen", flRegen + 45.0);
+							rp.nextbombupgradetime = GetGameTime() + c_bomb_upgrade3.FloatValue;
+							TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE2, view_as<int>(TFTeam_Red), "");
+						}
+						case 3:
+						{
+							TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE3, view_as<int>(TFTeam_Red), "");
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	return Plugin_Continue;
 }

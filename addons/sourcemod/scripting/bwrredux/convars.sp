@@ -4,6 +4,11 @@ ConVar c_minred; // Minimum number of players on RED team before allowing player
 ConVar c_maxblu; // Maximum number of players allowed to join BLU team.
 ConVar c_director_rpt; // AI Director Resources per Think
 
+// Cvars from the game
+ConVar c_bomb_upgrade1; // Bomb first upgrade time
+ConVar c_bomb_upgrade2; // Bomb second upgrade time
+ConVar c_bomb_upgrade3; // Bomb third upgrade time
+
 void SetupConVars()
 {
 	AutoExecConfig_SetFile("plugin.bwrredux");
@@ -15,4 +20,13 @@ void SetupConVars()
 
 	AutoExecConfig_ExecuteFile();
 	AutoExecConfig_CleanFile();
+
+	c_bomb_upgrade1 = FindConVar("tf_mvm_bot_flag_carrier_interval_to_1st_upgrade");
+	c_bomb_upgrade2 = FindConVar("tf_mvm_bot_flag_carrier_interval_to_2nd_upgrade");
+	c_bomb_upgrade3 = FindConVar("tf_mvm_bot_flag_carrier_interval_to_3rd_upgrade");
+
+	if(c_bomb_upgrade1 == null || c_bomb_upgrade2 == null || c_bomb_upgrade3 == null)
+	{
+		SetFailState("Failed to get bomb upgrade convars.");
+	}
 }

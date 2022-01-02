@@ -269,3 +269,131 @@ bool TraceFilter_IgnorePlayers(int entity, int contentsMask)
 
 	return true;
 }
+
+void TF2BWR_DeployBomb(int client)
+{
+	RobotPlayer rp = RobotPlayer(client);
+	float time = FindConVar("tf_deploying_bomb_time").FloatValue + 0.5;
+	float origin[3], hatch[3], result[3], angles[3];
+
+	GetClientAbsOrigin(client, origin);
+	hatch = TF2_GetBombHatchPosition(true);
+	SubtractVectors(hatch, origin, result);
+	NormalizeVector(result, result);
+	GetVectorAngles(result, angles);
+	angles[0] = 0.0;
+	angles[2] = 0.0;
+	TeleportEntity(client, NULL_VECTOR, angles, {0.0, 0.0, 0.0});
+	SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 0);
+	TF2_PlaySequence(client, "primary_deploybomb");
+	TF2_AddCondition(client, TFCond_FreezeInput, time);
+	SetVariantInt(1);
+	AcceptEntityInput(client, "SetForcedTauntCam");	
+	RequestFrame(Frame_DisableAnimation, GetClientSerial(client));
+
+	switch(rp.type)
+	{
+		case BWRR_RobotType_Boss, BWRR_RobotType_Giant:
+		{
+			EmitGameSoundToAll("MVM.DeployBombSmall", client, SND_NOFLAGS, _, origin);
+		}
+		default:
+		{
+			EmitGameSoundToAll("MVM.DeployBombGiant", client, SND_NOFLAGS, _, origin);
+		}
+	}
+}
+
+// code from Pelipoika's bot control
+void Frame_DisableAnimation(int serial)
+{
+	static int count = 0;
+
+	int client = GetClientFromSerial(serial);
+
+	if(client)
+	{
+		if(count > 6)
+		{
+			float vecClientPos[3], vecTargetPos[3];
+			GetClientAbsOrigin(client, vecClientPos);
+			vecTargetPos = TF2_GetBombHatchPosition();
+			float v[3], ang[3];
+			SubtractVectors(vecTargetPos, vecClientPos, v);
+			NormalizeVector(v, v);
+			GetVectorAngles(v, ang);
+			ang[0] = 0.0;
+			SetVariantString("1");
+			AcceptEntityInput(client, "SetCustomModelRotates");
+			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 0);
+			char strVec[16];
+			Format(strVec, sizeof(strVec), "0 %f 0", ang[1]);
+			SetVariantString(strVec);
+			AcceptEntityInput(client, "SetCustomModelRotation");
+			count = 0;
+		}
+		else
+		{
+			TF2_PlaySequence(client, "primary_deploybomb");
+			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 0);
+			RequestFrame(Frame_DisableAnimation, serial);
+			count++;
+		}
+	}
+	else
+	{
+		count = 0;
+	}
+}
+
+void TF2BWR_CancelDeployBomb(int client)
+{
+	SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 1);
+	TF2_RemoveCondition(client, TFCond_FreezeInput);
+}
+
+void TF2BWR_TriggerBombHatch(int client)
+{
+	int entity = FindEntityByClassname(-1, "func_capturezone");
+	LogAction(client, -1, "\"%L\" deployed the bomb.", client);
+	PrintToChatAll("%N deployed the bomb!", client);
+	if(entity != -1)
+	{
+		FireEntityOutput(entity, "OnCapture", entity);
+		FireEntityOutput(entity, "OnCapTeam2", entity);
+	}
+	else
+	{
+		ThrowError("Could not find func_capturezone");
+	}
+}
+
+// code from Pelipoika's bot control
+// executes a fake command with a delay between executions
+bool FakeClientCommandThrottled(int client, const char[] command)
+{
+	if(g_flNextCommand[client] > GetGameTime())
+		return false;
+	
+	FakeClientCommand(client, command);
+	
+	g_flNextCommand[client] = GetGameTime() + 0.4;
+	
+	return true;
+}
+
+// code from Pelipoika's bot control
+// Updates the bomb level show on the HUD
+void Frame_UpdateBombHUD(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if(client)
+	{
+		RobotPlayer rp = RobotPlayer(client);
+		int entity = FindEntityByClassname(-1, "tf_objective_resource");
+		SetEntProp(entity, Prop_Send, "m_nFlagCarrierUpgradeLevel", rp.bomblevel);
+		SetEntPropFloat(entity, Prop_Send, "m_flMvMBaseBombUpgradeTime", rp.inspawn ? -1.0 : GetGameTime());
+		SetEntPropFloat(entity, Prop_Send, "m_flMvMNextBombUpgradeTime", rp.inspawn ? -1.0 : rp.nextbombupgradetime);
+	}
+}
