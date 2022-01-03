@@ -20,6 +20,7 @@
 
 #define PLUGIN_VERSION "2.0.0-alpha"
 #define TF_CURRENCY_PACK_CUSTOM 9
+#define MAX_SUBPLUGINS 64
 
 // Speak Concepts
 
@@ -39,6 +40,7 @@ enum
 };
 
 ArrayList g_subplugins_robots; // List of robots sub plugins
+int g_subplugins_ID[MAX_SUBPLUGINS]; // List of robots sub plugins ID
 bool g_islateload;
 
 char g_strModelRobots[][] = {"", "models/bots/scout/bot_scout.mdl", "models/bots/sniper/bot_sniper.mdl", "models/bots/soldier/bot_soldier.mdl", "models/bots/demo/bot_demo.mdl", "models/bots/medic/bot_medic.mdl", "models/bots/heavy/bot_heavy.mdl", "models/bots/pyro/bot_pyro.mdl", "models/bots/spy/bot_spy.mdl", "models/bots/engineer/bot_engineer.mdl"};
@@ -126,9 +128,9 @@ methodmap RobotPlayer
 		public get() { return g_eRobotPlayer[this.index].deployingtime; }
 		public set( float value ) { g_eRobotPlayer[this.index].deployingtime = value; }
 	}
-	public void Miniboss(bool value)
+	public void SetMiniboss(bool value)
 	{
-		SetEntProp( this.index, Prop_Send, "m_bIsMiniBoss", view_as<int>(value) );
+		SetEntProp(this.index, Prop_Send, "m_bIsMiniBoss", view_as<int>(value));
 	}
 	public void ResetData()
 	{
@@ -324,6 +326,15 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 					rp.bomblevel++;
 					EmitGameSoundToAll("MVM.Warning", SOUND_FROM_WORLD);
 					RequestFrame(Frame_UpdateBombHUD, GetClientSerial(client));
+
+					Call_StartForward(g_OnBombUpgrade);
+					Call_PushCell(client);
+					Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+					Call_PushCell(TF2_GetPlayerClass(client));
+					Call_PushCell(g_eTemplates[rp.templateindex].index);
+					Call_PushCell(g_eTemplates[rp.templateindex].type);
+					Call_PushCell(rp.bomblevel);
+					Call_Finish();
 
 					switch(rp.bomblevel)
 					{

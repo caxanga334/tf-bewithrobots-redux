@@ -7,7 +7,7 @@ int g_maxrobots = 0; // Number of robots that was registered
 
 enum struct etemplates
 {
-	char pluginname[64]; // the plugin that will handle this robot
+	int pluginID; // the plugin that will handle this robot
 	TFClassType class; // the robot class
 	int cost; // resource cost
 	int index; // robot list internal index
@@ -19,7 +19,7 @@ enum struct etemplates
 }
 etemplates g_eTemplates[MAX_ROBOTS];
 
-void RegisterRobotTemplate(char[] pluginname, TFClassType class, int cost, int index, int type, int supply, float percent)
+void RegisterRobotTemplate(int pluginID, TFClassType class, int cost, int index, int type, int supply, float percent)
 {
 	if(g_cbindex >= MAX_ROBOTS)
 	{
@@ -28,10 +28,10 @@ void RegisterRobotTemplate(char[] pluginname, TFClassType class, int cost, int i
 
 	if(class == TFClass_Unknown)
 	{
-		ThrowError("Invalid robot class! Plugin: \"%s\" (%i)", pluginname, index);
+		ThrowError("Invalid robot class! Plugin ID \"%i\", Robot Index \"%i\"", pluginID, index);
 	}
 
-	strcopy(g_eTemplates[g_cbindex].pluginname, 64, pluginname);
+	g_eTemplates[g_cbindex].pluginID = pluginID;
 	g_eTemplates[g_cbindex].class = class;
 	g_eTemplates[g_cbindex].cost = cost;
 	g_eTemplates[g_cbindex].index = index;
@@ -124,7 +124,7 @@ void Robots_SetModel(int client, TFClassType class)
 
 	Call_StartForward(g_OnApplyModel);
 	Call_PushCell(client);
-	Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+	Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
 	Call_PushCell(TF2_GetPlayerClass(client));
 	Call_PushCell(g_eTemplates[rp.templateindex].index);
 	Call_PushCell(g_eTemplates[rp.templateindex].type);
@@ -163,7 +163,7 @@ float Robots_GetScaleSize(int client)
 
 	Call_StartForward(g_OnApplyScale);
 	Call_PushCell(client);
-	Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+	Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
 	Call_PushCell(TF2_GetPlayerClass(client));
 	Call_PushCell(g_eTemplates[rp.templateindex].index);
 	Call_PushCell(g_eTemplates[rp.templateindex].type);

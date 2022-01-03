@@ -121,7 +121,7 @@ void TF2BWR_OnClientStartTouchSpawn(int client)
 	{
 		Call_StartForward(g_OnEnterSpawn);
 		Call_PushCell(client);
-		Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+		Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
 		Call_PushCell(TF2_GetPlayerClass(client));
 		Call_PushCell(g_eTemplates[rp.templateindex].index);
 		Call_PushCell(g_eTemplates[rp.templateindex].type);
@@ -155,7 +155,7 @@ void TF2BWR_OnClientEndTouchSpawn(int client)
 		{
 			Call_StartForward(g_OnLeaveSpawn);
 			Call_PushCell(client);
-			Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+			Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
 			Call_PushCell(TF2_GetPlayerClass(client));
 			Call_PushCell(g_eTemplates[rp.templateindex].index);
 			Call_PushCell(g_eTemplates[rp.templateindex].type);
@@ -176,7 +176,7 @@ void TF2BWR_OnClientTouchSpawn(int client)
 		{
 			Call_StartForward(g_OnEnterSpawn);
 			Call_PushCell(client);
-			Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+			Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
 			Call_PushCell(TF2_GetPlayerClass(client));
 			Call_PushCell(g_eTemplates[rp.templateindex].index);
 			Call_PushCell(g_eTemplates[rp.templateindex].type);

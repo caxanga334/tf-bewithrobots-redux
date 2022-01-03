@@ -172,18 +172,28 @@ void Director_TeleportPlayer(int client)
 
 	int entity = spawns.Get(Math_GetRandomInt(0, spawns.Length - 1));
 	delete spawns;
+	char targetname[64];
+	GetEntPropString(entity, Prop_Data, "m_iName", targetname, sizeof(targetname));
 	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", destination);
-	GetEntPropVector(entity, Prop_Send, "m_angRotation", angles);	
-	TeleportEntity(client, destination, angles, NULL_VECTOR);
+	GetEntPropVector(entity, Prop_Send, "m_angRotation", angles);
 
-	float mins[3], maxs[3], scale;
-	GetEntPropVector(client, Prop_Send, "m_vecMins", mins);
-	GetEntPropVector(client, Prop_Send, "m_vecMaxs", maxs);
-	scale = GetEntPropFloat(client, Prop_Send, "m_flModelScale");
-	PrintToChat(client, "Spawn: %.2f %.2f %.2f - %.2f", destination[0], destination[1], destination[2], angles[1]);
-	PrintToChat(client, "Mins: %.2f %.2f %.2f", mins[0], mins[1], mins[2]);
-	PrintToChat(client, "Maxs: %.2f %.2f %.2f", maxs[0], maxs[1], maxs[2]);
-	PrintToChat(client, "Scale: %.2f", scale);
+	RobotPlayer rp = RobotPlayer(client);
+	Action result;
+	Call_StartForward(g_OnSetSpawnPoint);
+	Call_PushCell(client);
+	Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+	Call_PushCell(TF2_GetPlayerClass(client));
+	Call_PushCell(g_eTemplates[rp.templateindex].index);
+	Call_PushCell(g_eTemplates[rp.templateindex].type);
+	Call_PushString(targetname);
+	Call_PushArrayEx(destination, sizeof(destination), SM_PARAM_COPYBACK);
+	Call_PushArrayEx(angles, sizeof(angles), SM_PARAM_COPYBACK);
+	Call_Finish(result);
+
+	if(result == Plugin_Continue || result == Plugin_Changed)
+	{
+		TeleportEntity(client, destination, angles, NULL_VECTOR);
+	}
 }
 
 void Director_OnPlayerDeath(int victim, int killer)
@@ -200,7 +210,7 @@ void Director_OnPlayerDeath(int victim, int killer)
 		{
 			Call_StartForward(g_OnRobotDeath);
 			Call_PushCell(victim);
-			Call_PushString(g_eTemplates[rp1.templateindex].pluginname);
+			Call_PushCell(g_eTemplates[rp1.templateindex].pluginID);
 			Call_PushCell(TF2_GetPlayerClass(victim));
 			Call_PushCell(g_eTemplates[rp1.templateindex].index);
 			Call_PushCell(g_eTemplates[rp1.templateindex].type);
@@ -279,7 +289,7 @@ void DirectorFrame_PostSpawn(int serial)
 		{
 			Call_StartForward(g_OnRobotSpawn);
 			Call_PushCell(client);
-			Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+			Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
 			Call_PushCell(TF2_GetPlayerClass(client));
 			Call_PushCell(g_eTemplates[rp.templateindex].index);
 			Call_PushCell(g_eTemplates[rp.templateindex].type);
@@ -326,7 +336,7 @@ void DirectorFrame_RequestInventory(int serial)
 			// Request inventory via API
 			Call_StartForward(g_OnInventoryRequest);
 			Call_PushCell(client);
-			Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+			Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
 			Call_PushCell(TF2_GetPlayerClass(client));
 			Call_PushCell(g_eTemplates[rp.templateindex].index);
 			Call_PushCell(g_eTemplates[rp.templateindex].type);
@@ -383,7 +393,7 @@ void DirectorFrame_GiveBomb(int serial)
 			Action result;
 			Call_StartForward(g_OnGiveFlag);
 			Call_PushCell(client);
-			Call_PushString(g_eTemplates[rp.templateindex].pluginname);
+			Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
 			Call_PushCell(TF2_GetPlayerClass(client));
 			Call_PushCell(g_eTemplates[rp.templateindex].index);
 			Call_PushCell(g_eTemplates[rp.templateindex].type);
