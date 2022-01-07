@@ -14,6 +14,19 @@ enum
 	BWRR_RobotType_Buster // Sentry Buster
 };
 
+enum
+{
+	BWRR_Role_Generic = 0, // Generic role
+	BWRR_Role_BombCarrier, // Robot designed for carrying the bomb
+	BWRR_Role_Attack, // Generic attack robot
+	BWRR_Role_Support, // Generic support robot
+	BWRR_Role_AttackSupport, // Generic attack robot with minor support role
+	BWRR_Role_Healer, // Robot designed for healing other robots
+	BWRR_Role_Engineer, // Generic engineer role
+	BWRR_Role_Sniper, // Generic sniper role
+	BWRR_Role_Spy // Generic spy role
+};
+
 /**
  * Register a Robot list sub plugin.
  *
@@ -32,9 +45,10 @@ native int BWRR_RegisterRobotPlugin(char[] name);
  * @param index				The robot index (subplugin)
  * @param type				The robot type
  * @param supply			The maximum number of times this robot will spawn per wave (<= 0 = infinite)
+ * @param role				The robot role
  * @param percent			How many waves (as a percentage, range 0 to 1) must be completed to enable this robot
  */
-native void BWRR_RegisterRobotTemplate(int pluginID, TFClassType class, int cost, int index, int type, int supply, float percent);
+native void BWRR_RegisterRobotTemplate(int pluginID, TFClassType class, int cost, int index, int type, int supply, int role, float percent);
 
 /**
  * Changes the client team
@@ -181,6 +195,20 @@ forward void BWRR_OnBombUpgrade(int client, const int pluginID, TFClassType clas
  */
 forward Action BWRR_OnSetSpawnPoint(int client, const int pluginID, TFClassType class, int index, int type, const char[] targetname, float origin[3], float angles[3]);
 
+/**
+ * Called when teleporting an engineer or spy robot
+ * 
+ * @param client       The client index
+ * @param pluginID     The The plugin ID responside for the client current robot
+ * @param class        The client class
+ * @param index        The robot internal index
+ * @param type         The robot type
+ * @param origin       The position where the client will be teleported
+ * @param angles       The new client angles
+ * @return             Return Plugin_Handled or Plugin_Stop to block the teleportation. Plugin_Changed to change origin and/or angles
+ */
+forward Action BWRR_OnTeleport(int client, const int pluginID, TFClassType class, int index, int type, float origin[3], float angles[3]);
+
 public SharedPlugin __pl_tf_bwr_redux =
 {
 	name = "tf_bwr_redux",
@@ -197,5 +225,7 @@ public SharedPlugin __pl_tf_bwr_redux =
 public __pl_tf_bwr_redux_SetNTVOptional()
 {
 	MarkNativeAsOptional("BWRR_RegisterRobotPlugin");
-	MarkNativeAsOptional("BWRR_RegisterRobotTemplat");
+	MarkNativeAsOptional("BWRR_RegisterRobotTemplate");
+	MarkNativeAsOptional("BWRR_ChangeClientTeam");
+	MarkNativeAsOptional("BWRR_IsClientRobot");
 }

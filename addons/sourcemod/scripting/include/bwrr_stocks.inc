@@ -5,8 +5,6 @@
 
 #include <tf2_stocks>
 
-#define SIZE_OF_INT         2147483647 // without 0
-
 enum
 {
 	TF_FLAGINFO_HOME = 0, // Flag is at home
@@ -129,39 +127,6 @@ stock int TF2_GetClientFlag(int client)
 	}
 	
 	return -1;	
-}
-
-/**
- * Returns a random, uniform Integer number in the specified (inclusive) range.
- * This is safe to use multiple times in a function.
- * The seed is set automatically for each plugin.
- * Rewritten by MatthiasVance, thanks.
- * This stock is taken from SMLIB
- *
- * @param min			Min value used as lower border
- * @param max			Max value used as upper border
- * @return				Random Integer number between min and max
- */
-stock int Math_GetRandomInt(int min, int max)
-{
-	int random = GetURandomInt();
-
-	if (random == 0) {
-		random++;
-	}
-
-	return RoundToCeil(float(random) / (float(SIZE_OF_INT) / float(max - min + 1))) + min - 1;
-}
-
-/**
- * Returns either true or false based on random chance.
- *
- * @param chance        The chance to return true
- * @return				Boolean value
- */
-stock bool Math_RandomChance(int chance)
-{
-	return Math_GetRandomInt(1, 100) <= chance;
 }
 
 /**

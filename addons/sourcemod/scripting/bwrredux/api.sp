@@ -11,6 +11,7 @@ GlobalForward g_OnEnterSpawn;
 GlobalForward g_OnLeaveSpawn;
 GlobalForward g_OnBombUpgrade;
 GlobalForward g_OnSetSpawnPoint;
+GlobalForward g_OnTeleport;
 
 void SetupForwards()
 {
@@ -25,6 +26,7 @@ void SetupForwards()
 	g_OnLeaveSpawn = new GlobalForward("BWRR_OnLeaveSpawn", ET_Ignore, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell);
 	g_OnBombUpgrade = new GlobalForward("BWRR_OnBombUpgrade", ET_Ignore, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_Cell);
 	g_OnSetSpawnPoint = new GlobalForward("BWRR_OnSetSpawnPoint", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_String, Param_Array, Param_Array);
+	g_OnTeleport = new GlobalForward("BWRR_OnTeleport", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_Array, Param_Array);
 }
 
 void SetupNatives()
@@ -56,7 +58,7 @@ public any Native_RegisterRobotPlugin(Handle plugin, int numParams)
 
 public any Native_RegisterRobotTemplate(Handle plugin, int numParams)
 {
-	RegisterRobotTemplate(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3), GetNativeCell(4), GetNativeCell(5), GetNativeCell(6), GetNativeCell(7));
+	RegisterRobotTemplate(GetNativeCell(1), GetNativeCell(2), GetNativeCell(3), GetNativeCell(4), GetNativeCell(5), GetNativeCell(6), GetNativeCell(7), GetNativeCell(8));
 	return 0;
 }
 

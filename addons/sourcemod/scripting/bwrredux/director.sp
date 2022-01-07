@@ -161,7 +161,8 @@ void Director_OnWaveFailed()
 
 void Director_TeleportPlayer(int client)
 {
-	ArrayList spawns = CollectValidSpawnPoints(client);
+	ArrayList spawns = new ArrayList();
+	CollectValidSpawnPoints(client, spawns);
 	float destination[3], angles[3];
 
 	if(spawns.Length == 0)
@@ -194,6 +195,49 @@ void Director_TeleportPlayer(int client)
 	{
 		TeleportEntity(client, destination, angles, NULL_VECTOR);
 	}
+}
+
+bool Director_TeleportSpy(int client, int target, float pos[3])
+{
+	float target_pos[3];
+	GetClientAbsOrigin(target, target_pos);
+
+	ArrayList areas = new ArrayList();
+	CollectNavAreas(areas, target_pos, c_spman_spy_maxdist.FloatValue, 300.0, 450.0);
+	FilterNavAreasByTrace(areas, client);
+	FilterNavAreasByLOS(areas, TFTeam_Red);
+
+	if(areas.Length == 0)
+	{
+		delete areas;
+		return false;
+	}
+
+	CNavArea final = TheNavMesh.GetNavAreaByID(areas.Get(Math_GetRandomInt(0, areas.Length - 1)));
+	delete areas;
+
+	ArrayList spots = new ArrayList();
+	if(final.GetHidingSpots(spots) > 0)
+	{
+		HidingSpot hs = spots.Get(Math_GetRandomInt(0, spots.Length - 1));
+		if(hs != NULL_HIDING_SPOT)
+		{
+			hs.GetPosition(pos);
+			pos[2] += 8.0;
+
+			if(IsSafeAreaToTeleport(client, pos))
+			{
+				delete spots;
+				return true;
+			}
+		}
+	}
+
+	final.GetCenter(pos);
+	pos[2] += 15.0;
+
+	delete spots;
+	return true;
 }
 
 void Director_OnPlayerDeath(int victim, int killer)
@@ -403,6 +447,119 @@ void DirectorFrame_GiveBomb(int serial)
 			{
 				TF2_PickUpFlag(client, flag);
 				RequestFrame(Frame_UpdateBombHUD, GetClientSerial(client));
+			}
+		}
+
+		switch(TF2_GetPlayerClass(client))
+		{
+			case TFClass_Engineer: RequestFrame(DirectorFrame_TeleportEngineer, serial);
+			case TFClass_Spy: RequestFrame(DirectorFrame_TeleportSpy, serial);
+		}
+	}
+}
+
+// Called by DirectorFrame_GiveBomb, teleports engineer robots
+void DirectorFrame_TeleportEngineer(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if(client)
+	{
+		RobotPlayer rp = RobotPlayer(client);
+		ArrayList hints = new ArrayList();
+		CollectEngineerHints(client, hints);
+
+		if(hints.Length > 0)
+		{
+			int hint = hints.Get(Math_GetRandomInt(0, hints.Length - 1));
+
+			float origin[3], angles[3];
+			GetEntPropVector(hint, Prop_Send, "m_vecOrigin", origin);
+			GetEntPropVector(hint, Prop_Send, "m_angRotation", angles);
+
+			Action result;
+			Call_StartForward(g_OnTeleport);
+			Call_PushCell(client);
+			Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+			Call_PushCell(TF2_GetPlayerClass(client));
+			Call_PushCell(g_eTemplates[rp.templateindex].index);
+			Call_PushCell(g_eTemplates[rp.templateindex].type);
+			Call_PushArrayEx(origin, sizeof(origin), SM_PARAM_COPYBACK);
+			Call_PushArrayEx(angles, sizeof(angles), SM_PARAM_COPYBACK);
+			Call_Finish(result);
+
+			if(result == Plugin_Continue || result == Plugin_Changed)
+			{
+				TeleportEntity(client, origin, angles, {0.0, 0.0, 0.0});
+			}
+		}
+		else
+		{
+			int target = GetRandomClientFromTeam(view_as<int>(TFTeam_Blue), true, true);
+			
+			if(target)
+			{
+				float origin[3], angles[3];
+				GetClientAbsOrigin(target, origin);
+				GetClientAbsAngles(target, angles);
+
+				if(IsSafeAreaToTeleport(client, origin))
+				{
+					Action result;
+					Call_StartForward(g_OnTeleport);
+					Call_PushCell(client);
+					Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+					Call_PushCell(TF2_GetPlayerClass(client));
+					Call_PushCell(g_eTemplates[rp.templateindex].index);
+					Call_PushCell(g_eTemplates[rp.templateindex].type);
+					Call_PushArrayEx(origin, sizeof(origin), SM_PARAM_COPYBACK);
+					Call_PushArrayEx(angles, sizeof(angles), SM_PARAM_COPYBACK);
+					Call_Finish(result);
+		
+					if(result == Plugin_Continue || result == Plugin_Changed)
+					{
+						TeleportEntity(client, origin, angles, {0.0, 0.0, 0.0});
+						rp.inspawn = false;
+					}					
+				}
+			}
+		}
+
+		delete hints;
+	}
+}
+
+// Called by DirectorFrame_GiveBomb, teleports spy robots
+void DirectorFrame_TeleportSpy(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if(client)
+	{
+		RobotPlayer rp = RobotPlayer(client);
+		int target = GetRandomClientFromTeam(view_as<int>(TFTeam_Red), true, true, false);
+
+		if(target)
+		{
+			float pos[3], angles[3] = {0.0, ...};
+			if(Director_TeleportSpy(client, target, pos))
+			{
+				Action result;
+				Call_StartForward(g_OnTeleport);
+				Call_PushCell(client);
+				Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+				Call_PushCell(TF2_GetPlayerClass(client));
+				Call_PushCell(g_eTemplates[rp.templateindex].index);
+				Call_PushCell(g_eTemplates[rp.templateindex].type);
+				Call_PushArrayEx(pos, sizeof(pos), SM_PARAM_COPYBACK);
+				Call_PushArrayEx(angles, sizeof(angles), SM_PARAM_COPYBACK);
+				Call_Finish(result);
+	
+				if(result == Plugin_Continue || result == Plugin_Changed)
+				{
+					TeleportEntity(client, pos, angles, {0.0, 0.0, 0.0});
+					rp.inspawn = false;
+				}					
 			}
 		}
 	}

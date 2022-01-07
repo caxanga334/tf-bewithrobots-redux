@@ -13,13 +13,14 @@ enum struct etemplates
 	int index; // robot list internal index
 	int type; // robot type
 	int supply; // available count
+	int role; // robot role
 	float percent; // wave percentage
 	int spawns; // How many times this robot has spawned in the current wave
 	float lastspawn; // The last time this robot spawned in the current wave
 }
 etemplates g_eTemplates[MAX_ROBOTS];
 
-void RegisterRobotTemplate(int pluginID, TFClassType class, int cost, int index, int type, int supply, float percent)
+void RegisterRobotTemplate(int pluginID, TFClassType class, int cost, int index, int type, int supply, int role, float percent)
 {
 	if(g_cbindex >= MAX_ROBOTS)
 	{
@@ -38,6 +39,7 @@ void RegisterRobotTemplate(int pluginID, TFClassType class, int cost, int index,
 	g_eTemplates[g_cbindex].type = type;
 	g_eTemplates[g_cbindex].supply = supply;
 	g_eTemplates[g_cbindex].percent = percent;
+	g_eTemplates[g_cbindex].role = role;
 
 	g_cbindex++;
 	g_maxrobots++;

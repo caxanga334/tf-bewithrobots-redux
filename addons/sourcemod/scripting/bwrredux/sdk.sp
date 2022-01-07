@@ -212,3 +212,18 @@ void OnEndTouchCaptureZone(int entity, int other)
 		}		
 	}
 }
+
+void OnTFBotTagFilterSpawnPost(int entity)
+{
+	DHookEntity(g_hCFilterTFBotHasTag, true, entity);
+}
+
+void OnReviveMarkerSpawnPost(int entity)
+{
+	RequestFrame(Frame_RemoveReviveMaker, EntIndexToEntRef(entity));
+}
+
+void OnAmmoPackSpawnPost(int entity)
+{
+	RequestFrame(Frame_RemoveAmmoPack, EntIndexToEntRef(entity));
+}

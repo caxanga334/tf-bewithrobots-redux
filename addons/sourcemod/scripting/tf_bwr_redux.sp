@@ -5,6 +5,10 @@
 #include <tf2>
 #include <tf2_stocks>
 #include <autoexecconfig>
+#include <smlib/math>
+#include <stocksoup/sdkports/vector>
+#include <stocksoup/tf/tempents_stocks>
+#include <stocksoup/math>
 #define REQUIRE_PLUGIN
 #include <tf2attributes>
 #include <tf2utils>
@@ -17,6 +21,8 @@
 #include <cbasenpc>
 #include <bwrr_stocks>
 #include <bwrr_api>
+
+#define _bwrr_debug_
 
 #define PLUGIN_VERSION "2.0.0-alpha"
 #define TF_CURRENCY_PACK_CUSTOM 9
@@ -263,7 +269,7 @@ public void TF2_OnWaitingForPlayersStart()
 
 public void TF2_OnWaitingForPlayersEnd()
 {
-	PrintToServer("TF2_OnWaitingForPlayersEnd");
+
 }
 
 public void OnClientPutInServer(int client)
@@ -288,6 +294,18 @@ public void OnEntityCreated(int entity, const char[] classname)
 		SDKHook(entity, SDKHook_StartTouchPost, OnStartTouchCaptureZone);
 		SDKHook(entity, SDKHook_EndTouchPost, OnEndTouchCaptureZone);
 	}
+	else if(strcmp(classname, "filter_tf_bot_has_tag", false) == 0)
+	{
+		SDKHook(entity, SDKHook_SpawnPost, OnTFBotTagFilterSpawnPost);
+	}
+	else if (strcmp(classname, "entity_revive_marker", false) == 0)
+	{
+		SDKHook(entity, SDKHook_SpawnPost, OnReviveMarkerSpawnPost);
+	}
+	else if(strcmp(classname, "tf_ammo_pack") == 0)
+	{
+		SDKHook(entity, SDKHook_SpawnPost, OnAmmoPackSpawnPost);
+	}
 }
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
@@ -297,6 +315,8 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 	RobotPlayer rp = RobotPlayer(client);
 	TFTeam team = TF2_GetClientTeam(client);
+	float origin[3];
+	GetClientAbsOrigin(client, origin);
 
 	if(rp.isrobot && team == TFTeam_Blue && IsPlayerAlive(client))
 	{
@@ -317,6 +337,34 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
 		if(rp.carrier && !rp.inspawn)
 		{
+			if(rp.bomblevel > 0) // apply defensive buff to nearby robots
+			{
+				for(int i = 1; i <= MaxClients; i++)
+				{
+					if(i == client) 
+						continue;
+				
+					if(!IsClientInGame(i))
+						continue;
+						
+					if(GetClientTeam(i) != GetClientTeam(client))
+						continue;
+					
+					if(rp.bomblevel < 1)
+						continue;
+						
+					float target[3];
+					GetClientAbsOrigin(i, target);
+					
+					float flDistance = GetVectorDistance(origin, target);
+					
+					if(flDistance <= 450.0)
+					{
+						TF2_AddCondition(i, TFCond_DefenseBuffNoCritBlock, 0.125);
+					}
+				}
+			}
+
 			if(rp.nextbombupgradetime <= GetGameTime() && rp.bomblevel < 3 && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1)
 			{
 				FakeClientCommandThrottled(client, "taunt");
@@ -357,6 +405,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 						}
 						case 3:
 						{
+							TF2_AddCondition(client, TFCond_CritOnWin);
 							TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE3, view_as<int>(TFTeam_Red), "");
 						}
 					}

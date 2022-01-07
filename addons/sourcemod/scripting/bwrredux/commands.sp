@@ -13,6 +13,10 @@ void SetupPluginCommands()
 void SetupCommandListeners()
 {
 	AddCommandListener(Listener_JoinTeam, "jointeam");
+	AddCommandListener(Listener_BlockedOnBLU, "kill");
+	AddCommandListener(Listener_BlockedOnBLU, "explode");
+	AddCommandListener(Listener_BlockedOnBLU, "dropitem");
+	AddCommandListener(Listener_BlockedOnBLU, "td_buyback");
 }
 
 public Action Cmd_JoinDefenders(int client, int args)
@@ -106,4 +110,56 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 	
 	Cmd_JoinDefenders(client, 0); // Default to RED team.
 	return Plugin_Handled;
+}
+
+public Action Listener_BlockedOnBLU(int client, const char[] command, int argc)
+{
+	if(!IsClientInGame(client)) {
+		return Plugin_Continue;
+	}
+		
+	if(IsFakeClient(client)) {
+		return Plugin_Continue;
+	}
+
+	if(TF2_GetClientTeam(client) == TFTeam_Blue)
+	{
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
+}
+
+public Action Listener_Build(int client, const char[] command, int argc)
+{
+	if(!IsClientInGame(client)) {
+		return Plugin_Continue;
+	}
+
+	if(TF2_GetClientTeam(client) != TFTeam_Blue) {
+		return Plugin_Continue;
+	}
+		
+	if(IsFakeClient(client)) {
+		return Plugin_Continue;
+	}
+
+	RobotPlayer rp = RobotPlayer(client);
+
+	if(rp.inspawn)
+	{
+		return Plugin_Handled;
+	}
+	
+	char strArg1[8], strArg2[8];
+	GetCmdArg(1, strArg1, sizeof(strArg1));
+	GetCmdArg(2, strArg2, sizeof(strArg2));
+	
+	TFObjectType objType = view_as<TFObjectType>(StringToInt(strArg1));
+	TFObjectMode objMode = view_as<TFObjectMode>(StringToInt(strArg2));
+	
+	if(objType == TFObject_Teleporter && objMode == TFObjectMode_Entrance)
+		return Plugin_Handled;
+	
+	return Plugin_Continue;
 }

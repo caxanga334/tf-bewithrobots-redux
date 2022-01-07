@@ -1,5 +1,16 @@
 // Extras functions
 
+/**
+ * Returns either true or false based on random chance.
+ *
+ * @param chance        The chance to return true
+ * @return				Boolean value
+ */
+stock bool Math_RandomChance(int chance)
+{
+	return Math_GetRandomInt(1, 100) <= chance;
+}
+
 // Checks if the client is a valid client index
 bool IsValidClient(int client)
 {
@@ -218,9 +229,8 @@ bool TF2_IsGiant(int client)
 	return view_as<bool>(GetEntProp(client, Prop_Send, "m_bIsMiniBoss"));
 }
 
-ArrayList CollectValidSpawnPoints(int client)
+void CollectValidSpawnPoints(int client, ArrayList spawns)
 {
-	ArrayList spawns = new ArrayList();
 	int entity;
 	float origin[3];
 
@@ -236,8 +246,6 @@ ArrayList CollectValidSpawnPoints(int client)
 			}
 		}
 	}
-
-	return spawns;
 }
 
 /**
@@ -259,14 +267,17 @@ bool IsSafeAreaToTeleport(int client, float origin[3])
 	return !result;
 }
 
-// Trace filter that ignores all clients/players
-bool TraceFilter_IgnorePlayers(int entity, int contentsMask)
+// code from Pelipoika's bot control
+// executes a fake command with a delay between executions
+bool FakeClientCommandThrottled(int client, const char[] command)
 {
-	if(entity > 0 && entity <= MaxClients)
-	{
+	if(g_flNextCommand[client] > GetGameTime())
 		return false;
-	}
-
+	
+	FakeClientCommand(client, command);
+	
+	g_flNextCommand[client] = GetGameTime() + 0.4;
+	
 	return true;
 }
 
@@ -302,6 +313,301 @@ void TF2BWR_DeployBomb(int client)
 			EmitGameSoundToAll("MVM.DeployBombGiant", client, SND_NOFLAGS, _, origin);
 		}
 	}
+}
+
+void TF2BWR_CancelDeployBomb(int client)
+{
+	SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 1);
+	TF2_RemoveCondition(client, TFCond_FreezeInput);
+}
+
+void TF2BWR_TriggerBombHatch(int client)
+{
+	int entity = FindEntityByClassname(-1, "func_capturezone");
+	LogAction(client, -1, "\"%L\" deployed the bomb.", client);
+	PrintToChatAll("%N deployed the bomb!", client);
+	if(entity != -1)
+	{
+		FireEntityOutput(entity, "OnCapture", entity);
+		FireEntityOutput(entity, "OnCapTeam2", entity);
+	}
+	else
+	{
+		ThrowError("Could not find func_capturezone");
+	}
+}
+
+void CollectEngineerHints(int client, ArrayList hints)
+{
+	int entity;
+	float origin[3];
+
+	while((entity = FindEntityByClassname(entity, "bot_hint_engineer_nest")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntProp(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Blue))
+		{
+			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+			if(IsSafeAreaToTeleport(client, origin))
+			{
+				hints.Push(entity);
+			}
+		}
+	}	
+}
+
+/**
+ * Gets a random client from the given team
+ * 
+ * @param team      The client team
+ * @param alive     Exclude dead players
+ * @param bots      Should bots be included
+ * @param inspawn   Exlude players inside spawn
+ * @return          Client index or 0 if not found
+ */
+int GetRandomClientFromTeam(int team, bool alive = false, bool bots = false, bool inspawn = false)
+{
+	int counter;
+	int[] players = new int[MaxClients + 1];
+
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(!IsClientInGame(i))
+			continue;
+
+		if(GetClientTeam(i) != team)
+			continue;
+
+		if(bots && IsFakeClient(i))
+			continue;
+
+		if(alive && !IsPlayerAlive(i))
+			continue;
+
+		if(inspawn)
+		{
+			float origin[3];
+			GetClientAbsOrigin(i, origin);
+			if(TF2Util_IsPointInRespawnRoom(origin, i, true)) {
+				continue;
+			}
+				
+		}
+		
+		players[counter] = i;
+		counter++;
+	}
+
+	if(counter == 0) { return 0; }
+	return players[Math_GetRandomInt(0, counter - 1)];
+}
+
+/**
+ * Performs a simple Trace Ray between start and end positions
+ * 
+ * @param start     The start position
+ * @param end       The end position
+ * @return          TRUE if there is an obstruction between the start and end positions
+ */
+bool CheckLOSSimpleTrace(float start[3], float end[3])
+{
+	Handle trace = null;
+	trace = TR_TraceRayFilterEx(start, end, MASK_SHOT, RayType_EndPoint, TraceFilter_LOS);
+	bool hit = TR_DidHit(trace);
+	delete trace;
+
+	return hit;
+}
+
+/**
+ * Collects nearby nav areas and place them by ID in an ArrayList
+ * 
+ * @param areas       ArrayList to store the NAV areas IDs
+ * @param origin      The point to get the starting area
+ * @param maxdist     Maximum distance to collect
+ * @param maxup       Maximum step height
+ * @param maxdown     Maximum drop down height limit
+ * @return            TRUE if successfully collected
+ */
+bool CollectNavAreas(ArrayList areas, const float origin[3], float maxdist, float maxup, float maxdown)
+{
+	CNavArea start = TheNavMesh.GetNearestNavArea(origin, false, 512.0);
+
+	if(start == NULL_AREA)
+	{
+		return false;
+	}
+
+	SurroundingAreasCollector collector = TheNavMesh.CollectSurroundingAreas(start, maxdist, maxup, maxdown);
+
+	for(int i = 0;i < collector.Count(); i++)
+	{
+		CNavArea navarea = collector.Get(i);
+		areas.Push(navarea.GetID());
+	}
+
+	delete collector;
+	return true;
+}
+
+/**
+ * Filters the NAV areas from the ArrayList using Trace Hull to check if the given client won't get stuck.
+ * 
+ * @param areas      ArrayList containing NAV areas ID
+ * @param client     Client index
+ */
+void FilterNavAreasByTrace(ArrayList areas, int client)
+{
+	CNavArea navarea;
+	float center[3];
+
+#if defined _bwrr_debug_
+	int debug_counter = 0;
+#endif
+
+	for(int i = 0;i < areas.Length;i++)
+	{
+		navarea = TheNavMesh.GetNavAreaByID(areas.Get(i));
+		navarea.GetCenter(center);
+		center[2] += 15.0; // add a bit of height
+
+		if(!IsSafeAreaToTeleport(client, center))
+		{
+#if defined _bwrr_debug_
+			debug_counter++;
+#endif
+			areas.Erase(i);
+		}
+	}
+#if defined _bwrr_debug_
+	PrintToChatAll("[FilterNavAreasByTrace] Filtered %i NAV areas for client %N", debug_counter, client);
+#endif
+}
+
+void FilterNavAreasByLOS(ArrayList areas, TFTeam team)
+{
+	CNavArea navarea;
+	float center[3], angles[3], origin[3], fwd[3], eyes[3];
+
+#if defined _bwrr_debug_
+	int debug_counter = 0;
+#endif
+
+	for(int i = 0;i < areas.Length;i++)
+	{
+		navarea = TheNavMesh.GetNavAreaByID(areas.Get(i));
+		navarea.GetCenter(center);
+		center[2] += 15.0; // add a bit of height
+
+		for(int client = 1;client <= MaxClients;client++)
+		{
+			if(!IsClientInGame(client))
+				continue;
+
+			if(!IsPlayerAlive(client))
+				continue;
+
+			if(TF2_GetClientTeam(client) != team)
+				continue;
+
+			GetClientAbsOrigin(client, origin);
+			GetClientEyeAngles(client, angles);
+			GetClientEyePosition(client, eyes);
+			GetAngleVectors(angles, fwd, NULL_VECTOR, NULL_VECTOR);
+
+			if(PointWithinViewAngle(origin, center, fwd, GetFOVDotProduct(140.0))) // Check if within view angles
+			{
+				if(!CheckLOSSimpleTrace(eyes, center)) // Check for obstruction
+				{
+#if defined _bwrr_debug_
+					debug_counter++;
+#endif
+					areas.Erase(i);
+				}
+			}
+		}
+	}
+
+#if defined _bwrr_debug_
+	PrintToChatAll("[FilterNavAreasByLOS] Filtered %i NAV areas", debug_counter);
+#endif
+}
+
+/*----------------------------------------------
+-----------------TRACE FILTERS------------------
+----------------------------------------------*/
+
+// Trace filter that ignores all clients/players
+bool TraceFilter_IgnorePlayers(int entity, int contentsMask)
+{
+	if(entity > 0 && entity <= MaxClients)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool TraceFilter_LOS(int entity, int contentsMask)
+{
+	if(entity > 0 && entity <= MaxClients)
+	{
+		return false;
+	}
+
+	char classname[64];
+	GetEntityClassname(entity, classname, sizeof(classname));
+
+	if(StrContains("obj_", classname, false) != -1) { return false; }
+	if(strcmp("tank_boss", classname, false) == 0) { return false; }
+
+	return true;	
+}
+
+/*----------------------------------------------
+------------REQUESTFRAME CALLBACKS--------------
+----------------------------------------------*/
+
+// code from Pelipoika's bot control
+// Updates the bomb level show on the HUD
+void Frame_UpdateBombHUD(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if(client)
+	{
+		RobotPlayer rp = RobotPlayer(client);
+		int entity = FindEntityByClassname(-1, "tf_objective_resource");
+		SetEntProp(entity, Prop_Send, "m_nFlagCarrierUpgradeLevel", rp.bomblevel);
+		SetEntPropFloat(entity, Prop_Send, "m_flMvMBaseBombUpgradeTime", rp.inspawn ? -1.0 : GetGameTime());
+		SetEntPropFloat(entity, Prop_Send, "m_flMvMNextBombUpgradeTime", rp.inspawn ? -1.0 : rp.nextbombupgradetime);
+	}
+}
+
+void Frame_RemoveReviveMaker(int entref)
+{
+	int ent = EntRefToEntIndex(entref);
+	if(ent == INVALID_ENT_REFERENCE)
+		return;
+		
+	int team = GetEntProp(ent, Prop_Send, "m_iTeamNum");
+	if(team != 3)
+		return;
+		
+	RemoveEntity(ent);
+}
+
+void Frame_RemoveAmmoPack(int entref)
+{
+	int ent = EntRefToEntIndex(entref);
+	if(ent == INVALID_ENT_REFERENCE)
+		return;
+		
+	int owner = GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity");
+	
+	if(IsValidClient(owner) && GetClientTeam(owner) == 3)
+	{
+		RemoveEntity(ent);
+	}	
 }
 
 // code from Pelipoika's bot control
@@ -343,57 +649,5 @@ void Frame_DisableAnimation(int serial)
 	else
 	{
 		count = 0;
-	}
-}
-
-void TF2BWR_CancelDeployBomb(int client)
-{
-	SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 1);
-	TF2_RemoveCondition(client, TFCond_FreezeInput);
-}
-
-void TF2BWR_TriggerBombHatch(int client)
-{
-	int entity = FindEntityByClassname(-1, "func_capturezone");
-	LogAction(client, -1, "\"%L\" deployed the bomb.", client);
-	PrintToChatAll("%N deployed the bomb!", client);
-	if(entity != -1)
-	{
-		FireEntityOutput(entity, "OnCapture", entity);
-		FireEntityOutput(entity, "OnCapTeam2", entity);
-	}
-	else
-	{
-		ThrowError("Could not find func_capturezone");
-	}
-}
-
-// code from Pelipoika's bot control
-// executes a fake command with a delay between executions
-bool FakeClientCommandThrottled(int client, const char[] command)
-{
-	if(g_flNextCommand[client] > GetGameTime())
-		return false;
-	
-	FakeClientCommand(client, command);
-	
-	g_flNextCommand[client] = GetGameTime() + 0.4;
-	
-	return true;
-}
-
-// code from Pelipoika's bot control
-// Updates the bomb level show on the HUD
-void Frame_UpdateBombHUD(int serial)
-{
-	int client = GetClientFromSerial(serial);
-
-	if(client)
-	{
-		RobotPlayer rp = RobotPlayer(client);
-		int entity = FindEntityByClassname(-1, "tf_objective_resource");
-		SetEntProp(entity, Prop_Send, "m_nFlagCarrierUpgradeLevel", rp.bomblevel);
-		SetEntPropFloat(entity, Prop_Send, "m_flMvMBaseBombUpgradeTime", rp.inspawn ? -1.0 : GetGameTime());
-		SetEntPropFloat(entity, Prop_Send, "m_flMvMNextBombUpgradeTime", rp.inspawn ? -1.0 : rp.nextbombupgradetime);
 	}
 }
