@@ -11,6 +11,7 @@ ConVar c_spman_spy_maxdist; // Maximum distance to teleport spy
 ConVar c_bomb_upgrade1; // Bomb first upgrade time
 ConVar c_bomb_upgrade2; // Bomb second upgrade time
 ConVar c_bomb_upgrade3; // Bomb third upgrade time
+ConVar c_engineer_distance; // Minimum distance between engineer teleport and bomb
 
 void SetupConVars()
 {
@@ -30,9 +31,14 @@ void SetupConVars()
 	c_bomb_upgrade1 = FindConVar("tf_mvm_bot_flag_carrier_interval_to_1st_upgrade");
 	c_bomb_upgrade2 = FindConVar("tf_mvm_bot_flag_carrier_interval_to_2nd_upgrade");
 	c_bomb_upgrade3 = FindConVar("tf_mvm_bot_flag_carrier_interval_to_3rd_upgrade");
+	c_engineer_distance = FindConVar("tf_bot_engineer_mvm_hint_min_distance_from_bomb");
 
 	if(c_bomb_upgrade1 == null || c_bomb_upgrade2 == null || c_bomb_upgrade3 == null)
 	{
 		SetFailState("Failed to get bomb upgrade convars.");
+	}
+	else if(c_engineer_distance == null)
+	{
+		SetFailState("Failed to find ConVar \"tf_bot_engineer_mvm_hint_min_distance_from_bomb\"!");
 	}
 }

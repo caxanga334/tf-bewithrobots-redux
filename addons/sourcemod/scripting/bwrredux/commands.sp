@@ -17,6 +17,7 @@ void SetupCommandListeners()
 	AddCommandListener(Listener_BlockedOnBLU, "explode");
 	AddCommandListener(Listener_BlockedOnBLU, "dropitem");
 	AddCommandListener(Listener_BlockedOnBLU, "td_buyback");
+	AddCommandListener(Listener_Build, "build");
 }
 
 public Action Cmd_JoinDefenders(int client, int args)
@@ -151,12 +152,8 @@ public Action Listener_Build(int client, const char[] command, int argc)
 		return Plugin_Handled;
 	}
 	
-	char strArg1[8], strArg2[8];
-	GetCmdArg(1, strArg1, sizeof(strArg1));
-	GetCmdArg(2, strArg2, sizeof(strArg2));
-	
-	TFObjectType objType = view_as<TFObjectType>(StringToInt(strArg1));
-	TFObjectMode objMode = view_as<TFObjectMode>(StringToInt(strArg2));
+	TFObjectType objType = view_as<TFObjectType>(GetCmdArgInt(1));
+	TFObjectMode objMode = view_as<TFObjectMode>(GetCmdArgInt(2));
 	
 	if(objType == TFObject_Teleporter && objMode == TFObjectMode_Entrance)
 		return Plugin_Handled;

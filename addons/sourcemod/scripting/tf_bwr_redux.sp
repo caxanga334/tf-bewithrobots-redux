@@ -22,8 +22,6 @@
 #include <bwrr_stocks>
 #include <bwrr_api>
 
-#define _bwrr_debug_
-
 #define PLUGIN_VERSION "2.0.0-alpha"
 #define TF_CURRENCY_PACK_CUSTOM 9
 #define MAX_SUBPLUGINS 64
@@ -262,6 +260,11 @@ public void OnMapStart()
 	PrecacheScriptSound("MVM.Warning");
 }
 
+public void OnMapEnd()
+{
+	delete g_eDirector.timer;
+}
+
 public void TF2_OnWaitingForPlayersStart()
 {
 	PrintToServer("TF2_OnWaitingForPlayersStart");
@@ -323,7 +326,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		if(rp.inspawn)
 		{
 			SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.5);
-			TF2_AddCondition(client, TFCond_UberchargedHidden, 0.100);
+			TF2_AddCondition(client, TFCond_UberchargedHidden, 1.0);
 		}
 
 		if(rp.deploying)

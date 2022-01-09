@@ -11,6 +11,21 @@ stock bool Math_RandomChance(int chance)
 	return Math_GetRandomInt(1, 100) <= chance;
 }
 
+/**
+ * Gets the angle towards the given target
+ * 
+ * @param source     Source position
+ * @param target     Target position
+ * @param angles     Angles vector
+ */
+void GetAngleTorwardsPoint(const float source[3], const float target[3], float angles[3])
+{
+	float vec[3];
+	SubtractVectors(target, source, vec);
+	NormalizeVector(vec, vec);
+	GetVectorAngles(vec, angles);
+}
+
 // Checks if the client is a valid client index
 bool IsValidClient(int client)
 {
@@ -25,7 +40,7 @@ bool IsPlayingMannVsMachine()
 }
 
 // Checks if the wave is in progress
-stock bool IsMvMWaveRunning()
+bool IsMvMWaveRunning()
 {
 	return GameRules_GetRoundState() == RoundState_RoundRunning;
 }
@@ -337,7 +352,7 @@ void TF2BWR_TriggerBombHatch(int client)
 	}
 }
 
-void CollectEngineerHints(int client, ArrayList hints)
+/*void CollectEngineerHints(int client, ArrayList hints)
 {
 	int entity;
 	float origin[3];
@@ -353,7 +368,7 @@ void CollectEngineerHints(int client, ArrayList hints)
 			}
 		}
 	}	
-}
+}*/
 
 /**
  * Gets a random client from the given team
@@ -377,7 +392,7 @@ int GetRandomClientFromTeam(int team, bool alive = false, bool bots = false, boo
 		if(GetClientTeam(i) != team)
 			continue;
 
-		if(bots && IsFakeClient(i))
+		if(!bots && IsFakeClient(i))
 			continue;
 
 		if(alive && !IsPlayerAlive(i))
@@ -460,10 +475,6 @@ void FilterNavAreasByTrace(ArrayList areas, int client)
 	CNavArea navarea;
 	float center[3];
 
-#if defined _bwrr_debug_
-	int debug_counter = 0;
-#endif
-
 	for(int i = 0;i < areas.Length;i++)
 	{
 		navarea = TheNavMesh.GetNavAreaByID(areas.Get(i));
@@ -472,25 +483,15 @@ void FilterNavAreasByTrace(ArrayList areas, int client)
 
 		if(!IsSafeAreaToTeleport(client, center))
 		{
-#if defined _bwrr_debug_
-			debug_counter++;
-#endif
 			areas.Erase(i);
 		}
 	}
-#if defined _bwrr_debug_
-	PrintToChatAll("[FilterNavAreasByTrace] Filtered %i NAV areas for client %N", debug_counter, client);
-#endif
 }
 
 void FilterNavAreasByLOS(ArrayList areas, TFTeam team)
 {
 	CNavArea navarea;
 	float center[3], angles[3], origin[3], fwd[3], eyes[3];
-
-#if defined _bwrr_debug_
-	int debug_counter = 0;
-#endif
 
 	for(int i = 0;i < areas.Length;i++)
 	{
@@ -518,18 +519,145 @@ void FilterNavAreasByLOS(ArrayList areas, TFTeam team)
 			{
 				if(!CheckLOSSimpleTrace(eyes, center)) // Check for obstruction
 				{
-#if defined _bwrr_debug_
-					debug_counter++;
-#endif
 					areas.Erase(i);
 				}
 			}
 		}
 	}
+}
 
-#if defined _bwrr_debug_
-	PrintToChatAll("[FilterNavAreasByLOS] Filtered %i NAV areas", debug_counter);
-#endif
+/**
+ * Filters NAV area by distance
+ * 
+ * @param areas      ArrayList containing NAV areas ID
+ * @param source     Position vector to compare distance
+ * @param min        Minimum distance
+ * @param max        Maximum distance
+ */
+void FilterNavAreasByDistance(ArrayList areas, const float source[3], const float min, const float max)
+{
+	CNavArea navarea;
+	float center[3], distance;
+
+	for(int i = 0;i < areas.Length;i++)
+	{
+		navarea = TheNavMesh.GetNavAreaByID(areas.Get(i));
+		navarea.GetCenter(center);
+		center[2] += 15.0; // add a bit of height
+
+		distance = GetVectorDistance(center, source);
+
+		if(distance < min)
+		{
+			areas.Erase(i);
+		}
+		else if(distance > max)
+		{
+			areas.Erase(i);
+		}
+	}
+}
+
+/**
+ * Filters NAV areas inside spawn rooms
+ * 
+ * @param areas                   ArrayList containing NAV areas
+ * @param entity                  An optional entity to check.
+ * @param bRestrictToSameTeam     Whether or not the respawn room must either match the entity's
+ *                                team, or not be assigned to a team.  Always treated as true if
+ *                                the position is in an active spawn room.  Has no effect if no
+ *                                entity is provided.
+ */
+void FilterNavAreasBySpawnRoom(ArrayList areas, const int entity = INVALID_ENT_REFERENCE, const bool bRestrictToSameTeam = false)
+{
+	CNavArea navarea;
+	float center[3];
+	float points[4][3];
+
+	for(int i = 0;i < areas.Length;i++)
+	{
+		navarea = TheNavMesh.GetNavAreaByID(areas.Get(i));
+		navarea.GetCenter(center);
+		center[2] += 15.0; // add a bit of height
+
+		navarea.GetCorner(NORTH_WEST, points[0]);
+		navarea.GetCorner(NORTH_EAST, points[1]);
+		navarea.GetCorner(SOUTH_WEST, points[2]);
+		navarea.GetCorner(SOUTH_EAST, points[3]);
+
+		for(int y = 0;y < sizeof(points);y++)
+		{
+			points[y][2] += 15.0; // add a bit of height
+		}
+
+		if(TF2Util_IsPointInRespawnRoom(center, entity, bRestrictToSameTeam))
+		{
+			areas.Erase(i);
+			continue;
+		}
+
+		for(int y = 0;y < sizeof(points);y++)
+		{
+			if(TF2Util_IsPointInRespawnRoom(points[y], entity, bRestrictToSameTeam))
+			{
+				areas.Erase(i);
+				break;
+			}
+		}
+	}
+}
+
+int CollectBombs(ArrayList bombs, const int team)
+{
+	int entity = INVALID_ENT_REFERENCE;
+	int counter = 0;
+
+	while((entity = FindEntityByClassname(entity, "item_teamflag")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntProp(entity, Prop_Send, "m_iTeamNum") == team && GetEntProp(entity, Prop_Send, "m_bDisabled") == 0)
+		{
+			bombs.Push(EntIndexToEntRef(entity));
+			counter++;
+		}
+	}
+
+	return counter;
+}
+
+/**
+ * Filters the bomb by distance to the bomb hatch
+ * 
+ * @param bombs        ArrayList containg a bomb list as entity references
+ * @param distance     Distance between the closest bomb and the bomb hatch
+ * @return             The closest bomb entity index
+ */
+int FilterBombClosestToHatch(ArrayList bombs, float &distance)
+{
+	int entity = INVALID_ENT_REFERENCE, best = INVALID_ENT_REFERENCE;
+	float short = 999999.0, search;
+	float hatch[3], origin[3];
+	hatch = TF2_GetBombHatchPosition(true);
+
+	for(int i = 0; i < bombs.Length;i++)
+	{
+		entity = EntRefToEntIndex(bombs.Get(i));
+
+		if(entity == INVALID_ENT_REFERENCE)
+			continue;
+
+		TF2_GetFlagPosition(entity, origin);
+
+		search = GetVectorDistance(origin, hatch);
+
+		if(search < short)
+		{
+			short = search;
+			distance = search;
+			best = entity;
+		}
+	}
+
+	return best;
 }
 
 /*----------------------------------------------

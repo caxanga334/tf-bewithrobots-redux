@@ -56,7 +56,7 @@ void TF2_SpeakConcept(int concept, int team, char[] modifiers)
  * @param team			Which team should be pushed
  * @return     no return
  */
-stock void TF2_PushAllPlayers(float vPos[3], float range, float force, int team)
+void TF2_PushAllPlayers(float vPos[3], float range, float force, int team)
 {
 	SDKCall(g_hSDKPushAwayPlayers, vPos, range, force, team, 0);
 }
@@ -148,8 +148,8 @@ void TF2BWR_OnClientEndTouchSpawn(int client)
 
 	if(rp.isrobot)
 	{
-		SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 1.0);
-		TF2_RemoveCondition(client, TFCond_UberchargedHidden);
+		SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 1.5);
+		TF2_AddCondition(client, TFCond_UberchargedHidden, 1.0);
 
 		if(rp.templateindex >= 0)
 		{

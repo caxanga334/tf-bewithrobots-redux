@@ -130,6 +130,31 @@ stock int TF2_GetClientFlag(int client)
 }
 
 /**
+ * Gets a TF2 flag position in the world
+ * 
+ * @param flag       The flag entity index
+ * @param origin     Vector to store the flag position
+ */
+stock void TF2_GetFlagPosition(int flag, float origin[3])
+{
+	if(!IsValidEntity(flag)) 
+	{ 
+		ThrowError("Invalid flag entity %i!", flag); 
+	}
+	
+	int owner = GetEntPropEnt(flag, Prop_Send, "m_hOwnerEntity");
+
+	if(owner > 0 && owner < MaxClients)
+	{
+		GetClientAbsOrigin(owner, origin);
+	}
+	else
+	{
+		GetEntPropVector(flag, Prop_Send, "m_vecOrigin", origin);
+	}
+}
+
+/**
  * Checks if the given weapon classname is a wearable
  *
  * @param classname        	The weapon's classname
@@ -265,4 +290,41 @@ stock void TF2_GetPlayerHullSize(float mins[3], float maxs[3])
 	maxs[0] = 24.0;
 	maxs[1] = 24.0;
 	maxs[2] = 82.0;
+}
+
+/**
+ * Gets the number of players playing as the given class
+ * 
+ * @param class           The class to get
+ * @param team            Only count players from this team.
+ *                        TFTeam_Unassigned to ignore teams
+ * @param excludedead     Only count alive players
+ * @param excludebots     Only count human players
+ * @return                Number of players playing as the given class
+ */
+stock int TF2_GetNumPlayersAsClass(TFClassType class, TFTeam team = TFTeam_Unassigned, bool excludedead = false, bool excludebots = false)
+{
+	int counter = 0;
+
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(!IsClientInGame(i))
+			continue;
+
+		if(team != TFTeam_Unassigned && TF2_GetClientTeam(i) != team)
+			continue;
+
+		if(excludedead && !IsPlayerAlive(i))
+			continue;
+
+		if(excludebots && IsFakeClient(i))
+			continue;
+
+		if(TF2_GetPlayerClass(i) == class)
+		{
+			counter++;
+		}
+	}
+
+	return counter;
 }

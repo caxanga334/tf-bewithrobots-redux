@@ -102,7 +102,7 @@ public Action Event_Inventory(Event event, const char[] name, bool dontBroadcast
 
 	if(!IsFakeClient(client) && team == TFTeam_Blue)
 	{
-		RequestFrame(DirectorFrame_ApplyInventory, GetClientSerial(client));
+		Director_GiveInventory(client);
 	}
 
 	return Plugin_Continue;
