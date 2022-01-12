@@ -6,6 +6,7 @@ GlobalForward g_OnRobotSpawn;
 GlobalForward g_OnInventoryRequest;
 GlobalForward g_OnApplyModel;
 GlobalForward g_OnApplyScale;
+GlobalForward g_OnApplyLoopSound;
 GlobalForward g_OnGiveFlag;
 GlobalForward g_OnEnterSpawn;
 GlobalForward g_OnLeaveSpawn;
@@ -21,6 +22,7 @@ void SetupForwards()
 	g_OnInventoryRequest = new GlobalForward("BWRR_OnInventoryRequest", ET_Ignore, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell);
 	g_OnApplyModel = new GlobalForward("BWRR_OnApplyModel", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_String);
 	g_OnApplyScale = new GlobalForward("BWRR_OnApplyScale", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_FloatByRef);
+	g_OnApplyLoopSound = new GlobalForward("BWRR_OnApplyLoopSound", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_String, Param_CellByRef);
 	g_OnGiveFlag = new GlobalForward("BWRR_OnGiveFlag", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell);
 	g_OnEnterSpawn = new GlobalForward("BWRR_OnEnterSpawn", ET_Ignore, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell);
 	g_OnLeaveSpawn = new GlobalForward("BWRR_OnLeaveSpawn", ET_Ignore, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell);

@@ -135,6 +135,20 @@ forward Action BWRR_OnApplyModel(int client, const int pluginID, TFClassType cla
 forward Action BWRR_OnApplyScale(int client, const int pluginID, TFClassType class, int index, int type, float &scale);
 
 /**
+ * Called when applying a loop sound on a client
+ *
+ * @param client		The client index
+ * @param pluginID		The The plugin ID responside for the client current robot
+ * @param class			The client class
+ * @param index			The robot internal index
+ * @param type			The robot type
+ * @param sound         The sound path
+ * @param level         The sound level
+ * @return				Return Plugin_Changed to override the scale.
+ */
+ forward Action BWRR_OnApplyLoopSound(int client, const int pluginID, TFClassType class, int index, int type, char[] sound, int &level);
+
+/**
  * Called when giving a flag (bomb) to the player.
  * Returning Plugin_Handled or Plugin_Stop will prevent giving the flag.
  *

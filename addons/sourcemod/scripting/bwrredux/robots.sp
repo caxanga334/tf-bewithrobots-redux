@@ -196,3 +196,55 @@ void Robots_ClearScale(int client)
 	SetEntPropVector(client, Prop_Send, "m_vecSpecifiedSurroundingMaxs", maxs);
 	SetEntPropFloat(client, Prop_Send, "m_flModelScale", 1.0);
 }
+
+void Robots_DefaultLoopSound(RobotPlayer rp, char[] sound, int size)
+{
+	switch(rp.type)
+	{
+		case BWRR_RobotType_Boss, BWRR_RobotType_Giant:
+		{
+			switch(TF2_GetPlayerClass(rp.index))
+			{
+				case TFClass_Scout: strcopy(sound, size, "mvm/giant_scout/giant_scout_loop.wav");
+				case TFClass_Soldier: strcopy(sound, size, "mvm/giant_soldier/giant_soldier_loop.wav");
+				case TFClass_Pyro: strcopy(sound, size, "mvm/giant_pyro/giant_pyro_loop.wav");
+				case TFClass_DemoMan: strcopy(sound, size, "mvm/giant_demoman/giant_demoman_loop.wav");
+				case TFClass_Heavy: strcopy(sound, size, "mvm/giant_heavy/giant_heavy_loop.wav");
+			}
+		}
+		case BWRR_RobotType_Buster: strcopy(sound, size, "mvm/sentrybuster/mvm_sentrybuster_loop.wav");
+	}
+}
+
+void Robots_SetLoopSound(int client)
+{
+	char sound[PLATFORM_MAX_PATH];
+	int level = SNDLEVEL_TRAIN;
+	RobotPlayer rp = RobotPlayer(client);
+	Robots_DefaultLoopSound(rp, sound, sizeof(sound));
+
+	if(rp.templateindex >= 0)
+	{
+		Action result;
+		Call_StartForward(g_OnApplyLoopSound);
+		Call_PushCell(client);
+		Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+		Call_PushCell(TF2_GetPlayerClass(client));
+		Call_PushCell(g_eTemplates[rp.templateindex].index);
+		Call_PushCell(g_eTemplates[rp.templateindex].type);
+		Call_PushStringEx(sound, PLATFORM_MAX_PATH, SM_PARAM_STRING_UTF8 | SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+		Call_PushCellRef(level);
+		Call_Finish(result);
+	
+		if(result == Plugin_Handled || result == Plugin_Stop)
+		{
+			return;
+		}
+	}
+
+	if(strlen(sound) > 2)
+	{
+		rp.SetLoopSound(sound);
+		EmitSoundToAll(sound, client, SNDCHAN_STATIC, level, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
+	}
+}

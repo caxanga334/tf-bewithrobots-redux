@@ -1,5 +1,21 @@
 // SDK calls, SDK hooks
 
+void SetupEntityHooks()
+{
+	HookEntityOutput("team_control_point", "OnCapTeam1", OnGateCaptureByREDTeam);
+	HookEntityOutput("team_control_point", "OnCapTeam2", OnGateCaptureByBLUTeam);
+}
+
+void OnGateCaptureByREDTeam(const char[] output, int caller, int activator, float delay)
+{
+	CreateTimer(1.0, Timer_CheckGates, _, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+void OnGateCaptureByBLUTeam(const char[] output, int caller, int activator, float delay)
+{
+	CreateTimer(1.0, Timer_CheckGates, _, TIMER_FLAG_NO_MAPCHANGE);
+}
+
 void TF2_PlaySequence(int client, const char[] sequence)
 {
 	SDKCall(g_hSDKPlaySpecificSequence, client, sequence);
@@ -11,9 +27,20 @@ void TF2_PlaySequence(int client, const char[] sequence)
  * @param client		The client to remove from
  * @param obj			The object entity index to remove
  */
-stock void TF2_RemoveObject(int client, int obj)
+void TF2_RemoveObject(int client, int obj)
 {
 	SDKCall(g_hSDKRemoveObject, client, obj);
+}
+
+/**
+ * Sets the object builder
+ * 
+ * @param entity	  The entity to set the builder
+ * @param builder     The builder entity index or -1 for NULL
+ */
+void TF2_SetBuilder(int entity, int builder = INVALID_ENT_REFERENCE)
+{
+	SDKCall(g_hSDKSetBuilder, entity, builder);
 }
 
 /**
@@ -23,7 +50,7 @@ stock void TF2_RemoveObject(int client, int obj)
  * @param origin	origin vector to store
  * @return     no return
  */
-stock void GetEntityWorldCenter(int ent, float[] origin)
+void GetEntityWorldCenter(int ent, float[] origin)
 {
 	if(!IsValidEntity(ent))
 	{

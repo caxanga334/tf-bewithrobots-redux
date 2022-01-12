@@ -328,3 +328,22 @@ stock int TF2_GetNumPlayersAsClass(TFClassType class, TFTeam team = TFTeam_Unass
 
 	return counter;
 }
+
+/**
+ * Gets the number of entities of the given classname
+ * 
+ * @param classname     The entity classname
+ * @return              Number of entities with matching classname
+ */
+stock int GetSpecificEntityCount(const char[] classname)
+{
+	int counter = 0;
+	int ent = INVALID_ENT_REFERENCE;
+
+	while((ent = FindEntityByClassname(ent, classname)) != INVALID_ENT_REFERENCE)
+	{
+		counter++;
+	}
+
+	return counter;
+}

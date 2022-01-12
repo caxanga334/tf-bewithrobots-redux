@@ -50,6 +50,11 @@
 		}
 		"Offsets"
 		{
+			"CBaseObject::SetBuilder"
+			{
+				"windows"	"332"
+				"linux"		"333"
+			}
 			"CBaseEntity::WorldSpaceCenter" // use https://asherkin.github.io/vtable/
 			{
 				"windows"	"152"

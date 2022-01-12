@@ -1,5 +1,14 @@
 // Extras functions
 
+enum struct GateManager
+{
+	bool available; // Gatebots are available
+	int numgates; // Number of gates
+	int gates[6]; // Array with gate entity refs
+}
+
+GateManager g_eGateManager;
+
 /**
  * Returns either true or false based on random chance.
  *
@@ -658,6 +667,100 @@ int FilterBombClosestToHatch(ArrayList bombs, float &distance)
 	}
 
 	return best;
+}
+
+/**
+ * Checks if there are RED owned control points in the map.
+ * 
+ * @return     TRUE if there are RED owned control points
+ */
+bool CheckForREDOwnedControlPoints()
+{
+	int ent = -1;
+
+	while((ent = FindEntityByClassname(ent, "team_control_point")) != -1)
+	{
+		if(IsValidEntity(ent))
+		{
+			if(GetEntProp(ent, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void GateManager_Clear()
+{
+	g_eGateManager.available = false;
+	g_eGateManager.numgates = 0;
+
+	for(int i = 0; i < sizeof(g_eGateManager.gates);i++)
+	{
+		g_eGateManager.gates[i] = INVALID_ENT_REFERENCE;
+	}
+}
+
+void GateManager_Update()
+{
+	g_eGateManager.available = CheckForREDOwnedControlPoints();
+
+	int ent = INVALID_ENT_REFERENCE;
+
+	while((ent = FindEntityByClassname(ent, "team_control_point")) != INVALID_ENT_REFERENCE)
+	{
+		g_eGateManager.gates[g_eGateManager.numgates] = EntIndexToEntRef(ent);
+		g_eGateManager.numgates++;
+
+		if(g_eGateManager.numgates == sizeof(g_eGateManager.gates))
+			break;
+	}
+}
+
+Action Timer_CheckGates(Handle timer)
+{
+	GateManager_Clear();
+	GateManager_Update();
+	return Plugin_Stop;
+}
+
+void RemoveAllObjectsFromClient(int client)
+{
+	int entity = INVALID_ENT_REFERENCE;
+	while((entity = FindEntityByClassname(entity, "obj_sentrygun")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntPropEnt(entity, Prop_Send, "m_hBuilder") == client)
+		{
+			RemoveSingleObjectFromClient(client, entity);
+		}
+	}
+
+	entity = INVALID_ENT_REFERENCE;
+	while((entity = FindEntityByClassname(entity, "obj_dispenser")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntPropEnt(entity, Prop_Send, "m_hBuilder") == client)
+		{
+			RemoveSingleObjectFromClient(client, entity);
+		}
+	}
+
+	entity = INVALID_ENT_REFERENCE;
+	while((entity = FindEntityByClassname(entity, "obj_teleporter")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntPropEnt(entity, Prop_Send, "m_hBuilder") == client)
+		{
+			RemoveSingleObjectFromClient(client, entity);
+		}
+	}
+}
+
+void RemoveSingleObjectFromClient(int client, int obj)
+{
+	SetEntityOwner(obj, INVALID_ENT_REFERENCE);
+	TF2_SetBuilder(obj, INVALID_ENT_REFERENCE);
+	TF2_RemoveObject(client, obj);
 }
 
 /*----------------------------------------------

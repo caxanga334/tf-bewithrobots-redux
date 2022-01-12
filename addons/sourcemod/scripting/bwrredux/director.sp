@@ -125,7 +125,6 @@ void Director_SpawnPlayer(int client)
 public Action Director_Think(Handle timer)
 {
 	Director_AddResources(c_director_rpt.IntValue);
-	PrintToConsoleAll("Director Think: %i", GetGameTickCount());
 
 	int randomplayer = Director_GetRandomPlayerInQueue();
 
@@ -146,7 +145,7 @@ public Action Director_Think(Handle timer)
 
 void Director_OnWaveStart()
 {
-	Director_SetResources(1000); // To-do: Add cvar
+	Director_SetResources(c_director_initial_resources.IntValue);
 
 	if(g_eDirector.timer == null)
 	{
@@ -326,6 +325,7 @@ void Director_OnPlayerDeath(int victim, int killer)
 			Call_Finish();
 		}
 
+		RequestFrame(DirectorFrame_OnRobotDeath, GetClientSerial(victim));
 		CreateTimer(0.250, DirectorTimer_OnRobotDeath, GetClientSerial(victim), TIMER_FLAG_NO_MAPCHANGE);
 	}
 
@@ -372,6 +372,13 @@ Action DirectorTimer_OnRobotDeath(Handle timer, any data)
 
 	if(client)
 	{
+		RobotPlayer rp = RobotPlayer(client);
+
+		if(rp.hasloopsound)
+		{
+			rp.StopLoopSound();
+		}
+
 		Director_RemoveClientFromBLU(client);
 	}
 
@@ -398,6 +405,32 @@ Action DirectorTimer_ClearPlayers(Handle timer)
 	}
 
 	return Plugin_Stop;
+}
+
+// Called 500 ms after player spawn
+Action DirectorTimer_OnRobotSpawnLate(Handle timer, any data)
+{
+	int client =  GetClientFromSerial(data);
+
+	if(client && TF2_GetClientTeam(client) == TFTeam_Blue)
+	{
+		Robots_SetLoopSound(client);
+	}
+
+	return Plugin_Stop;
+}
+
+void DirectorFrame_OnRobotDeath(int serial)
+{
+	int client = GetClientFromSerial(serial);
+
+	if(client)
+	{
+		switch(TF2_GetPlayerClass(client))
+		{
+			case TFClass_Engineer: RemoveAllObjectsFromClient(client);
+		}
+	}	
 }
 
 // Called to select a robot for the player

@@ -11,6 +11,7 @@ Handle g_hSDKSpeakConcept;
 Handle g_hCTFPLayerCanBeForcedToLaugh;
 Handle g_hSDKPushAwayPlayers;
 Handle g_hSDKDropCurrency;
+Handle g_hSDKSetBuilder;
 
 void SetupGamedata()
 {
@@ -68,6 +69,13 @@ void SetupGamedata()
 	PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_Pointer);	//CCaptureFlag
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//silent pickup? or maybe it doesnt exist im not sure.
 	if((g_hSDKPickupFlag = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CCaptureFlag::PickUp offset!"); sigfailure = true; }
+
+	// Set builder
+	// void CBaseObject::SetBuilder( CTFPlayer *pBuilder )
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(gm, SDKConf_Virtual, "CBaseObject::SetBuilder");
+	PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL | VDECODE_FLAG_ALLOWNOTINGAME);
+	if((g_hSDKSetBuilder = EndPrepSDKCall()) == null) { LogStackTrace("Failed to create SDKCall for CBaseObject::SetBuilder offset!"); sigfailure = true; }
 
 	SetupDetours(gm, sigfailure);
 

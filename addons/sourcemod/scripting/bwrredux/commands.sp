@@ -8,6 +8,7 @@ void SetupPluginCommands()
 	RegAdminCmd("sm_bwr", Cmd_JoinRobots, 0, "Joins the queue to the BLU/Robot team.");
 	RegAdminCmd("sm_bwrr", Cmd_JoinRobots, 0, "Joins the queue to the BLU/Robot team.");
 	RegAdminCmd("sm_bwrr_debug_player", Cmd_DebugPlayer, ADMFLAG_ROOT, "Player debug command.");
+	RegAdminCmd("sm_bwrr_debug_director", Cmd_DirectorDebug, ADMFLAG_ROOT, "AI Director debug");
 }
 
 void SetupCommandListeners()
@@ -77,6 +78,19 @@ public Action Cmd_DebugPlayer(int client, int args)
 
 	ReplyToCommand(client, "Robot: %i, Carrier: %i, Deploying: %i, Gatebot: %i", rp.isrobot, rp.carrier, rp.deploying, rp.gatebot);
 	ReplyToCommand(client, "Template Index: %i, Type: %i, Bomb Level: %i", rp.templateindex, rp.type, rp.bomblevel);
+
+	return Plugin_Handled;
+}
+
+public Action Cmd_DirectorDebug(int client, int args)
+{
+	ReplyToCommand(client, "[SM] AI Director Resources: %i", g_eDirector.resources);
+	ReplyToCommand(client, "[SM] Gate Manager: Available: %s, Number of Gates: %i", g_eGateManager.available ? "YES" : "NO", g_eGateManager.numgates);
+
+	for(int i = 0;i < g_eGateManager.numgates;i++)
+	{
+		ReplyToCommand(client, "[SM] Stored Gate Entity: %i", EntRefToEntIndex(g_eGateManager.gates[i]));
+	}
 
 	return Plugin_Handled;
 }

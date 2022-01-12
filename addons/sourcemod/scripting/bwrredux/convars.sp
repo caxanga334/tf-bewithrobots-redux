@@ -3,9 +3,8 @@
 ConVar c_minred; // Minimum number of players on RED team before allowing players to join BLU team.
 ConVar c_maxblu; // Maximum number of players allowed to join BLU team.
 ConVar c_director_rpt; // AI Director Resources per Think
-//ConVar c_spman_spy_mindist; // Minimum distance to teleport spy
+ConVar c_director_initial_resources; // AI Director initial resources on wave start
 ConVar c_spman_spy_maxdist; // Maximum distance to teleport spy
-//ConVar c_spman_spy_tries; // Number of trie to find a teleport point for spies
 
 // Cvars from the game
 ConVar c_bomb_upgrade1; // Bomb first upgrade time
@@ -20,10 +19,9 @@ void SetupConVars()
 	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
 	c_minred = AutoExecConfig_CreateConVar("sm_bwrr_minred", "5", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
 	c_maxblu = AutoExecConfig_CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 10.0);
-	c_director_rpt = AutoExecConfig_CreateConVar("sm_bwrr_director_rpt", "10", "How many resources the AI Director gets per think.", FCVAR_NONE, true, 1.0, true, 10000.0);
-	//c_spman_spy_mindist = AutoExecConfig_CreateConVar("sm_bwrr_spman_spy_min_dist", "300.0", "Minimum distance to teleport a spy", FCVAR_NONE, true, 200.0, true, 900.0);
+	c_director_rpt = AutoExecConfig_CreateConVar("sm_bwrr_director_rpt", "20", "How many resources the AI Director gets per think.", FCVAR_NONE, true, 1.0, true, 10000.0);
+	c_director_initial_resources = AutoExecConfig_CreateConVar("sm_bwrr_director_init_resources", "1000", "Initial AI Director resources on wave start.", FCVAR_NONE, true, 250.0, true, 50000.0);
 	c_spman_spy_maxdist = AutoExecConfig_CreateConVar("sm_bwrr_spman_spy_max_dist", "2048.0", "Maximum distance to teleport a spy", FCVAR_NONE, true, 1024.0, true, 8192.0);
-	//c_spman_spy_tries = AutoExecConfig_CreateConVar("sm_bwrr_spman_spy_tries", "3", "Maximum amount of tries to search for a spy teleport position", FCVAR_NONE, true, 1.0, true, 100.0);
 
 	AutoExecConfig_ExecuteFile();
 	AutoExecConfig_CleanFile();

@@ -61,12 +61,14 @@ enum struct erobotplayer
 	bool deploying; // Is deploying the bomb
 	bool gatebot; // Is a gatebot
 	bool inspawn; // Player is inside spawnroom
+	bool hasloopsound; // Has loop sound?
 	int templateindex; // Index of the current template
 	int type; // Current robot type
 	int bomblevel; // Current bomb level
 	float nextbombupgradetime; // Bomb upgrade timer
 	float deployingtime; // Bomb deploying timer
 	float lastspawntime; // The last time this player spawned
+	char loopsound[PLATFORM_MAX_PATH]; // Loop sound path
 }
 erobotplayer g_eRobotPlayer[MAXPLAYERS+1];
 
@@ -101,6 +103,11 @@ methodmap RobotPlayer
 	{
 		public get() { return g_eRobotPlayer[this.index].inspawn; }
 		public set( bool value ) { g_eRobotPlayer[this.index].inspawn = value; }
+	}
+	property bool hasloopsound
+	{
+		public get() { return g_eRobotPlayer[this.index].hasloopsound; }
+		public set( bool value ) { g_eRobotPlayer[this.index].hasloopsound = value; }
 	}
 	property int templateindex
 	{
@@ -186,18 +193,28 @@ methodmap RobotPlayer
 		g_eRobotPlayer[this.index].deployingtime = 0.0;
 		g_eRobotPlayer[this.index].deploying = false;
 	}
+	public void SetLoopSound(char[] sound)
+	{
+		g_eRobotPlayer[this.index].hasloopsound = true;
+		strcopy(g_eRobotPlayer[this.index].loopsound, PLATFORM_MAX_PATH, sound);
+	}
+	public void StopLoopSound()
+	{
+		g_eRobotPlayer[this.index].hasloopsound = false;
+		StopSound(this.index, SNDCHAN_STATIC, g_eRobotPlayer[this.index].loopsound);
+	}
 }
 
 #include "bwrredux/api.sp"
 #include "bwrredux/gamedata.sp"
 #include "bwrredux/detours.sp"
 #include "bwrredux/convars.sp"
-#include "bwrredux/commands.sp"
 #include "bwrredux/gameevents.sp"
 #include "bwrredux/functions.sp"
 #include "bwrredux/robots.sp"
 #include "bwrredux/director.sp"
 #include "bwrredux/sdk.sp"
+#include "bwrredux/commands.sp"
 
 public Plugin myinfo =
 {
@@ -238,6 +255,7 @@ public void OnPluginStart()
 	SetupPluginCommands();
 	SetupCommandListeners();
 	SetupGamedata();
+	SetupEntityHooks();
 
 	if(g_islateload) // To-do: Add late loading logic
 	{
@@ -267,12 +285,12 @@ public void OnMapEnd()
 
 public void TF2_OnWaitingForPlayersStart()
 {
-	PrintToServer("TF2_OnWaitingForPlayersStart");
+	CreateTimer(1.0, Timer_CheckGates, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void TF2_OnWaitingForPlayersEnd()
 {
-
+	CreateTimer(1.0, Timer_CheckGates, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void OnClientPutInServer(int client)
@@ -284,6 +302,11 @@ public void OnClientDisconnect(int client)
 {
 	RobotPlayer rp = RobotPlayer(client);
 	rp.ResetData();
+
+	if(rp.hasloopsound)
+	{
+		rp.StopLoopSound();
+	}
 }
 
 public void OnEntityCreated(int entity, const char[] classname)

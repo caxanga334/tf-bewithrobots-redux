@@ -75,6 +75,7 @@ public Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 		if(!IsFakeClient(client))
 		{
 			RequestFrame(DirectorFrame_PostSpawn, GetClientSerial(client));
+			CreateTimer(0.500, DirectorTimer_OnRobotSpawnLate, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
 
