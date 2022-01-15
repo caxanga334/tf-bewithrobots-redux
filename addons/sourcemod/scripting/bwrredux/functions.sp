@@ -2,9 +2,9 @@
 
 enum struct GateManager
 {
-	bool available; // Gatebots are available
-	int numgates; // Number of gates
-	int gates[6]; // Array with gate entity refs
+	bool available;
+	int numgates;
+	int gates[6];
 }
 
 GateManager g_eGateManager;
@@ -18,6 +18,25 @@ GateManager g_eGateManager;
 stock bool Math_RandomChance(int chance)
 {
 	return Math_GetRandomInt(1, 100) <= chance;
+}
+
+/**
+ * Gets a value based on the min, max range and the percentage
+ * 
+ * @param min         Minimum value
+ * @param max         Maximum value
+ * @param percent     Percentage value in range `0.0 - 1.0`
+ * @param inverse     If inverse is `true` then the minimum value will be returned when the percentage is at 1.0
+ * @return            Value at percentage
+ */
+float Math_Range(const float min, const float max, const float percent, bool inverse = false)
+{
+	if(inverse)
+	{
+		return ((min - max) * percent) + max;
+	}
+
+	return ((max - min) * percent) + min;
 }
 
 /**
@@ -253,23 +272,110 @@ bool TF2_IsGiant(int client)
 	return view_as<bool>(GetEntProp(client, Prop_Send, "m_bIsMiniBoss"));
 }
 
-void CollectValidSpawnPoints(int client, ArrayList spawns)
+/**
+ * Counts the number of active giants
+ * 
+ * @param humangiants     Variable to store human giant count
+ * @param botgiants       Variable to store bot giant count
+ */
+void GetGiantCount(int &humangiants, int &botgiants)
+{
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(!IsClientInGame(i) || !IsPlayerAlive(i) || TF2_GetClientTeam(i) != TFTeam_Blue)
+			continue;
+
+		if(IsFakeClient(i) && TF2_IsGiant(i)) botgiants++;
+		if(!IsFakeClient(i) && TF2_IsGiant(i)) humangiants++;
+	}
+}
+
+/**
+ * Collects spawnpoints and add them to a list
+ * 
+ * @param spawns     ArrayList to store the spawnpoints entity references
+ * @param team       The spawn point team
+ */
+void CollectSpawnPoints(ArrayList spawns, const int team)
 {
 	int entity;
-	float origin[3];
-
 	while((entity = FindEntityByClassname(entity, "info_player_teamspawn")) != INVALID_ENT_REFERENCE)
 	{
-		if(GetEntProp(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Blue) && GetEntProp(entity, Prop_Data, "m_bDisabled") == 0)
+		if(GetEntProp(entity, Prop_Send, "m_iTeamNum") == team && GetEntProp(entity, Prop_Data, "m_bDisabled") == 0)
 		{
-			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
-			// To-do: Add nav mesh validation
-			if(IsSafeAreaToTeleport(client, origin))
-			{
-				spawns.Push(entity);
-			}
+			spawns.Push(EntIndexToEntRef(entity));
 		}
 	}
+}
+
+/**
+ * Filters spawn points by `trace hull`
+ * 
+ * @param spawns     ArrayList containing spawn points entity references
+ * @param client     Client to test
+ */
+void FilterSpawnPointByHull(ArrayList spawns, int client)
+{
+	int entity = INVALID_ENT_REFERENCE;
+	float origin[3];
+	for(int i = 0;i < spawns.Length;i++)
+	{
+		entity = EntRefToEntIndex(spawns.Get(i));
+
+		if(!IsValidEntity(entity))
+		{
+			spawns.Erase(i);
+			continue;
+		}
+
+		CBaseEntity cbase = CBaseEntity(entity);
+		cbase.GetAbsOrigin(origin);
+
+		if(!IsSafeAreaToTeleport(client, origin))
+		{
+			spawns.Erase(i);
+		}
+	}
+}
+
+/**
+ * Filters spawn points by checking if there is a nav area near them
+ * 
+ * @param spawns       ArrayList containing spawn points entity references
+ * @param distance     Maximum distance between the nav area and the spawn point
+ */
+void FilterSpawnPointsByNavMesh(ArrayList spawns, const float distance = 256.0)
+{
+	int entity = INVALID_ENT_REFERENCE;
+	float origin[3];
+	for(int i = 0;i < spawns.Length;i++)
+	{
+		entity = EntRefToEntIndex(spawns.Get(i));
+
+		if(!IsValidEntity(entity))
+		{
+			spawns.Erase(i);
+			continue;
+		}
+
+		CBaseEntity cbase = CBaseEntity(entity);
+		cbase.GetAbsOrigin(origin);
+
+		if(TheNavMesh.GetNearestNavArea(origin, _, distance) == NULL_AREA)
+		{
+			#if defined _bwrr_debug_
+			char targetname[64];
+			GetEntPropString(entity, Prop_Data, "m_iName", targetname, sizeof(targetname));
+			PrintToChatAll("[%i] Spawn Point \"%s\" at %.2f %.2f %.2f filtered by Nav Mesh.", entity, targetname, origin[0], origin[1], origin[2]);
+			#endif
+			spawns.Erase(i);
+		}
+	}	
+}
+
+int SelectSpawnPointRandomly(ArrayList spawns)
+{
+	return EntRefToEntIndex(spawns.Get(Math_GetRandomInt(0, spawns.Length - 1)));
 }
 
 /**
@@ -319,9 +425,8 @@ void TF2BWR_DeployBomb(int client)
 	angles[0] = 0.0;
 	angles[2] = 0.0;
 	TeleportEntity(client, NULL_VECTOR, angles, {0.0, 0.0, 0.0});
-	SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 0);
-	TF2_PlaySequence(client, "primary_deploybomb");
 	TF2_AddCondition(client, TFCond_FreezeInput, time);
+	TF2_PlaySequence(client, "primary_deploybomb");
 	SetVariantInt(1);
 	AcceptEntityInput(client, "SetForcedTauntCam");	
 	RequestFrame(Frame_DisableAnimation, GetClientSerial(client));
@@ -330,11 +435,11 @@ void TF2BWR_DeployBomb(int client)
 	{
 		case BWRR_RobotType_Boss, BWRR_RobotType_Giant:
 		{
-			EmitGameSoundToAll("MVM.DeployBombSmall", client, SND_NOFLAGS, _, origin);
+			EmitGameSoundToAll("MVM.DeployBombGiant", client, SND_NOFLAGS, _, origin);
 		}
 		default:
 		{
-			EmitGameSoundToAll("MVM.DeployBombGiant", client, SND_NOFLAGS, _, origin);
+			EmitGameSoundToAll("MVM.DeployBombSmall", client, SND_NOFLAGS, _, origin);
 		}
 	}
 }
@@ -634,13 +739,13 @@ int CollectBombs(ArrayList bombs, const int team)
 }
 
 /**
- * Filters the bomb by distance to the bomb hatch
+ * Gets the bomb by distance to the bomb hatch
  * 
  * @param bombs        ArrayList containg a bomb list as entity references
  * @param distance     Distance between the closest bomb and the bomb hatch
  * @return             The closest bomb entity index
  */
-int FilterBombClosestToHatch(ArrayList bombs, float &distance)
+int GetBombClosestToHatch(ArrayList bombs, float &distance)
 {
 	int entity = INVALID_ENT_REFERENCE, best = INVALID_ENT_REFERENCE;
 	float short = 999999.0, search;
@@ -667,6 +772,40 @@ int FilterBombClosestToHatch(ArrayList bombs, float &distance)
 	}
 
 	return best;
+}
+
+/**
+ * Gets the average distance between the bombs and the target position
+ * 
+ * @param bombs      ArrayList containing the bombs ent refs
+ * @param target     Target position
+ * @return           Average distance
+ */
+float GetAverageBombDistance(ArrayList bombs, const float target[3])
+{
+	float distance = 0.0;
+	float origin[3];
+	int divider = 0, entity = INVALID_ENT_REFERENCE;
+
+	for(int i = 0; i < bombs.Length;i++)
+	{
+		entity = EntRefToEntIndex(bombs.Get(i));
+
+		if(entity == INVALID_ENT_REFERENCE)
+			continue;
+
+		TF2_GetFlagPosition(entity, origin);
+
+		distance += GetVectorDistance(origin, target);
+		divider++;
+	}
+
+	if(divider == 0)
+	{
+		return -1.0;
+	}
+
+	return distance/divider;
 }
 
 /**
@@ -726,14 +865,49 @@ Action Timer_CheckGates(Handle timer)
 	return Plugin_Stop;
 }
 
-void RemoveAllObjectsFromClient(int client)
+Action Timer_UpdateGatebotStatus(Handle timer)
+{
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(!IsClientInGame(i))
+			continue;
+
+		if(IsFakeClient(i))
+			continue;
+
+		if(TF2_GetClientTeam(i) != TFTeam_Blue)
+			continue;
+
+		RobotPlayer rp = RobotPlayer(i);
+
+		if(rp.gatebot)
+		{
+			if(!g_eGateManager.available) // All gates were captured
+			{
+				RemoveGateBotHat(i); // Remove hat
+				GiveGatebotHat(i, TF2_GetPlayerClass(i), false); // Give hat with light off
+				TF2Attrib_RemoveByName(i, "cannot pick up intelligence");
+			}
+		}
+	}
+
+	return Plugin_Stop;
+}
+
+/**
+ * Decouples all objects (buildings) from the given client.
+ * Prevents buildings from getting destroyed when the engineers change classes/teams
+ * 
+ * @param client     Client index of the builder
+ */
+void DecoupleAllObjectsFromClient(int client)
 {
 	int entity = INVALID_ENT_REFERENCE;
 	while((entity = FindEntityByClassname(entity, "obj_sentrygun")) != INVALID_ENT_REFERENCE)
 	{
 		if(GetEntPropEnt(entity, Prop_Send, "m_hBuilder") == client)
 		{
-			RemoveSingleObjectFromClient(client, entity);
+			DecoupleObjectFromClient(client, entity);
 		}
 	}
 
@@ -742,7 +916,7 @@ void RemoveAllObjectsFromClient(int client)
 	{
 		if(GetEntPropEnt(entity, Prop_Send, "m_hBuilder") == client)
 		{
-			RemoveSingleObjectFromClient(client, entity);
+			DecoupleObjectFromClient(client, entity);
 		}
 	}
 
@@ -751,17 +925,124 @@ void RemoveAllObjectsFromClient(int client)
 	{
 		if(GetEntPropEnt(entity, Prop_Send, "m_hBuilder") == client)
 		{
-			RemoveSingleObjectFromClient(client, entity);
+			DecoupleObjectFromClient(client, entity);
 		}
 	}
 }
 
-void RemoveSingleObjectFromClient(int client, int obj)
+/**
+ * Decouples a single object from a client
+ * 
+ * @param client     Client index of the builder
+ * @param obj        Object entity index
+ */
+void DecoupleObjectFromClient(int client, int obj)
 {
 	SetEntityOwner(obj, INVALID_ENT_REFERENCE);
 	TF2_SetBuilder(obj, INVALID_ENT_REFERENCE);
 	TF2_RemoveObject(client, obj);
 }
+
+/**
+ * Modifier SpawnWeapon function exclusive for gatebot hats
+ * 
+ * @param client     Client index to give the hat to
+ * @param name       classname
+ * @param index      Item definition index
+ * @param light      true if the hat's light should be on
+ */
+void SpawnGatebotHat(int client, char[] name, int index, bool light = true)
+{
+	Handle hWeapon = TF2Items_CreateItem(OVERRIDE_ALL|FORCE_GENERATION|PRESERVE_ATTRIBUTES);
+	TF2Items_SetClassname(hWeapon, name);
+	TF2Items_SetItemIndex(hWeapon, index);
+	TF2Items_SetLevel(hWeapon, 1);
+	TF2Items_SetQuality(hWeapon, 6);
+	
+	// If light is false, the gatebot hat is turned off.
+	if(!light) {
+		TF2Items_SetAttribute(hWeapon, 0, 542, 1.0); // item style override
+		TF2Items_SetNumAttributes(hWeapon, 1);
+	}
+	
+	if(hWeapon==null)
+		return;
+		
+	int entity = TF2Items_GiveNamedItem(client, hWeapon);
+	CloseHandle(hWeapon);
+
+	if(IsValidEdict(entity))
+	{
+		TF2Util_EquipPlayerWearable(client, entity);
+	}
+}
+
+/**
+ * Checks if the given item definition index is a gatebot hat
+ * 
+ * @param index     Item definition index
+ * @return          TRUE if the given item is a gatebot hat
+ */
+bool IsGateBotHat(int index)
+{
+	switch(index)
+	{
+		case 1057, 1063, 1058, 1061, 1060, 1065, 1059, 1062, 1064: return true;
+		default: return false;
+	}
+}
+
+/**
+ * Gives a gatebot hat to the client
+ * 
+ * @param client     The client index to give to
+ * @param class      The client class
+ * @param light      TRUE if the hat should have the 'on' skin
+ */
+void GiveGatebotHat(int client, TFClassType class, bool light = true)
+{
+	int index;
+	
+	switch(class) // item definition index for gatebot hats "MvM GateBot Light" --> https://wiki.alliedmods.net/Team_Fortress_2_Item_Definition_Indexes 
+	{
+		case TFClass_Scout: index = 1057;
+		case TFClass_Soldier: index = 1063;
+		case TFClass_Pyro: index = 1058;
+		case TFClass_DemoMan: index = 1061;
+		case TFClass_Heavy: index = 1060;
+		case TFClass_Engineer: index = 1065;
+		case TFClass_Medic: index = 1059;
+		case TFClass_Sniper: index = 1062;
+		case TFClass_Spy: index = 1064;
+		default: return;
+	}
+	
+	SpawnGatebotHat(client,"tf_wearable",index, light);
+}
+
+/**
+ * Removes the gatebot hat from the client
+ * 
+ * @param client     Client index to remove the hat from
+ */
+void RemoveGateBotHat(int client)
+{
+	int entity = -1;
+	while((entity = FindEntityByClassname(entity, "tf_wearable")) > MaxClients)
+	{
+		int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+		if(owner == client)
+		{
+			int index = GetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex");
+			if(IsGateBotHat(index))
+			{
+				TF2_RemoveWearable(client, entity);
+				RemoveEntity(entity);
+			}
+		}
+	}	
+}
+
 
 /*----------------------------------------------
 -----------------TRACE FILTERS------------------
@@ -848,7 +1129,7 @@ void Frame_DisableAnimation(int serial)
 
 	int client = GetClientFromSerial(serial);
 
-	if(client)
+	if(client > 0)
 	{
 		if(count > 6)
 		{
@@ -872,7 +1153,6 @@ void Frame_DisableAnimation(int serial)
 		else
 		{
 			TF2_PlaySequence(client, "primary_deploybomb");
-			SetEntProp(client, Prop_Send, "m_bUseClassAnimations", 0);
 			RequestFrame(Frame_DisableAnimation, serial);
 			count++;
 		}

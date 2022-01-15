@@ -14,6 +14,7 @@ void OnGateCaptureByREDTeam(const char[] output, int caller, int activator, floa
 void OnGateCaptureByBLUTeam(const char[] output, int caller, int activator, float delay)
 {
 	CreateTimer(1.0, Timer_CheckGates, _, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(2.0, Timer_UpdateGatebotStatus, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 void TF2_PlaySequence(int client, const char[] sequence)
@@ -253,4 +254,30 @@ void OnReviveMarkerSpawnPost(int entity)
 void OnAmmoPackSpawnPost(int entity)
 {
 	RequestFrame(Frame_RemoveAmmoPack, EntIndexToEntRef(entity));
+}
+
+void OnPlayerTakeDamageAlivePost(int victim, int attacker, int inflictor, float damage, int damagetype, int weapon, const float damageForce[3], const float damagePosition[3], int damagecustom)
+{
+	if(!IsClientInGame(victim))
+		return;
+
+	if(TF2_GetClientTeam(victim) == TFTeam_Red)
+		return;
+
+	if(IsValidClient(attacker))
+	{
+		if(TF2_GetClientTeam(attacker) == TFTeam_Red)
+		{
+			if(g_PlayerData[attacker].timer <= GetGameTime())
+			{
+				g_PlayerData[attacker].damage = RoundToCeil(damage);
+				g_PlayerData[attacker].timer = GetGameTime() + 90.0;
+			}
+			else
+			{
+				g_PlayerData[attacker].damage += RoundToCeil(damage);
+				g_PlayerData[attacker].timer = GetGameTime() + 90.0;				
+			}
+		}
+	}
 }

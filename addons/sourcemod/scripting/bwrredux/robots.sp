@@ -5,8 +5,7 @@
 int g_cbindex = 0; // Current robot index
 int g_maxrobots = 0; // Number of robots that was registered
 
-enum struct etemplates
-{
+/**
 	int pluginID; // the plugin that will handle this robot
 	TFClassType class; // the robot class
 	int cost; // resource cost
@@ -17,6 +16,19 @@ enum struct etemplates
 	float percent; // wave percentage
 	int spawns; // How many times this robot has spawned in the current wave
 	float lastspawn; // The last time this robot spawned in the current wave
+*/
+enum struct etemplates
+{
+	int pluginID;
+	TFClassType class;
+	int cost;
+	int index;
+	int type;
+	int supply;
+	int role;
+	float percent;
+	int spawns;
+	float lastspawn;
 }
 etemplates g_eTemplates[MAX_ROBOTS];
 
@@ -43,6 +55,10 @@ void RegisterRobotTemplate(int pluginID, TFClassType class, int cost, int index,
 
 	g_cbindex++;
 	g_maxrobots++;
+
+#if defined _bwrr_debug_
+	LogMessage("Robot Registered: %i %i %i %i %i %i %i %.2f", pluginID, class, cost, index, type, supply, role, percent);
+#endif
 }
 
 /**
@@ -59,10 +75,12 @@ void Robots_ResetWaveData()
 
 /**
  * Gets the amount of robots registered.
+ * 1 is subtracted from the total amount of robots due to arrays.
+ * If you need the true amount of robots either add 1 or use `g_maxrobots` global variable.
  *
  * @return          The number of robots registered. -1 if no robot was registered.
  */
-int Robots_GetMax()
+stock int Robots_GetMax()
 {
 	return g_maxrobots - 1;
 }
@@ -71,6 +89,17 @@ int Robots_GetMax()
 TFClassType Robots_GetClass(int template)
 {
 	return g_eTemplates[template].class;
+}
+
+/**
+ * Gets the robot cost
+ * 
+ * @param template     Template index
+ * @return             The robot template cost
+ */
+int Robots_GetCost(int template, const float multiplier = 1.0)
+{
+	return RoundToCeil(g_eTemplates[template].cost * multiplier);
 }
 
 void Robots_SetModel(int client, TFClassType class)
@@ -247,4 +276,105 @@ void Robots_SetLoopSound(int client)
 		rp.SetLoopSound(sound);
 		EmitSoundToAll(sound, client, SNDCHAN_STATIC, level, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL);
 	}
+}
+
+void Robots_OnRobotSpawn(int template)
+{
+	g_eTemplates[template].spawns++;
+	g_eTemplates[template].lastspawn = GetGameTime();
+}
+
+/**
+ * Collects robots template indexes based on the given filters
+ * 
+ * @param robots        ArrayList to store collected robots indexes
+ * @param resources     Director resource amount
+ * @param class         Optional class filter
+ * @param type          Optional type filter
+ * @param role          Optional role filter
+ * @return              Number of templates collected
+ */
+int Robots_CollectTemplates(ArrayList robots, const int resources, TFClassType class = TFClass_Unknown, int type = BWRR_RobotType_Invalid, int role = BWRR_Role_Invalid)
+{
+	int collected = 0;
+
+	for(int i = 0;i < g_maxrobots;i++)
+	{
+		if(g_eTemplates[i].cost > resources) // can't afford
+			continue;
+
+		if(g_eTemplates[i].supply > 0 && g_eTemplates[i].spawns > g_eTemplates[i].supply) // No longer available for the current wave
+			continue;
+
+		if(g_eTemplates[i].percent < TF2MvM_GetCompletedWavePercent()) // Not available for the current wave percentage
+			continue;
+
+		if(class != TFClass_Unknown && g_eTemplates[i].class != class) // Class filter
+			continue;
+
+		if(type != BWRR_RobotType_Invalid && g_eTemplates[i].type != type) // Type filter
+			continue;
+
+		if(role != BWRR_Role_Invalid && g_eTemplates[i].role != role) // Role filter
+			continue;
+
+		robots.Push(i);
+		collected++;
+	}
+
+	#if defined _bwrr_debug_
+	PrintToChatAll("[Template Collector] Collected %i robots templates.", collected);
+	#endif
+
+	return collected;
+}
+
+/**
+ * Filters the robot list by cost
+ * 
+ * @param robots        ArrayList containing robots indexes
+ * @param resources     Amount of resources the director has
+ * @param spawns        Number of players to be spawned simultaneously
+ * @return              Return description
+ */
+void Robots_FilterByCanAfford(ArrayList robots, const int resources, int spawns = 1, const float multiplier = 1.0)
+{
+	int cost, index;
+	for(int i = 0;i < robots.Length;i++)
+	{
+		index = robots.Get(i);
+		cost = RoundToCeil((g_eTemplates[index].cost * multiplier) * spawns);
+
+		if(cost > resources)
+		{
+			#if defined _bwrr_debug_
+			PrintToChatAll("[Cost Filter] Filtered template %i, cost: %i, resources: %i", index, cost, resources);
+			#endif
+			robots.Erase(i);
+		}
+	}
+}
+
+/**
+ * Selects the robots by highest cost
+ * 
+ * @param robots     ArrayList containing robots indexes
+ * @return           The template index of the most expensive robot
+ */
+int Robots_SelectByHighestCost(ArrayList robots)
+{
+	int cost, last = 0, index, best;
+	for(int i = 0;i < robots.Length;i++)
+	{
+		index = robots.Get(i);
+		cost = g_eTemplates[index].cost;
+
+		if(cost > last)
+		{
+			last = cost;
+			best = index;
+		}
+	}
+
+	return best;
 }

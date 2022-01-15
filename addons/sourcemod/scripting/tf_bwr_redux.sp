@@ -16,6 +16,7 @@
 #include <steamworks>
 #define REQUIRE_EXTENSIONS
 #define AUTOLOAD_EXTENSIONS
+#include <tf2items>
 #include <sdkhooks>
 #include <dhooks>
 #include <cbasenpc>
@@ -25,6 +26,9 @@
 #define PLUGIN_VERSION "2.0.0-alpha"
 #define TF_CURRENCY_PACK_CUSTOM 9
 #define MAX_SUBPLUGINS 64
+
+// debug
+#define _bwrr_debug_
 
 // Speak Concepts
 
@@ -56,19 +60,19 @@ float g_flNextCommand[MAXPLAYERS + 1]; // delayed command timer
 
 enum struct erobotplayer
 {
-	bool isrobot; // Is a robot player
-	bool carrier; // Is a bomb carrier
-	bool deploying; // Is deploying the bomb
-	bool gatebot; // Is a gatebot
-	bool inspawn; // Player is inside spawnroom
-	bool hasloopsound; // Has loop sound?
-	int templateindex; // Index of the current template
-	int type; // Current robot type
-	int bomblevel; // Current bomb level
-	float nextbombupgradetime; // Bomb upgrade timer
-	float deployingtime; // Bomb deploying timer
-	float lastspawntime; // The last time this player spawned
-	char loopsound[PLATFORM_MAX_PATH]; // Loop sound path
+	bool isrobot;
+	bool carrier;
+	bool deploying;
+	bool gatebot;
+	bool inspawn;
+	bool hasloopsound;
+	int templateindex;
+	int type;
+	int bomblevel;
+	float nextbombupgradetime;
+	float deployingtime;
+	float lastspawntime;
+	char loopsound[PLATFORM_MAX_PATH];
 }
 erobotplayer g_eRobotPlayer[MAXPLAYERS+1];
 
@@ -295,7 +299,7 @@ public void TF2_OnWaitingForPlayersEnd()
 
 public void OnClientPutInServer(int client)
 {
-
+	SDKHook(client, SDKHook_OnTakeDamageAlivePost, OnPlayerTakeDamageAlivePost);
 }
 
 public void OnClientDisconnect(int client)

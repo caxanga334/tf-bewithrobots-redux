@@ -16,6 +16,7 @@ enum
 
 enum
 {
+	BWRR_Role_Invalid = -1, // Invalid role
 	BWRR_Role_Generic = 0, // Generic role
 	BWRR_Role_BombCarrier, // Robot designed for carrying the bomb
 	BWRR_Role_Attack, // Generic attack robot

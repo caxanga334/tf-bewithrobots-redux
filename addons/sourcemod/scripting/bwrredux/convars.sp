@@ -2,9 +2,17 @@
 
 ConVar c_minred; // Minimum number of players on RED team before allowing players to join BLU team.
 ConVar c_maxblu; // Maximum number of players allowed to join BLU team.
-ConVar c_director_rpt; // AI Director Resources per Think
+ConVar c_director_rpt_min; // AI Director Minimum Resources per Think
+ConVar c_director_rpt_max; // AI Director Maximum Resources per Think
 ConVar c_director_initial_resources; // AI Director initial resources on wave start
+ConVar c_director_mm_cooldown_min; // Cooldown between missions
+ConVar c_director_mm_cooldown_max; // Cooldown between missions
+ConVar c_director_spawn_cooldown_min; // Spawn Cooldown min
+ConVar c_director_spawn_cooldown_max; // Spawn Cooldown max
+ConVar c_director_wait_for_bots; // Wait for at least 1 bot to spawn players
 ConVar c_spman_spy_maxdist; // Maximum distance to teleport spy
+ConVar c_engineer_limit; // Maximum number of human engineers
+ConVar c_giant_limit; // Maximum number of human giants
 
 // Cvars from the game
 ConVar c_bomb_upgrade1; // Bomb first upgrade time
@@ -17,11 +25,19 @@ void SetupConVars()
 	AutoExecConfig_SetFile("plugin.bwrredux");
 
 	CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
-	c_minred = AutoExecConfig_CreateConVar("sm_bwrr_minred", "5", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
+	c_minred = AutoExecConfig_CreateConVar("sm_bwrr_minred", "6", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 10.0);
 	c_maxblu = AutoExecConfig_CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 10.0);
-	c_director_rpt = AutoExecConfig_CreateConVar("sm_bwrr_director_rpt", "20", "How many resources the AI Director gets per think.", FCVAR_NONE, true, 1.0, true, 10000.0);
-	c_director_initial_resources = AutoExecConfig_CreateConVar("sm_bwrr_director_init_resources", "1000", "Initial AI Director resources on wave start.", FCVAR_NONE, true, 250.0, true, 50000.0);
+	c_director_rpt_min = AutoExecConfig_CreateConVar("sm_bwrr_director_rpt_min", "5", "Minimum resources the AI Director gets per think.", FCVAR_NONE, true, 1.0, true, 500.0);
+	c_director_rpt_max = AutoExecConfig_CreateConVar("sm_bwrr_director_rpt_max", "100", "Maximum resources the AI Director gets per think.", FCVAR_NONE, true, 50.0, true, 5000.0);
+	c_director_initial_resources = AutoExecConfig_CreateConVar("sm_bwrr_director_init_resources", "400", "Initial AI Director resources on wave start.", FCVAR_NONE, true, 100.0, true, 50000.0);
 	c_spman_spy_maxdist = AutoExecConfig_CreateConVar("sm_bwrr_spman_spy_max_dist", "2048.0", "Maximum distance to teleport a spy", FCVAR_NONE, true, 1024.0, true, 8192.0);
+	c_director_mm_cooldown_min = AutoExecConfig_CreateConVar("sm_bwrr_director_mm_cooldown_min", "30.0", "Minimum cooldown between (engineer, sniper, spy, sentry buster) missions.", FCVAR_NONE, true, 5.0, true, 90.0);
+	c_director_mm_cooldown_max = AutoExecConfig_CreateConVar("sm_bwrr_director_mm_cooldown_max", "90.0", "Maximum cooldown between (engineer, sniper, spy, sentry buster) missions.", FCVAR_NONE, true, 30.0, true, 300.0);
+	c_engineer_limit = AutoExecConfig_CreateConVar("sm_bwrr_max_engineers", "1", "Maximum number of human engineers active at the same time.", FCVAR_NONE, true, 1.0, true, 4.0);
+	c_director_spawn_cooldown_min = AutoExecConfig_CreateConVar("sm_bwrr_director_spawn_cooldown_min", "5.0", "Minimum cooldown between player spawns.", FCVAR_NONE, true, 3.0, true, 20.0);
+	c_director_spawn_cooldown_max = AutoExecConfig_CreateConVar("sm_bwrr_director_spawn_cooldown_max", "12.0", "Maximum cooldown between player spawns.", FCVAR_NONE, true, 8.0, true, 30.0);
+	c_director_wait_for_bots = AutoExecConfig_CreateConVar("sm_bwrr_director_wait_for_bots", "1", "Should the AI Director wait for at least one bot to be active before spawning human players? 1 = Enabled. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_giant_limit = AutoExecConfig_CreateConVar("sm_bwrr_max_giants", "2", "Maximum number of human giants active at the same time. 0 = No limit.", FCVAR_NONE, true, 0.0, true, 3.0);
 
 	AutoExecConfig_ExecuteFile();
 	AutoExecConfig_CleanFile();
