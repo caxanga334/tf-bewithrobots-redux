@@ -894,6 +894,20 @@ Action Timer_UpdateGatebotStatus(Handle timer)
 	return Plugin_Stop;
 }
 
+bool AnyBLUTeleporter()
+{
+	int entity = INVALID_ENT_REFERENCE;
+	while((entity = FindEntityByClassname(entity, "obj_teleporter")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntProp(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Blue))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /**
  * Decouples all objects (buildings) from the given client.
  * Prevents buildings from getting destroyed when the engineers change classes/teams
@@ -1075,6 +1089,37 @@ bool TraceFilter_LOS(int entity, int contentsMask)
 	return true;	
 }
 
+// Trace filter for sentry buster explosions
+bool TraceFilter_SentryBuster(int entity, int contentsMask, any data)
+{
+	if(entity == data) { return false; }
+
+	if(entity > 0 && entity <= MaxClients)
+	{
+		return false;
+	}
+
+	char classname[64];
+	GetEntityClassname(entity, classname, sizeof(classname));
+
+	if(StrContains("obj_", classname, false) != -1) { return false; }
+
+	return true;
+}
+
+bool TraceFilter_Teleporter(int entity, int contentsMask, any data)
+{
+	if(entity == data) { return false; }
+
+	char classname[64];
+	GetEntityClassname(entity, classname, sizeof(classname));
+
+	if(strncmp(classname, "obj_", 4, false) == 0) { return false; }
+	if(strncmp(classname, "tf_ammo", 7, false) == 0) { return false; } // prevent collision with exploded building parts
+
+	return entity > MaxClients;
+}
+
 /*----------------------------------------------
 ------------REQUESTFRAME CALLBACKS--------------
 ----------------------------------------------*/
@@ -1161,4 +1206,177 @@ void Frame_DisableAnimation(int serial)
 	{
 		count = 0;
 	}
+}
+
+enum AnnouncementType
+{
+	Announcement_Spy_Spawn = 0, // Spy spawn
+	Announcement_Spy_Dead, // All spies are dead
+	Announcement_Sniper, // Sniper spawn
+	Announcement_SentryBuster_Spawn_First, // First sentry buster spawn
+	Announcement_SentryBuster_Spawn_Another, // Sentry buster spawn
+	Announcement_SentryBuster_Dead, // Sentry buster dead
+	Announcement_Engineer_Spawn_Arrive, // First engineer spawn
+	Announcement_Engineer_Spawn_Another, // Engineer spawn
+	Announcement_Engineer_Dead_No_Tele, // Engineer dead, no teleporter
+	Announcement_Engineer_Dead_Tele, // Engineer dead, with teleporter
+	Announcement_Teleporter, // Teleported activated
+
+	Announcement_Max_Types
+}
+
+float g_flAnnouncements[Announcement_Max_Types];
+
+void Announcer_MakeAnnouncement(AnnouncementType type)
+{
+	if(type < Announcement_Spy_Spawn || type >= Announcement_Max_Types)
+	{
+		LogStackTrace("Invalid announcement type %i", type);
+		return;
+	}
+
+	if(g_flAnnouncements[type] > GetGameTime())
+		return;
+
+	g_flAnnouncements[type] = GetGameTime() + 10.0;
+
+#if defined _bwrr_debug_
+	PrintToChatAll("[Announcer] Sending Announcement %i", type);
+#endif
+
+	switch(type)
+	{
+		case Announcement_Spy_Spawn: EmitGameSoundToAll("Announcer.MVM_Spy_Alert", SOUND_FROM_PLAYER);
+		case Announcement_Spy_Dead: EmitGameSoundToAll("Announcer.mvm_spybot_death_all", SOUND_FROM_PLAYER);
+		case Announcement_Sniper: TF2_SpeakConcept(MP_CONCEPT_MVM_SNIPER_CALLOUT, view_as<int>(TFTeam_Red), "");
+		case Announcement_SentryBuster_Spawn_First:
+		{
+			EmitGameSoundToAll("Announcer.MVM_Sentry_Buster_Alert", SOUND_FROM_PLAYER);
+			EmitGameSoundToAll("MVM.SentryBusterIntro", SOUND_FROM_PLAYER);
+			TF2_SpeakConcept(MP_CONCEPT_MVM_SENTRY_BUSTER, view_as<int>(TFTeam_Red), "");
+		}
+		case Announcement_SentryBuster_Spawn_Another:
+		{
+			EmitGameSoundToAll("Announcer.MVM_Sentry_Buster_Alert_Another", SOUND_FROM_PLAYER);
+			EmitGameSoundToAll("MVM.SentryBusterIntro", SOUND_FROM_PLAYER);
+			TF2_SpeakConcept(MP_CONCEPT_MVM_SENTRY_BUSTER, view_as<int>(TFTeam_Red), "");
+		}
+		case Announcement_SentryBuster_Dead: TF2_SpeakConcept(MP_CONCEPT_MVM_SENTRY_BUSTER_DOWN, view_as<int>(TFTeam_Red), "");
+		case Announcement_Engineer_Spawn_Arrive: EmitGameSoundToAll("Announcer.MVM_First_Engineer_Teleport_Spawned", SOUND_FROM_PLAYER);
+		case Announcement_Engineer_Spawn_Another: EmitGameSoundToAll("Announcer.MVM_Another_Engineer_Teleport_Spawned", SOUND_FROM_PLAYER);
+		case Announcement_Engineer_Dead_No_Tele: EmitGameSoundToAll("Announcer.MVM_An_Engineer_Bot_Is_Dead", SOUND_FROM_PLAYER);
+		case Announcement_Engineer_Dead_Tele: EmitGameSoundToAll("Announcer.MVM_An_Engineer_Bot_Is_Dead_But_Not_Teleporter", SOUND_FROM_PLAYER);
+		case Announcement_Teleporter: EmitGameSoundToAll("Announcer.MVM_Engineer_Teleporter_Activated", SOUND_FROM_PLAYER);
+	}
+}
+
+int CreateTemporaryParticleSystem(const float origin[3], const char[] name, const float duration, const int attachto = INVALID_ENT_REFERENCE, const char[] attachname = NULL_STRING)
+{
+	int entity = CreateEntityByName("info_particle_system");
+	
+	if(IsValidEntity(entity))
+	{
+		DispatchKeyValue(entity, "effect_name", name);
+		DispatchKeyValue(entity, "targetname", "bwrr_particle_system");
+		TeleportEntity(entity, origin);
+
+		if(attachto != INVALID_ENT_REFERENCE)
+		{
+			SetVariantString("!activator");
+			AcceptEntityInput(entity, "SetParent", attachto, entity);
+
+			if(strlen(attachname) > 2)
+			{
+				SetVariantString(attachname);
+				AcceptEntityInput(entity, "SetParentAttachment", attachto, entity);
+			}
+
+			SetEntityOwner(entity, attachto);
+		}
+
+		DispatchSpawn(entity);
+		ActivateEntity(entity);
+		AcceptEntityInput(entity, "Start", entity, entity);
+
+		if(duration > 0.0)
+		{
+			CreateTimer(duration, Timer_DeleteTemporaryParticleSystem, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
+		}
+	}
+
+	return entity;
+}
+
+Action Timer_DeleteTemporaryParticleSystem(Handle timer, any data)
+{
+	int entity = EntRefToEntIndex(data);
+
+	if(IsValidEntity(entity))
+	{
+		RemoveEntity(entity);
+	}
+
+	return Plugin_Stop;
+}
+
+void TE_SendBeam(const float vMins[3], const float vMaxs[3], const int colors[4] = { 255, 255, 255, 255 }, int client = -1, float time = 5.0)
+{
+	TE_SetupBeamPoints(vMins, vMaxs, g_te_laser, g_te_halo, 0, 0, time, 1.0, 1.0, 1, 0.0, colors, 0);
+	
+	if(client > 0 && client <= MaxClients)
+		TE_SendToClient(client);
+	else
+		TE_SendToAll();
+}
+
+/**
+ * Draw a box of the given size.
+ * Code from Silver's dev cmds plugin
+ * 
+ * @param client     The client to draw the box to. -1 will send to all clients.
+ * @param vPos       Box origin
+ * @param vMins      Box mins
+ * @param vMaxs      Box maxs
+ * @param colors     Array of colors (RRR,GGG,BBB,AAA)
+ * @param time       How long should the box be draw to the client
+ */
+void DrawBox(int client, float vPos[3], float vMins[3], float vMaxs[3], int colors[4] = { 0, 255, 0, 255 }, float time = 5.0)
+{
+	if( vMins[0] == vMaxs[0] && vMins[1] == vMaxs[1] && vMins[2] == vMaxs[2] )
+	{
+		vMins = view_as<float>({ -15.0, -15.0, -15.0 });
+		vMaxs = view_as<float>({ 15.0, 15.0, 15.0 });
+	}
+	else
+	{
+		AddVectors(vPos, vMaxs, vMaxs);
+		AddVectors(vPos, vMins, vMins);
+	}
+	
+	float vPos1[3], vPos2[3], vPos3[3], vPos4[3], vPos5[3], vPos6[3];
+	vPos1 = vMaxs;
+	vPos1[0] = vMins[0];
+	vPos2 = vMaxs;
+	vPos2[1] = vMins[1];
+	vPos3 = vMaxs;
+	vPos3[2] = vMins[2];
+	vPos4 = vMins;
+	vPos4[0] = vMaxs[0];
+	vPos5 = vMins;
+	vPos5[1] = vMaxs[1];
+	vPos6 = vMins;
+	vPos6[2] = vMaxs[2];
+
+	TE_SendBeam(vMaxs, vPos1, colors, client, time);
+	TE_SendBeam(vMaxs, vPos2, colors, client, time);
+	TE_SendBeam(vMaxs, vPos3, colors, client, time);
+	TE_SendBeam(vPos6, vPos1, colors, client, time);
+	TE_SendBeam(vPos6, vPos2, colors, client, time);
+	TE_SendBeam(vPos6, vMins, colors, client, time);
+	TE_SendBeam(vPos4, vMins, colors, client, time);
+	TE_SendBeam(vPos5, vMins, colors, client, time);
+	TE_SendBeam(vPos5, vPos1, colors, client, time);
+	TE_SendBeam(vPos5, vPos3, colors, client, time);
+	TE_SendBeam(vPos4, vPos3, colors, client, time);
+	TE_SendBeam(vPos4, vPos2, colors, client, time);
 }

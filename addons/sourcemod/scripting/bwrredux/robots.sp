@@ -335,7 +335,7 @@ int Robots_CollectTemplates(ArrayList robots, const int resources, TFClassType c
  * @param robots        ArrayList containing robots indexes
  * @param resources     Amount of resources the director has
  * @param spawns        Number of players to be spawned simultaneously
- * @return              Return description
+ * @param multiplier    Cost multiplier
  */
 void Robots_FilterByCanAfford(ArrayList robots, const int resources, int spawns = 1, const float multiplier = 1.0)
 {
@@ -350,6 +350,33 @@ void Robots_FilterByCanAfford(ArrayList robots, const int resources, int spawns 
 			#if defined _bwrr_debug_
 			PrintToChatAll("[Cost Filter] Filtered template %i, cost: %i, resources: %i", index, cost, resources);
 			#endif
+			robots.Erase(i);
+		}
+	}
+}
+
+/**
+ * Filters the robot list by cost
+ * 
+ * @param robots        ArrayList containing robots indexes
+ */
+void Robots_FilterByCanBeGatebot(ArrayList robots)
+{
+	int index;
+	for(int i = 0;i < robots.Length;i++)
+	{
+		index = robots.Get(i);
+		
+		Action result;
+		Call_StartForward(g_FilterGateBot);
+		Call_PushCell(g_eTemplates[index].pluginID);
+		Call_PushCell(g_eTemplates[index].class);
+		Call_PushCell(g_eTemplates[index].index);
+		Call_PushCell(g_eTemplates[index].type);
+		Call_Finish(result);
+
+		if(result == Plugin_Stop || result == Plugin_Handled)
+		{
 			robots.Erase(i);
 		}
 	}
@@ -377,4 +404,176 @@ int Robots_SelectByHighestCost(ArrayList robots)
 	}
 
 	return best;
+}
+
+/**
+ * Called when the sentry buster starts to detonate
+ * 
+ * @param client     Param description
+ * @return           Return description
+ */
+void Robots_OnBeginSentryBusterDetonation(int client)
+{
+	RobotPlayer rp = RobotPlayer(client);
+
+	if(rp.isdetonating)
+		return;
+
+	float delay = 1.980;
+
+	Action result;
+	Call_StartForward(g_OnSentryBusterBeginToDetonate);
+	Call_PushCell(client);
+	Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+	Call_PushCell(TF2_GetPlayerClass(client));
+	Call_PushCell(g_eTemplates[rp.templateindex].index);
+	Call_PushCell(g_eTemplates[rp.templateindex].type);
+	Call_PushFloatRef(delay);
+	Call_Finish(result);
+
+	if(result == Plugin_Continue || result == Plugin_Changed)
+	{
+		rp.BeginToDetonate(delay);
+		FakeClientCommandThrottled(client, "taunt");
+		EmitGameSoundToAll("MVM.SentryBusterSpin", client);
+		SetEntProp(client, Prop_Data, "m_takedamage", DAMAGE_NO);
+	}
+}
+
+void Robots_OnSentryBusterExplode(int client)
+{
+	float range = c_sentrybuster_default_range.FloatValue;
+	RobotPlayer rp = RobotPlayer(client);
+
+	Action result;
+	Call_StartForward(g_OnSentryBusterDetonate);
+	Call_PushCell(client);
+	Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+	Call_PushCell(TF2_GetPlayerClass(client));
+	Call_PushCell(g_eTemplates[rp.templateindex].index);
+	Call_PushCell(g_eTemplates[rp.templateindex].type);
+	Call_PushFloatRef(range);
+	Call_Finish(result);
+
+	if(result == Plugin_Continue || result == Plugin_Changed)
+	{
+		rp.OnBusterExplode();
+		EmitGameSoundToAll("MVM.SentryBusterExplode", client);
+		float origin[3];
+		GetClientAbsOrigin(client, origin);
+		CreateTemporaryParticleSystem(origin, "fluidSmokeExpl_ring_mvm", 6.5);
+		CreateTemporaryParticleSystem(origin, "explosionTrail_seeds_mvm", 5.5);
+		Buster_ApplyDamageToClients(client);
+		Buster_ApplyDamageToObjects(client);
+	}
+}
+
+/**
+ * Performs a simple Trace Ray between start and end positions
+ * 
+ * @param start     The start position
+ * @param end       The end position
+ * @param buster    Sentry buster index
+ * @return          TRUE if there is an obstruction between the start and end positions
+ */
+bool Buster_Trace(float start[3], float end[3], int buster)
+{
+	Handle trace = null;
+	trace = TR_TraceRayFilterEx(start, end, MASK_SHOT, RayType_EndPoint, TraceFilter_SentryBuster, buster);
+	bool hit = TR_DidHit(trace);
+	delete trace;
+
+	return hit;
+}
+
+void Buster_ApplyDamageToClients(int buster)
+{
+	float origin[3], target[3];
+	TFTeam team;
+	GetClientEyePosition(buster, origin);
+
+
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(!IsClientInGame(i) || !IsPlayerAlive(i))
+			continue;
+
+		if(i == buster)
+		{
+			SetEntProp(buster, Prop_Data, "m_takedamage", DAMAGE_YES);
+			SDKHooks_TakeDamage(buster, 0, 0, float(4 * TF2Util_GetPlayerMaxHealthBoost(i)), DMG_BLAST);
+		}
+
+		team = TF2_GetClientTeam(i);
+		GetClientEyePosition(i, target);
+		
+		switch(team)
+		{
+			case TFTeam_Red:
+			{
+				if(!Buster_Trace(origin, target, buster)) // No obstruction
+				{
+					SDKHooks_TakeDamage(i, buster, buster, float(4 * TF2Util_GetPlayerMaxHealthBoost(i)), DMG_BLAST);
+				}
+			}
+			case TFTeam_Blue:
+			{
+				if(!Buster_Trace(origin, target, buster)) // No obstruction
+				{
+					SDKHooks_TakeDamage(i, 0, 0, float(4 * TF2Util_GetPlayerMaxHealthBoost(i)), DMG_BLAST);
+				}
+			}
+		}
+	}
+}
+
+void Buster_ApplyDamageToObjects(int buster)
+{
+	float origin[3], target[3];
+	GetClientEyePosition(buster, origin);
+
+	int entity = INVALID_ENT_REFERENCE;
+	while((entity = FindEntityByClassname(entity, "obj_sentrygun")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntPropEnt(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
+		{
+			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", target);
+			target[2] += 15.0;
+
+			if(!Buster_Trace(origin, target, buster))
+			{
+				SDKHooks_TakeDamage(entity, buster, buster, float(4 * TF2Util_GetEntityMaxHealth(entity)), DMG_BLAST);
+			}
+		}
+	}
+
+	entity = INVALID_ENT_REFERENCE;
+	while((entity = FindEntityByClassname(entity, "obj_dispenser")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntPropEnt(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
+		{
+			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", target);
+			target[2] += 15.0;
+
+			if(!Buster_Trace(origin, target, buster))
+			{
+				SDKHooks_TakeDamage(entity, buster, buster, float(4 * TF2Util_GetEntityMaxHealth(entity)), DMG_BLAST);
+			}
+		}
+	}
+
+	entity = INVALID_ENT_REFERENCE;
+	while((entity = FindEntityByClassname(entity, "obj_teleporter")) != INVALID_ENT_REFERENCE)
+	{
+		if(GetEntPropEnt(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
+		{
+			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", target);
+			target[2] += 15.0;
+
+			if(!Buster_Trace(origin, target, buster))
+			{
+				SDKHooks_TakeDamage(entity, buster, buster, float(4 * TF2Util_GetEntityMaxHealth(entity)), DMG_BLAST);
+			}
+		}
+	}
 }

@@ -19,4 +19,10 @@
 	{
 		"en"		"[SM] You've joined the BLU team queue."
 	}
+
+	"OnSpawn"
+	{
+		"#format"	"{1:s}"
+		"en"		"[SM] You've spawned as {1}."
+	}
 }

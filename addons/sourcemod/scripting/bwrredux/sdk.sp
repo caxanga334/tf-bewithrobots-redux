@@ -45,6 +45,17 @@ void TF2_SetBuilder(int entity, int builder = INVALID_ENT_REFERENCE)
 }
 
 /**
+ * Gets the object builder
+ * 
+ * @param entity     The entity index of the object
+ * @return           Builder entity index
+ */
+int TF2_GetBuilder(int entity)
+{
+	return GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+}
+
+/**
  * Gets the entity world center
  *
  * @param ent		The entity to get the center from
@@ -256,6 +267,41 @@ void OnAmmoPackSpawnPost(int entity)
 	RequestFrame(Frame_RemoveAmmoPack, EntIndexToEntRef(entity));
 }
 
+void OnObjectBuilt(int entity)
+{
+	if(entity == INVALID_ENT_REFERENCE)
+		return;
+
+	if(GetEntProp(entity, Prop_Send, "m_iTeamNum") != view_as<int>(TFTeam_Blue))
+		return;
+
+	int builder = TF2_GetBuilder(entity);
+	if(IsValidClient(builder) && IsFakeClient(builder))
+		return;
+
+	float origin[3];
+	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+	TF2_PushAllPlayers(origin, 400.0, 500.0, view_as<int>(TFTeam_Red));
+
+	PrintToChatAll("Object Spawned: %i %N", entity, builder);
+
+	switch(TF2_GetObjectType(entity))
+	{
+		case TFObject_Sentry:
+		{
+			OnSentrySpawn(entity);
+		}
+		case TFObject_Dispenser:
+		{
+			OnDispenserSpawn(entity);
+		}
+		case TFObject_Teleporter:
+		{
+			OnTeleporterSpawn(entity);
+		}
+	}
+}
+
 void OnPlayerTakeDamageAlivePost(int victim, int attacker, int inflictor, float damage, int damagetype, int weapon, const float damageForce[3], const float damagePosition[3], int damagecustom)
 {
 	if(!IsClientInGame(victim))
@@ -280,4 +326,181 @@ void OnPlayerTakeDamageAlivePost(int victim, int attacker, int inflictor, float 
 			}
 		}
 	}
+	else if(IsValidEntity(attacker))
+	{
+		char classname[64];
+		GetEntityClassname(attacker, classname, sizeof(classname));
+
+		if(strcmp(classname, "obj_sentrygun", false) == 0)
+		{
+			int builder = TF2_GetBuilder(attacker);
+			if(IsValidClient(builder) && TF2_GetClientTeam(builder) == TFTeam_Red)
+			{
+				if(g_PlayerData[attacker].timer <= GetGameTime())
+				{
+					g_PlayerData[attacker].damage = RoundToCeil(damage);
+					g_PlayerData[attacker].timer = GetGameTime() + 90.0;
+				}
+				else
+				{
+					g_PlayerData[attacker].damage += RoundToCeil(damage);
+					g_PlayerData[attacker].timer = GetGameTime() + 90.0;				
+				}				
+			}
+		}
+	}
+}
+
+/**
+ * Checks if there are enough space to build a teleporter
+ * 
+ * @param entity     Teleporter entity index.
+ */
+bool CanBuildTeleporterExit(int entity)
+{
+	float mins[3], maxs[3], origin[3];
+
+	TF2_GetPlayerHullSize(mins, maxs);
+	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+	ScaleVector(mins, 2.15);
+	ScaleVector(maxs, 2.15);
+
+	Handle trace = TR_TraceHullFilterEx(origin, origin, mins, maxs, MASK_PLAYERSOLID, TraceFilter_Teleporter, entity);
+	bool hit = TR_DidHit(trace);
+	
+	int builder = TF2_GetBuilder(entity);
+	if(IsValidClient(builder) && hit)
+	{
+		DrawBox(builder, origin, mins, maxs, {255, 0, 0, 255}, 7.0);
+		PrintCenterText(builder, "NOT ENOUGH SPACE TO BUILD A TELEPORTER");
+		EmitSoundToClient(builder, "buttons/button10.wav", SOUND_FROM_PLAYER, SNDCHAN_STATIC, SNDLEVEL_RAIDSIREN);
+	}
+
+	delete trace;
+	return !hit; // Didhit will be true when the tele can't be built but this should return false
+}
+
+void OnSentrySpawn(int entity)
+{
+	int builder = TF2_GetBuilder(entity);
+
+	if(IsValidClient(builder))
+	{
+		RobotPlayer rp = RobotPlayer(builder);
+		Action result;
+		Call_StartForward(g_OnObjectSpawn);
+		Call_PushCell(builder);
+		Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+		Call_PushCell(TF2_GetPlayerClass(builder));
+		Call_PushCell(g_eTemplates[rp.templateindex].index);
+		Call_PushCell(g_eTemplates[rp.templateindex].type);
+		Call_PushCell(entity);
+		Call_PushCell(TF2_GetObjectType(entity));
+		Call_Finish(result);
+
+		if(result == Plugin_Continue) // Default Behavior
+		{
+			if(!TF2_IsMiniBuilding(entity) || !TF2_IsDisposableBuilding(entity))
+			{
+				DispatchKeyValue(entity, "defaultupgrade", "2");
+			}
+		}
+	}
+}
+
+void OnDispenserSpawn(int entity)
+{
+	int builder = TF2_GetBuilder(entity);
+
+	if(IsValidClient(builder))
+	{
+		RobotPlayer rp = RobotPlayer(builder);
+		Action result;
+		Call_StartForward(g_OnObjectSpawn);
+		Call_PushCell(builder);
+		Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+		Call_PushCell(TF2_GetPlayerClass(builder));
+		Call_PushCell(g_eTemplates[rp.templateindex].index);
+		Call_PushCell(g_eTemplates[rp.templateindex].type);
+		Call_PushCell(entity);
+		Call_PushCell(TF2_GetObjectType(entity));
+		Call_Finish(result);
+
+		if(result == Plugin_Continue) // Default Behavior
+		{
+			TF2_SetMiniBuilding(entity);
+			SetEntPropFloat(entity, Prop_Send, "m_flModelScale", 0.90);
+			SetVariantInt(100);
+			AcceptEntityInput(entity, "SetHealth");	
+		}
+	}
+}
+
+void OnTeleporterSpawn(int entity)
+{
+	if(!CanBuildTeleporterExit(entity))
+	{
+		RemoveEntity(entity);
+		return;
+	}
+
+	int builder = TF2_GetBuilder(entity);
+
+	if(IsValidClient(builder))
+	{
+		RobotPlayer rp = RobotPlayer(builder);
+		Action result;
+		Call_StartForward(g_OnObjectSpawn);
+		Call_PushCell(builder);
+		Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+		Call_PushCell(TF2_GetPlayerClass(builder));
+		Call_PushCell(g_eTemplates[rp.templateindex].index);
+		Call_PushCell(g_eTemplates[rp.templateindex].type);
+		Call_PushCell(entity);
+		Call_PushCell(TF2_GetObjectType(entity));
+		Call_Finish(result);
+
+		if(result == Plugin_Continue) // Default Behavior
+		{
+			DispatchKeyValue(entity, "defaultupgrade", "2");
+			SetEntProp(entity, Prop_Data, "m_iMaxHealth", 300);
+			SetVariantInt(300);
+			AcceptEntityInput(entity, "SetHealth");
+		}
+
+		CreateTimer(0.1, Timer_OnBuildTeleporter, EntIndexToEntRef(entity), TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
+Action Timer_OnBuildTeleporter(Handle timer, any data)
+{
+	int entity = EntRefToEntIndex(data);
+
+	if(entity == INVALID_ENT_REFERENCE)
+	{
+		return Plugin_Stop;
+	}
+
+	float percent = GetEntPropFloat(entity, Prop_Send, "m_flPercentageConstructed");
+
+	if(percent >= 0.99)
+	{
+		SetEntProp(entity, Prop_Data, "m_iMaxHealth", 300);
+		SetVariantInt(300);
+		AcceptEntityInput(entity, "SetHealth");
+		Announcer_MakeAnnouncement(Announcement_Teleporter);
+		HookSingleEntityOutput(entity, "OnDestroyed", OnBLUTeleporterDestroyed, true);
+		float origin[3];
+		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
+		origin[2] -= 500.0;
+		CreateTemporaryParticleSystem(origin, "teleporter_mvm_bot_persist", -1.0, entity);
+		return Plugin_Stop;
+	}
+
+	return Plugin_Continue;
+}
+
+void OnBLUTeleporterDestroyed(const char[] output, int caller, int activator, float delay)
+{
+	AcceptEntityInput(caller, "KillHierarchy", caller, caller);
 }

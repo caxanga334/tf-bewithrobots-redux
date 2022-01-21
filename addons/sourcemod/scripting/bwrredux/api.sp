@@ -13,6 +13,11 @@ GlobalForward g_OnLeaveSpawn;
 GlobalForward g_OnBombUpgrade;
 GlobalForward g_OnSetSpawnPoint;
 GlobalForward g_OnTeleport;
+GlobalForward g_OnGetRobotName;
+GlobalForward g_FilterGateBot;
+GlobalForward g_OnSentryBusterBeginToDetonate;
+GlobalForward g_OnSentryBusterDetonate;
+GlobalForward g_OnObjectSpawn;
 
 void SetupForwards()
 {
@@ -29,6 +34,11 @@ void SetupForwards()
 	g_OnBombUpgrade = new GlobalForward("BWRR_OnBombUpgrade", ET_Ignore, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_Cell);
 	g_OnSetSpawnPoint = new GlobalForward("BWRR_OnSetSpawnPoint", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_String, Param_Array, Param_Array);
 	g_OnTeleport = new GlobalForward("BWRR_OnTeleport", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_Array, Param_Array);
+	g_OnGetRobotName = new GlobalForward("BWRR_OnGetRobotName", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_String, Param_Cell);
+	g_FilterGateBot = new GlobalForward("BWRR_FilterGatebot", ET_Event, Param_Cell, Param_Any, Param_Cell, Param_Cell);
+	g_OnSentryBusterBeginToDetonate = new GlobalForward("BWRR_OnSentryBusterBeginToDetonate", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_FloatByRef);
+	g_OnSentryBusterDetonate = new GlobalForward("BWRR_OnSentryBusterDetonate", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_FloatByRef);
+	g_OnObjectSpawn = new GlobalForward("BWRR_OnObjectSpawn", ET_Event, Param_Cell, Param_Cell, Param_Any, Param_Cell, Param_Cell, Param_Cell, Param_Any);
 }
 
 void SetupNatives()

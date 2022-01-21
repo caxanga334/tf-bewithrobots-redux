@@ -10,6 +10,7 @@ void SetupPluginCommands()
 	RegAdminCmd("sm_bwrr_debug_player", Cmd_DebugPlayer, ADMFLAG_ROOT, "Player debug command.");
 	RegAdminCmd("sm_bwrr_debug_director", Cmd_DirectorDebug, ADMFLAG_ROOT, "AI Director debug");
 	RegAdminCmd("sm_bwrr_debug_bombdist", Cmd_DebugBombDistance, ADMFLAG_ROOT, "Debugs the average distance between the active bombs and the bomb hatch");
+	RegAdminCmd("sm_bwrr_debug_announcer", Cmd_DebugAnnouncer, ADMFLAG_ROOT, "Force the announcer to make an announcement.");
 }
 
 void SetupCommandListeners()
@@ -123,6 +124,23 @@ public Action Cmd_DebugBombDistance(int client, int args)
 	ReplyToCommand(client, "[SM] Average distance: %.2f", distance);
 	
 	delete bombs;	
+	return Plugin_Handled;
+}
+
+public Action Cmd_DebugAnnouncer(int client, int args)
+{
+	if(!client)
+		return Plugin_Handled;	
+
+	if(args < 1)
+	{
+		Announcer_MakeAnnouncement(view_as<AnnouncementType>(Math_GetRandomInt(0, view_as<int>(Announcement_Max_Types) - 1)));
+	}
+	else
+	{
+		Announcer_MakeAnnouncement(view_as<AnnouncementType>(GetCmdArgInt(1)));
+	}
+	
 	return Plugin_Handled;
 }
 

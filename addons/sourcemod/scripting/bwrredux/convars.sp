@@ -13,6 +13,12 @@ ConVar c_director_wait_for_bots; // Wait for at least 1 bot to spawn players
 ConVar c_spman_spy_maxdist; // Maximum distance to teleport spy
 ConVar c_engineer_limit; // Maximum number of human engineers
 ConVar c_giant_limit; // Maximum number of human giants
+ConVar c_sentry_min_kills; // Minimum amount of kills a sentry gun needs to have to be considered a threat
+ConVar c_director_boss_wave_percent; // Minimum completed wave percentage to spawn bosses
+ConVar c_director_boss_cooldown_min; // Minimum cooldown between boss spawn
+ConVar c_director_boss_cooldown_max; // Minimum cooldown between boss spawn
+ConVar c_director_boss_cooldown_init; // Initial cooldown between boss spawn at wave start
+ConVar c_sentrybuster_default_range; // Default sentry buster explosion range
 
 // Cvars from the game
 ConVar c_bomb_upgrade1; // Bomb first upgrade time
@@ -38,6 +44,11 @@ void SetupConVars()
 	c_director_spawn_cooldown_max = AutoExecConfig_CreateConVar("sm_bwrr_director_spawn_cooldown_max", "12.0", "Maximum cooldown between player spawns.", FCVAR_NONE, true, 8.0, true, 30.0);
 	c_director_wait_for_bots = AutoExecConfig_CreateConVar("sm_bwrr_director_wait_for_bots", "1", "Should the AI Director wait for at least one bot to be active before spawning human players? 1 = Enabled. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_giant_limit = AutoExecConfig_CreateConVar("sm_bwrr_max_giants", "2", "Maximum number of human giants active at the same time. 0 = No limit.", FCVAR_NONE, true, 0.0, true, 3.0);
+	c_sentry_min_kills = AutoExecConfig_CreateConVar("sm_bwrr_sentry_min_kills", "15", "Minimum amount of kills a RED sentry gun needs to have to be considered a threat.", FCVAR_NONE, true, 1.0, true, 60.0);
+	c_director_boss_wave_percent = AutoExecConfig_CreateConVar("sm_bwrr_director_boss_min_wave_percent", "0.66", "Minimum percentage of complete waves needed to allow boss robots to spawn", FCVAR_NONE, true, 0.0, true, 0.9);
+	c_director_boss_cooldown_init = AutoExecConfig_CreateConVar("sm_bwrr_director_boss_cooldown_init", "30.0", "Initial boss spawn cooldown at wave start.", FCVAR_NONE, true, 0.0, true, 900.0);
+	c_director_boss_cooldown_min = AutoExecConfig_CreateConVar("sm_bwrr_director_boss_cooldown_min", "75.0", "Minimum boss spawn cooldown.", FCVAR_NONE, true, 10.0, true, 300.0);
+	c_director_boss_cooldown_max = AutoExecConfig_CreateConVar("sm_bwrr_director_boss_cooldown_max", "180.0", "Maximum boss spawn cooldown.", FCVAR_NONE, true, 60.0, true, 900.0);
 
 	AutoExecConfig_ExecuteFile();
 	AutoExecConfig_CleanFile();
@@ -46,6 +57,7 @@ void SetupConVars()
 	c_bomb_upgrade2 = FindConVar("tf_mvm_bot_flag_carrier_interval_to_2nd_upgrade");
 	c_bomb_upgrade3 = FindConVar("tf_mvm_bot_flag_carrier_interval_to_3rd_upgrade");
 	c_engineer_distance = FindConVar("tf_bot_engineer_mvm_hint_min_distance_from_bomb");
+	c_sentrybuster_default_range = FindConVar("tf_bot_suicide_bomb_range");
 
 	if(c_bomb_upgrade1 == null || c_bomb_upgrade2 == null || c_bomb_upgrade3 == null)
 	{
@@ -54,5 +66,9 @@ void SetupConVars()
 	else if(c_engineer_distance == null)
 	{
 		SetFailState("Failed to find ConVar \"tf_bot_engineer_mvm_hint_min_distance_from_bomb\"!");
+	}
+	else if(c_sentrybuster_default_range == null)
+	{
+		SetFailState("Failed to find ConVar \"tf_bot_suicide_bomb_range\"!");
 	}
 }

@@ -34,10 +34,13 @@ enum struct MissionManager
 {
 	MissionType last;
 	MissionType next;
+	float lasttime;
 	float engineer;
 	float sniper;
 	float spy;
 	float sentrybuster;
+	int numengineers;
+	int numbusters;
 }
 
 enum struct GiantManager
@@ -70,12 +73,14 @@ enum struct edirector
 {
 	int resources;
 	int nextrobotindex;
+	int numberofdeaths;
 	Handle timer;
 	Strategy currentstrategy;
 	Strategy idealstrategy;
 	Strategy laststrategy;
 	Strategy failedstrategy;
 	float nextstrategychange;
+	float laststrategychange;
 	float spawncooldown;
 	float gatebotcooldown;
 	MissionManager mm;
@@ -279,17 +284,17 @@ void Director_ComputeDistances(float &hatchdist, float &spawndist)
 	}
 }
 
-void Director_SpawnPlayers(int quantity, const bool shared = false, const bool gatebot = false)
+void Director_SpawnPlayers(int quantity, const bool shared = false, const bool gatebot = false, const float multiplier = 1.0)
 {
-#if defined _bwrr_debug_
-	PrintToChatAll("[AI Direction] Starting spawn process for %i players.", quantity);
-#endif
-
 	float min = c_director_spawn_cooldown_min.FloatValue;
 	float max = c_director_spawn_cooldown_max.FloatValue;
 	float percent = TF2MvM_GetWavePercent();
 	float delay = Math_Range(min, max, percent, true);
 	g_eDirector.spawncooldown = GetGameTime() + delay;
+
+#if defined _bwrr_debug_
+	PrintToChatAll("[AI Direction] Starting spawn process for %i players. Delay between spawns: %.2f", quantity, delay);
+#endif
 
 	for(int i = 0;i < quantity;i++)
 	{
@@ -334,8 +339,35 @@ void Director_SpawnPlayers(int quantity, const bool shared = false, const bool g
 #endif
 
 		TF2MvM_ChangeClientTeam(client, TFTeam_Blue);
-		Director_SelectRobot(client, g_eDirector.nextrobotindex);
+		Director_SelectRobot(client, g_eDirector.nextrobotindex, multiplier);
 	}
+}
+
+/**
+ * Gets the number of danregous RED owned sentry guns
+ * 
+ * @return     Number of danregous sentries
+ */
+int Director_GetNumberOfDangerousSentries()
+{
+	int entity = INVALID_ENT_REFERENCE;
+	int kills, counter = 0;
+	while((entity = FindEntityByClassname(entity, "obj_sentrygun")) != INVALID_ENT_REFERENCE)
+	{
+		if(IsValidEntity(entity))
+		{
+			if(GetEntProp(entity, Prop_Send, "m_iTeamNum" ) == view_as<int>(TFTeam_Red))
+			{
+				kills = GetEntProp(entity, Prop_Send, "SentrygunLocalData", _, 0);
+				if(kills >= c_sentry_min_kills.IntValue)
+				{
+					counter++;
+				}
+			}
+		}
+	}
+	
+	return counter;
 }
 
 /**
@@ -400,6 +432,36 @@ bool Director_CanSendMission(MissionType mission)
 	}
 }
 
+/**
+ * Checks if boss robots can be spawned
+ * 
+ * @return     TRUE if boss robots can be spawned
+ */
+bool Director_CanSendBoss()
+{
+	if(g_eDirector.bm.cooldown > GetGameTime()) { return false; }
+
+	if(!Director_CanSpawnGiants()) { return false; }
+
+	for(int i = 1;i <= MaxClients;i++)
+	{
+		if(IsClientInGame(i))
+		{
+			RobotPlayer rp = RobotPlayer(i);
+			if(IsPlayerAlive(i) && rp.isrobot && TF2_GetClientTeam(i) == TFTeam_Blue && rp.type == BWRR_RobotType_Boss) { return false; } // Only 1 boss active at the same time
+		}
+	}
+
+	float percent = TF2MvM_GetCompletedWavePercent();
+
+	if(percent >= c_director_boss_wave_percent.FloatValue || TF2MvM_IsSingleWave())
+	{
+		return true;
+	}
+
+	return false;
+}
+
 void Director_DispatchMission(MissionType mission, int quantity = 1, const bool shared = false)
 {
 	float min = c_director_mm_cooldown_min.FloatValue;
@@ -455,7 +517,14 @@ void Director_DispatchAttack(int quantity = 1, const bool shared = false)
 {
 	ArrayList robots = new ArrayList();
 	Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Normal, BWRR_Role_Attack);
-	if(Director_CanSpawnGiants()) { Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Giant, BWRR_Role_Attack); }
+	Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Normal, BWRR_Role_AttackSupport);
+
+	if(Director_CanSpawnGiants())
+	{
+		Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Giant, BWRR_Role_Attack);
+		Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Giant, BWRR_Role_AttackSupport);
+	}
+
 	Robots_FilterByCanAfford(robots, g_eDirector.resources, quantity);
 
 	// Abort, no robots to spawn
@@ -470,13 +539,67 @@ void Director_DispatchAttack(int quantity = 1, const bool shared = false)
 	Director_SpawnPlayers(quantity, shared);
 }
 
+void Director_DispatchSupport(int quantity = 1, const bool shared = false)
+{
+	ArrayList robots = new ArrayList();
+	Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Normal, BWRR_Role_AttackSupport);
+	Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Normal, BWRR_Role_Support);
+	Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Normal, BWRR_Role_Healer);
+
+	if(Director_CanSpawnGiants())
+	{
+		Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Giant, BWRR_Role_AttackSupport);
+		Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Giant, BWRR_Role_Support);
+		Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Giant, BWRR_Role_Healer);
+	}
+
+	Robots_FilterByCanAfford(robots, g_eDirector.resources, quantity);
+
+	// Abort, no robots to spawn
+	if(robots.Length == 0)
+	{
+		delete robots;
+		return;
+	}
+
+	g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+	delete robots;
+	Director_SpawnPlayers(quantity, shared);
+}
+
+void Director_DispatchBoss()
+{
+	ArrayList robots = new ArrayList();
+	Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Boss);
+
+	float multiplier = 1.0 + (6 - GetTeamClientCount(view_as<int>(TFTeam_Red)))
+	Math_Clamp(multiplier, 1.0, 6.0);
+
+	Robots_FilterByCanAfford(robots, g_eDirector.resources, 1, multiplier);
+	Robots_FilterByCanBeGatebot(robots);
+
+	// Abort, no robots to spawn
+	if(robots.Length == 0)
+	{
+		delete robots;
+		return;
+	}
+
+	g_eDirector.bm.cooldown = GetGameTime() + Math_GetRandomFloat(c_director_boss_cooldown_min.FloatValue, c_director_boss_cooldown_max.FloatValue);
+	g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+	delete robots;
+	Director_SpawnPlayers(1, false, g_eGateManager.available ? Math_RandomChance(75) : false);
+}
+
 void Director_DispatchGatebot(int quantity = 1, const bool shared = false)
 {
 	ArrayList robots = new ArrayList();
+
 	Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Normal, BWRR_Role_Attack);
 	Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Normal, BWRR_Role_AttackSupport);
 	Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Normal, BWRR_Role_Support);
 	Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Normal, BWRR_Role_Healer);
+
 	if(Director_CanSpawnGiants())
 	{
 		Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Giant, BWRR_Role_Attack);
@@ -484,7 +607,9 @@ void Director_DispatchGatebot(int quantity = 1, const bool shared = false)
 		Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Giant, BWRR_Role_Support);
 		Robots_CollectTemplates(robots, g_eDirector.resources, _, BWRR_RobotType_Giant, BWRR_Role_Healer);		
 	}
+
 	Robots_FilterByCanAfford(robots, g_eDirector.resources, quantity);
+	Robots_FilterByCanBeGatebot(robots);
 
 	// Abort, no robots to spawn
 	if(robots.Length == 0)
@@ -518,7 +643,8 @@ public Action Director_Think(Handle timer)
 		#endif
 		g_eDirector.laststrategy = g_eDirector.currentstrategy;
 		g_eDirector.currentstrategy = g_eDirector.idealstrategy;
-		g_eDirector.nextstrategychange = GetGameTime() + Math_Range(5.0, 22.0, TF2MvM_GetWavePercent(), true); // delay between 5 to 22 seconds, based on wave percentage
+		g_eDirector.nextstrategychange = GetGameTime() + Math_Range(5.0, 22.0, TF2MvM_GetWavePercent(), true); // delay between 5 to 22 seconds, based on wave percentage]
+		g_eDirector.laststrategychange = GetGameTime();
 	}
 	else if(g_eDirector.failedstrategy > Strategy_None && g_eDirector.failedstrategy == g_eDirector.currentstrategy)
 	{
@@ -592,10 +718,15 @@ public Action Director_Think(Handle timer)
 			Director_DispatchGatebot();
 			return Plugin_Continue;
 		}
-		case Strategy_Support, Strategy_Boss:
+		case Strategy_Support:
 		{
-			Director_DispatchAttack();
+			Director_DispatchSupport();
 			return Plugin_Continue;			
+		}
+		case Strategy_Boss:
+		{
+			Director_DispatchBoss();
+			return Plugin_Continue;
 		}
 	}
 
@@ -637,11 +768,27 @@ void DirectorBehavior_DecideIdealStrategy()
 		return;
 	}
 
+	if(Director_GetNumberOfDangerousSentries() > 0)
+	{
+		if(Director_CanSendMission(Mission_SentryBuster))
+		{
+			g_eDirector.idealstrategy = Strategy_Mission;
+			g_eDirector.mm.next = Mission_SentryBuster;
+			return;
+		}
+	}
+
+	if(Director_CanSendBoss() && g_eDirector.laststrategy != Strategy_Boss)
+	{
+		g_eDirector.idealstrategy = Strategy_Boss;
+		return;
+	}
+
 	if(g_eGateManager.available)
 	{
 		if(g_eDirector.gatebotcooldown <= GetGameTime() && g_eDirector.laststrategy != Strategy_Gatebot)
 		{
-			g_eDirector.gatebotcooldown = GetGameTime() + Math_Range(1.0, 30.0, TF2MvM_GetWavePercent(), true) + Math_GetRandomFloat(5.0, 20.0);
+			g_eDirector.gatebotcooldown = GetGameTime() + Math_Range(10.0, 20.0, TF2MvM_GetWavePercent(), true) + Math_GetRandomFloat(10.0, 30.0);
 			g_eDirector.idealstrategy = Strategy_Gatebot;
 			return;
 		}
@@ -686,6 +833,17 @@ void DirectorBehavior_DecideIdealStrategy()
 	if(hatchdist > 3000.0)
 	{
 		g_eDirector.idealstrategy = Strategy_Attack;
+	}
+	else
+	{
+		if(Math_RandomChance(60))
+		{
+			g_eDirector.idealstrategy = Strategy_Attack;
+		}
+		else
+		{
+			g_eDirector.idealstrategy = Strategy_Support;
+		}
 	}
 
 	if(spawndist > 1000.0 && Director_CanSendMission(Mission_Engineer))
@@ -735,17 +893,21 @@ void Director_ResetData()
 	g_eDirector.failedstrategy = Strategy_None;
 	g_eDirector.spawncooldown = GetGameTime() + 5.0;
 	g_eDirector.nextstrategychange = GetGameTime() + 1.0;
+	g_eDirector.laststrategychange = 0.0;
 	g_eDirector.mm.next = Mission_None;
 	g_eDirector.mm.last = Mission_None;
 	g_eDirector.mm.engineer = GetGameTime() + delay;
 	g_eDirector.mm.sniper = GetGameTime() + delay;
 	g_eDirector.mm.spy = GetGameTime() + delay;
 	g_eDirector.mm.sentrybuster = GetGameTime() + delay;
-	g_eDirector.gm.cooldown = GetGameTime();
-	g_eDirector.bm.cooldown = GetGameTime();
+	g_eDirector.mm.lasttime = 0.0;
+	g_eDirector.mm.numengineers = 0;
+	g_eDirector.mm.numbusters = 0;
+	g_eDirector.gm.cooldown = 0.0;
+	g_eDirector.bm.cooldown = GetGameTime() + c_director_boss_cooldown_init.FloatValue;
 	g_eDirector.spm.lastclient = 0;
 	g_eDirector.spm.lastspawnpoint = INVALID_ENT_REFERENCE;
-	g_eDirector.spm.lastspawntime = GetGameTime();
+	g_eDirector.spm.lastspawntime = 0.0;
 
 	for(int i = 0;i < sizeof(g_PlayerData);i++)
 	{
@@ -906,6 +1068,8 @@ void Director_OnPlayerDeath(int victim, int killer)
 	TFTeam team1 = TF2_GetClientTeam(victim);
 	if(team1 == TFTeam_Blue)
 	{
+		g_eDirector.numberofdeaths++;
+
 		if(!IsFakeClient(victim)) // human BLU was killed
 		{
 			if(rp1.templateindex >= 0) // template index will be -1 for 'Own Loadout' robots
@@ -950,6 +1114,11 @@ void Director_OnPlayerDeath(int victim, int killer)
 	if(team1 == TFTeam_Red && team2 == TFTeam_Blue)
 	{
 		Director_SubtractResources(500); // Subtract resources from the director
+
+		if(TF2_IsGiant(killer) && !IsFakeClient(killer))
+		{
+			TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_KILLED_TEAMMATE, view_as<int>(TFTeam_Red), "");
+		}
 	}
 }
 
@@ -992,12 +1161,41 @@ Action DirectorTimer_OnRobotDeath(Handle timer, any data)
 	{
 		RobotPlayer rp = RobotPlayer(client);
 
+		if(TF2_IsGiant(client))
+		{
+			TF2_SpeakConcept(MP_CONCEPT_MVM_GIANT_KILLED, view_as<int>(TFTeam_Red), "");
+			EmitGameSoundToAll("MVM.GiantCommonExplodes", client);
+		}
+
+		switch(TF2_GetPlayerClass(client))
+		{
+			case TFClass_Engineer:
+			{
+				if(AnyBLUTeleporter())
+				{
+					Announcer_MakeAnnouncement(Announcement_Engineer_Dead_Tele);
+				}
+				else
+				{
+					Announcer_MakeAnnouncement(Announcement_Engineer_Dead_No_Tele);
+				}
+			}
+			case TFClass_Spy:
+			{
+				if(TF2_GetNumPlayersAsClass(TFClass_Spy, TFTeam_Blue, true, false) == 0)
+				{
+					Announcer_MakeAnnouncement(Announcement_Spy_Dead);
+				}
+			}
+		}
+
 		if(rp.hasloopsound)
 		{
 			rp.StopLoopSound();
 		}
 
 		Director_RemoveClientFromBLU(client);
+		
 	}
 
 	return Plugin_Stop;
@@ -1034,10 +1232,68 @@ Action DirectorTimer_OnRobotSpawnLate(Handle timer, any data)
 	{
 		Robots_SetLoopSound(client);
 		RobotPlayer rp = RobotPlayer(client);
+		TFClassType class = TF2_GetPlayerClass(client);
+
+		char robotname[96];
+		FormatEx(robotname, sizeof(robotname), "Robot #%i", Math_GetRandomInt(1, 90000));
+
+		Action result;
+		Call_StartForward(g_OnGetRobotName);
+		Call_PushCell(client);
+		Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+		Call_PushCell(class);
+		Call_PushCell(g_eTemplates[rp.templateindex].index);
+		Call_PushCell(g_eTemplates[rp.templateindex].type);
+		Call_PushStringEx(robotname, sizeof(robotname), SM_PARAM_STRING_UTF8|SM_PARAM_STRING_COPY, SM_PARAM_COPYBACK);
+		Call_PushCell(sizeof(robotname));
+		Call_Finish(result);
 
 		if(rp.gatebot)
 		{
-			PrintToChat(client, "You are a gatebot.");
+			Format(robotname, sizeof(robotname), "[Gatebot] %s", robotname);
+		}
+
+		if(g_eTemplates[rp.templateindex].type >= BWRR_RobotType_Giant)
+		{
+			rp.SetMiniboss(true);
+		}
+
+		if(result == Plugin_Continue || result == Plugin_Changed)
+		{
+			PrintToChat(client, "%t", "OnSpawn", robotname);
+		}
+
+		switch(class)
+		{
+			case TFClass_Spy: Announcer_MakeAnnouncement(Announcement_Spy_Spawn);
+			case TFClass_Sniper: Announcer_MakeAnnouncement(Announcement_Sniper);
+			case TFClass_Engineer:
+			{
+				if(g_eDirector.mm.numengineers == 0)
+				{
+					Announcer_MakeAnnouncement(Announcement_Engineer_Spawn_Arrive);
+				}
+				else
+				{
+					Announcer_MakeAnnouncement(Announcement_Engineer_Spawn_Another);
+				}
+
+				g_eDirector.mm.numengineers++;
+			}
+		}
+
+		if(g_eTemplates[rp.templateindex].type == BWRR_RobotType_Buster)
+		{
+			if(g_eDirector.mm.numbusters == 0)
+			{
+				Announcer_MakeAnnouncement(Announcement_SentryBuster_Spawn_First);
+			}
+			else
+			{
+				Announcer_MakeAnnouncement(Announcement_SentryBuster_Spawn_Another);
+			}
+
+			g_eDirector.mm.numbusters++;
 		}
 	}
 
@@ -1058,7 +1314,7 @@ void DirectorFrame_OnRobotDeath(int serial)
 }
 
 // Called to select a robot for the player
-void Director_SelectRobot(int client, int template)
+void Director_SelectRobot(int client, int template, const float multiplier = 1.0)
 {
 	RobotPlayer rp = RobotPlayer(client);
 	RequestFrame(DirectorFrame_PreSpawn, GetClientSerial(client));
@@ -1066,11 +1322,11 @@ void Director_SelectRobot(int client, int template)
 	if(template >= 0)
 	{
 		Robots_OnRobotSpawn(template);
-		Director_SubtractResources(Robots_GetCost(template));
+		Director_SubtractResources(Robots_GetCost(template, multiplier));
 		rp.SetRobot(g_eTemplates[template].type, template);
 
 #if defined _bwrr_debug_
-		PrintToChat(client, "[AI Director] Your robot cost me %i resources. I now have %i resources.", Robots_GetCost(template), g_eDirector.resources);
+		PrintToChat(client, "[AI Director] Your robot cost me %i resources. I now have %i resources.", Robots_GetCost(template, multiplier), g_eDirector.resources);
 #endif
 	}
 }
@@ -1194,6 +1450,7 @@ void DirectorFrame_TeleportEngineer(int serial)
 				TE_SetupTFParticleEffect("teleported_mvm_bot", origin);
 				TE_SendToAll(0.125);
 				TF2_PushAllPlayers(origin, 400.0, 500.0, view_as<int>(TFTeam_Red)); // Push players
+				EmitGameSoundToAll("MVM.Robot_Engineer_Spawn", client, _, _, origin);
 				rp.inspawn = false;
 			}
 		}

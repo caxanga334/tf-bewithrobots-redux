@@ -224,6 +224,45 @@ forward Action BWRR_OnSetSpawnPoint(int client, const int pluginID, TFClassType 
  */
 forward Action BWRR_OnTeleport(int client, const int pluginID, TFClassType class, int index, int type, float origin[3], float angles[3]);
 
+/**
+ * Called when printing the robot name to the client
+ * 
+ * @param client       The client index
+ * @param pluginID     The The plugin ID responside for the client current robot
+ * @param class        The client class
+ * @param index        The robot internal index
+ * @param type         The robot type
+ * @param name         Char array to store the name
+ * @param size         Char array size
+ * @return             Return Plugin_Changed to set the robot name
+ */
+forward Action BWRR_OnGetRobotName(int client, const int pluginID, TFClassType class, int index, int type, char[] name, int size);
+
+/**
+ * Called when filtering the robots list for gatebots.
+ * 
+ * @param pluginID     The The plugin ID responside for the client current robot
+ * @param class        The robot class
+ * @param index        The robot internal index
+ * @param type         The robot type
+ * @return             Return Plugin_Stop or Plugin_Handled to prevent this robot from spawning as a gatebot
+ */
+forward Action BWRR_FilterGatebot(const int pluginID, TFClassType class, int index, int type);
+
+/**
+ * Called when an engineer builds an object
+ * 
+ * @param client         The client index
+ * @param pluginID       The The plugin ID responside for the client current robot
+ * @param class          The client class
+ * @param index          The robot internal index
+ * @param type           The robot type
+ * @param entity         Object entity index
+ * @param objecttype     Object type
+ * @return               Return Plugin_Continue for default behavior
+ */
+forward Action BWRR_OnObjectSpawn(int client, const int pluginID, TFClassType class, int index, int type, int entity, TFObjectType objecttype);
+
 public SharedPlugin __pl_tf_bwr_redux =
 {
 	name = "tf_bwr_redux",

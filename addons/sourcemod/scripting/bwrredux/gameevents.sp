@@ -12,6 +12,7 @@ void SetupGameEvents()
 	HookEvent("player_spawn", Event_PlayerSpawn);
 	HookEvent("teamplay_flag_event", Event_Teamplay_Flag);
 	HookEvent("post_inventory_application", Event_Inventory);
+	HookEvent("player_builtobject", Event_Player_BuiltObject);
 }
 
 public Action Event_WaveStart(Event event, const char[] name, bool dontBroadcast)
@@ -145,6 +146,13 @@ public Action Event_Teamplay_Flag(Event event, const char[] name, bool dontBroad
 		}
 	}
 
+	return Plugin_Continue;
+}
+
+public Action Event_Player_BuiltObject(Event event, const char[] name, bool dontBroadcast)
+{
+	int index = event.GetInt("index", INVALID_ENT_REFERENCE);
+	OnObjectBuilt(index);
 	return Plugin_Continue;
 }
 

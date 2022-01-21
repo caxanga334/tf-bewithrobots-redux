@@ -58,6 +58,8 @@ int g_iModelIndexHumans[sizeof(g_strModelHumans)];
 
 float g_flNextCommand[MAXPLAYERS + 1]; // delayed command timer
 
+int g_te_laser, g_te_halo;
+
 enum struct erobotplayer
 {
 	bool isrobot;
@@ -66,12 +68,14 @@ enum struct erobotplayer
 	bool gatebot;
 	bool inspawn;
 	bool hasloopsound;
+	bool isdetonating;
 	int templateindex;
 	int type;
 	int bomblevel;
 	float nextbombupgradetime;
 	float deployingtime;
 	float lastspawntime;
+	float bustertimer;
 	char loopsound[PLATFORM_MAX_PATH];
 }
 erobotplayer g_eRobotPlayer[MAXPLAYERS+1];
@@ -113,6 +117,11 @@ methodmap RobotPlayer
 		public get() { return g_eRobotPlayer[this.index].hasloopsound; }
 		public set( bool value ) { g_eRobotPlayer[this.index].hasloopsound = value; }
 	}
+	property bool isdetonating
+	{
+		public get() { return g_eRobotPlayer[this.index].isdetonating; }
+		public set( bool value ) { g_eRobotPlayer[this.index].isdetonating = value; }
+	}
 	property int templateindex
 	{
 		public get() { return g_eRobotPlayer[this.index].templateindex; }
@@ -143,6 +152,11 @@ methodmap RobotPlayer
 		public get() { return g_eRobotPlayer[this.index].deployingtime; }
 		public set( float value ) { g_eRobotPlayer[this.index].deployingtime = value; }
 	}
+	property float bustertimer
+	{
+		public get() { return g_eRobotPlayer[this.index].bustertimer; }
+		public set( float value ) { g_eRobotPlayer[this.index].bustertimer = value; }
+	}
 	public void SetMiniboss(bool value)
 	{
 		SetEntProp(this.index, Prop_Send, "m_bIsMiniBoss", view_as<int>(value));
@@ -154,12 +168,14 @@ methodmap RobotPlayer
 		g_eRobotPlayer[this.index].deploying = false;
 		g_eRobotPlayer[this.index].gatebot = false;
 		g_eRobotPlayer[this.index].inspawn = false;
+		g_eRobotPlayer[this.index].isdetonating = false;
 		g_eRobotPlayer[this.index].templateindex = -1;
 		g_eRobotPlayer[this.index].type = BWRR_RobotType_Invalid;
 		g_eRobotPlayer[this.index].bomblevel = 0;
 		g_eRobotPlayer[this.index].nextbombupgradetime = 0.0;
 		g_eRobotPlayer[this.index].deployingtime = 0.0;
 		g_eRobotPlayer[this.index].lastspawntime = 0.0;
+		g_eRobotPlayer[this.index].bustertimer = 0.0;
 	}
 	public void OnDeathReset()
 	{
@@ -167,11 +183,14 @@ methodmap RobotPlayer
 		g_eRobotPlayer[this.index].deploying = false;
 		g_eRobotPlayer[this.index].gatebot = false;
 		g_eRobotPlayer[this.index].inspawn = false;
+		g_eRobotPlayer[this.index].isdetonating = false;
 		g_eRobotPlayer[this.index].templateindex = -1;
 		g_eRobotPlayer[this.index].type = BWRR_RobotType_Invalid;
 		g_eRobotPlayer[this.index].bomblevel = 0;
 		g_eRobotPlayer[this.index].nextbombupgradetime = 0.0;
-		g_eRobotPlayer[this.index].deployingtime = 0.0;	
+		g_eRobotPlayer[this.index].deployingtime = 0.0;
+		g_eRobotPlayer[this.index].bustertimer = 0.0;
+		this.SetMiniboss(false);
 	}
 	public void OnSpawn()
 	{
@@ -206,6 +225,16 @@ methodmap RobotPlayer
 	{
 		g_eRobotPlayer[this.index].hasloopsound = false;
 		StopSound(this.index, SNDCHAN_STATIC, g_eRobotPlayer[this.index].loopsound);
+	}
+	public void BeginToDetonate(const float delay)
+	{
+		g_eRobotPlayer[this.index].isdetonating = true;
+		g_eRobotPlayer[this.index].bustertimer = GetGameTime() + delay;
+	}
+	public void OnBusterExplode()
+	{
+		g_eRobotPlayer[this.index].isdetonating = false;
+		g_eRobotPlayer[this.index].bustertimer = 0.0;	
 	}
 }
 
@@ -280,6 +309,26 @@ public void OnMapStart()
 	PrecacheScriptSound("MVM.DeployBombSmall");
 	PrecacheScriptSound("MVM.DeployBombGiant");
 	PrecacheScriptSound("MVM.Warning");
+	PrecacheScriptSound("MVM.Robot_Engineer_Spawn");
+	PrecacheScriptSound("Announcer.MVM_Spy_Alert");
+	PrecacheScriptSound("Announcer.MVM_Sentry_Buster_Alert");
+	PrecacheScriptSound("Announcer.MVM_Sentry_Buster_Alert_Another");
+	PrecacheScriptSound("Announcer.mvm_spybot_death_all");
+	PrecacheScriptSound("Announcer.MVM_First_Engineer_Teleport_Spawned");
+	PrecacheScriptSound("Announcer.MVM_Another_Engineer_Teleport_Spawned");
+	PrecacheScriptSound("Announcer.MVM_An_Engineer_Bot_Is_Dead");
+	PrecacheScriptSound("Announcer.MVM_An_Engineer_Bot_Is_Dead_But_Not_Teleporter");
+	PrecacheScriptSound("Announcer.MVM_Engineer_Teleporter_Activated");
+	PrecacheScriptSound("MVM.GiantCommonExplodes");
+	PrecacheScriptSound("MVM.SentryBusterExplode");
+	PrecacheScriptSound("MVM.SentryBusterSpin");
+	PrecacheScriptSound("MVM.SentryBusterIntro");
+	PrecacheSound("buttons/button10.wav");
+
+	for(int i = 0;i < sizeof(g_flAnnouncements);i++) { g_flAnnouncements[i] = 0.0; }
+
+	g_te_laser = PrecacheModel("materials/sprites/laserbeam.vmt");
+	g_te_halo = PrecacheModel("materials/sprites/halo01.vmt");
 }
 
 public void OnMapEnd()
@@ -439,6 +488,28 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 							TF2_SpeakConcept(MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE3, view_as<int>(TFTeam_Red), "");
 						}
 					}
+				}
+			}
+		}
+
+		/* SENTRY BUSTER */
+		if(rp.type == BWRR_RobotType_Buster)
+		{
+			if(buttons & IN_ATTACK)
+			{
+				FakeClientCommandThrottled(client, "taunt");
+			}
+
+			if(TF2_IsPlayerInCondition(client, TFCond_Taunting))
+			{
+				Robots_OnBeginSentryBusterDetonation(client);
+			}
+
+			if(rp.isdetonating)
+			{
+				if(rp.bustertimer <= GetGameTime())
+				{
+					Robots_OnSentryBusterExplode(client);
 				}
 			}
 		}

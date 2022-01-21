@@ -347,3 +347,45 @@ stock int GetSpecificEntityCount(const char[] classname)
 
 	return counter;
 }
+
+/**
+ * Checks if the given building is a mini building
+ * 
+ * @param entity     Building entity index
+ * @return           TRUE if the building is mini
+ */
+stock bool TF2_IsMiniBuilding(int entity)
+{
+	return !!GetEntProp(entity, Prop_Send, "m_bMiniBuilding");
+}
+
+/**
+ * Checks if the given building is a disposable building
+ * 
+ * @param entity     Building entity index
+ * @return           TRUE if the building is disposable
+ */
+stock bool TF2_IsDisposableBuilding(int entity)
+{
+	return !!GetEntProp(entity, Prop_Send, "m_bDisposableBuilding");
+}
+
+/**
+ * Sets the given building as a mini building
+ * 
+ * @param entity     Building entity index
+ */
+stock void TF2_SetMiniBuilding(int entity)
+{
+	SetEntProp(entity, Prop_Send, "m_bMiniBuilding", 1);
+}
+
+/**
+ * Sets the given building as a disposable building
+ * 
+ * @param entity     Building entity index
+ */
+stock void TF2_SetDisposableBuilding(int entity)
+{
+	SetEntProp(entity, Prop_Send, "m_bDisposableBuilding", 1);
+}

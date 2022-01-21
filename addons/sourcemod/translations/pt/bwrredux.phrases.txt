@@ -1,4 +1,28 @@
 "Phrases"
 {
+	"Error_MinRed"
+	{
+		"pt"		"[SM] Not enough players to join BLU/Robot team."
+	}
 
+	"Error_Already_BLU"
+	{
+		"pt"		"[SM] You're already on BLU team."
+	}
+
+	"Error_BLU_Full"
+	{
+		"pt"		"[SM] BLU team is currently full."
+	}
+
+	"Director_Added"
+	{
+		"pt"		"[SM] You've joined the BLU team queue."
+	}
+
+	"OnSpawn"
+	{
+		"#format"	"{1:s}"
+		"pt"		"[SM] You've spawned as {1}."
+	}
 }
