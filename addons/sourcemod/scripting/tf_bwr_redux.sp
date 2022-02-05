@@ -27,6 +27,13 @@
 #define TF_CURRENCY_PACK_CUSTOM 9
 #define MAX_SUBPLUGINS 64
 
+/**
+ * -- BUGS --
+ * Human spy eye particle is visible (NEEDS TESTING)
+ * RED player spawned with robot model (NEEDS TESTING)
+ * fix sentry buster mission (DONE)
+ */
+
 // debug
 #define _bwrr_debug_
 
@@ -293,6 +300,22 @@ public void OnPluginStart()
 	if(g_islateload) // To-do: Add late loading logic
 	{
 		PrintToServer("[BWRR] Late load detected!");
+	}
+}
+
+public void OnAllPluginsLoaded()
+{
+	if(LibraryExists("SteamWorks"))
+	{
+		SteamWorks_SetGameDescription("Be With Robots Redux");
+	}
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(strcmp(name, "SteamWorks") == 0)
+	{
+		SteamWorks_SetGameDescription("Be With Robots Redux");
 	}
 }
 

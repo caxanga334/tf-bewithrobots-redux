@@ -89,6 +89,7 @@ void TF2BWR_ChangeClientTeam(int client, TFTeam team)
 	}
 
 	RobotPlayer rp = RobotPlayer(client);
+	rp.StopLoopSound();
 	rp.ResetData();
 	TF2_ClearClient(client);
 
@@ -395,6 +396,70 @@ bool IsSafeAreaToTeleport(int client, float origin[3])
 	bool result = TR_DidHit(trace);
 	delete trace;
 	return !result;
+}
+
+/**
+ * Collects spawnpoints and add them to a list
+ * 
+ * @param teleporters  ArrayList to store the teleporters entity refs
+ * @param team         The spawn point team
+ */
+void CollectTeleporters(ArrayList teleporters)
+{
+	int entity;
+	while((entity = FindEntityByClassname(entity, "obj_teleporter")) != INVALID_ENT_REFERENCE)
+	{
+		if(IsTeleporterValidForSpawning(entity))
+		{
+			teleporters.Push(EntIndexToEntRef(entity));
+		}
+	}
+}
+
+/**
+ * Teleport clients to a teleporter. Used for spawing robots on teleporters
+ *
+ * @param teleporter		The teleporter entity index
+ * @param client			The client index to teleport
+ */
+void SpawnOnTeleporter(int teleporter, int client)
+{
+	if(!IsClientInGame(client)) // Validate client
+		return;
+
+	float origin[3];
+	float scale = GetEntPropFloat(client, Prop_Send, "m_flModelScale");
+	if(IsValidEntity(teleporter))
+	{
+		GetEntPropVector(teleporter, Prop_Send, "m_vecOrigin", origin);
+		
+		if(scale <= 1.0)
+		{
+			origin[2] += 16;
+		}
+		else if(scale >= 1.1 && scale <= 1.4)
+		{
+			origin[2] += 20;
+		}
+		else if(scale >= 1.5 && scale <= 1.6)
+		{
+			origin[2] += 23;
+		}		
+		else if(scale >= 1.7 && scale <= 1.8)
+		{
+			origin[2] += 26;
+		}
+		else if(scale >= 1.9)
+		{
+			origin[2] += 50;
+		}
+		
+		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.1);
+		TeleportEntity(client, origin, NULL_VECTOR, NULL_VECTOR);
+		EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", teleporter, SND_NOFLAGS, teleporter, origin);
+		RobotPlayer rp = RobotPlayer(client);
+		rp.inspawn = false;
+	}
 }
 
 // code from Pelipoika's bot control
@@ -909,6 +974,32 @@ bool AnyBLUTeleporter()
 }
 
 /**
+ * Checks if the given teleporter can be used for spawning robots
+ * 
+ * @param teleporter     Teleporter entity index
+ * @return               TRUE if the teleporter can be used.
+ */
+bool IsTeleporterValidForSpawning(int teleporter)
+{
+	if(!IsValidEntity(teleporter)) // Valid entity?
+		return false;
+
+	if(GetEntProp(teleporter, Prop_Send, "m_iTeamNum") != view_as<int>(TFTeam_Blue)) // BLU team teleporter?
+		return false;
+
+	if(GetEntProp(teleporter, Prop_Send, "m_bDisabled") == 1) // Disabled?
+		return false;
+
+	if(GetEntProp(teleporter, Prop_Send, "m_bHasSapper") == 1) // Sapped?
+		return false;
+
+	if(GetEntPropFloat(teleporter, Prop_Send, "m_flPercentageConstructed") < 0.99) // Fully built?
+		return false;
+
+	return true;
+}
+
+/**
  * Decouples all objects (buildings) from the given client.
  * Prevents buildings from getting destroyed when the engineers change classes/teams
  * 
@@ -1234,6 +1325,9 @@ void Announcer_MakeAnnouncement(AnnouncementType type)
 		LogStackTrace("Invalid announcement type %i", type);
 		return;
 	}
+
+	if(!IsMvMWaveRunning())
+		return;
 
 	if(g_flAnnouncements[type] > GetGameTime())
 		return;

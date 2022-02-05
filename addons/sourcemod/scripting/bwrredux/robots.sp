@@ -201,6 +201,8 @@ float Robots_GetScaleSize(int client)
 	Call_PushFloatRef(scale);
 	Call_Finish();
 
+	Math_Clamp(scale, c_robots_min_size.FloatValue, c_robots_max_size.FloatValue);
+
 	return scale;
 }
 
@@ -294,7 +296,7 @@ void Robots_OnRobotSpawn(int template)
  * @param role          Optional role filter
  * @return              Number of templates collected
  */
-int Robots_CollectTemplates(ArrayList robots, const int resources, TFClassType class = TFClass_Unknown, int type = BWRR_RobotType_Invalid, int role = BWRR_Role_Invalid)
+int Robots_CollectTemplates(ArrayList robots, int resources, TFClassType class = TFClass_Unknown, int type = BWRR_RobotType_Invalid, int role = BWRR_Role_Invalid)
 {
 	int collected = 0;
 
@@ -306,7 +308,7 @@ int Robots_CollectTemplates(ArrayList robots, const int resources, TFClassType c
 		if(g_eTemplates[i].supply > 0 && g_eTemplates[i].spawns > g_eTemplates[i].supply) // No longer available for the current wave
 			continue;
 
-		if(g_eTemplates[i].percent < TF2MvM_GetCompletedWavePercent()) // Not available for the current wave percentage
+		if(g_eTemplates[i].percent > TF2MvM_GetCompletedWavePercent()) // Not available for the current wave percentage
 			continue;
 
 		if(class != TFClass_Unknown && g_eTemplates[i].class != class) // Class filter
@@ -322,10 +324,6 @@ int Robots_CollectTemplates(ArrayList robots, const int resources, TFClassType c
 		collected++;
 	}
 
-	#if defined _bwrr_debug_
-	PrintToChatAll("[Template Collector] Collected %i robots templates.", collected);
-	#endif
-
 	return collected;
 }
 
@@ -337,7 +335,7 @@ int Robots_CollectTemplates(ArrayList robots, const int resources, TFClassType c
  * @param spawns        Number of players to be spawned simultaneously
  * @param multiplier    Cost multiplier
  */
-void Robots_FilterByCanAfford(ArrayList robots, const int resources, int spawns = 1, const float multiplier = 1.0)
+void Robots_FilterByCanAfford(ArrayList robots, int resources, int spawns = 1, float multiplier = 1.0)
 {
 	int cost, index;
 	for(int i = 0;i < robots.Length;i++)
@@ -404,6 +402,39 @@ int Robots_SelectByHighestCost(ArrayList robots)
 	}
 
 	return best;
+}
+
+/**
+ * Selects a robot by Random Number Generator
+ * 
+ * @param robots     ArrayList containing robots indexes
+ * @return           The template index of the selected robot
+ */
+int Robots_SelectByRNG(ArrayList robots)
+{
+	return robots.Get(Math_GetRandomInt(0, robots.Length - 1));	
+}
+
+int Robots_SelectBySpawnTime(ArrayList robots)
+{
+	int selected, index;
+	float last, best = 9999999.0;
+
+	for(int i = 0;i < robots.Length;i++)
+	{
+		index = robots.Get(i);
+		last = g_eTemplates[index].lastspawn;
+
+		if(last < 0.0) { return index; } // lastspawn is set to -1.0 on every wave starts, smaller than 0 means this robot never spawned! Priorize it.
+
+		if(last < best)
+		{
+			best = last;
+			selected = index;
+		}
+ 	}
+
+	return selected;	
 }
 
 /**

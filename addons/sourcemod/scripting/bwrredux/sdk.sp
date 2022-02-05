@@ -187,7 +187,7 @@ void TF2BWR_OnClientEndTouchSpawn(int client)
 
 	if(rp.isrobot)
 	{
-		SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 1.5);
+		SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.75);
 		TF2_AddCondition(client, TFCond_UberchargedHidden, 1.0);
 
 		if(rp.templateindex >= 0)
@@ -283,8 +283,6 @@ void OnObjectBuilt(int entity)
 	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
 	TF2_PushAllPlayers(origin, 400.0, 500.0, view_as<int>(TFTeam_Red));
 
-	PrintToChatAll("Object Spawned: %i %N", entity, builder);
-
 	switch(TF2_GetObjectType(entity))
 	{
 		case TFObject_Sentry:
@@ -362,8 +360,9 @@ bool CanBuildTeleporterExit(int entity)
 
 	TF2_GetPlayerHullSize(mins, maxs);
 	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", origin);
-	ScaleVector(mins, 2.15);
-	ScaleVector(maxs, 2.15);
+	origin[2] += 16.0;
+	ScaleVector(mins, c_robots_max_size.FloatValue + 0.05);
+	ScaleVector(maxs, c_robots_max_size.FloatValue + 0.05);
 
 	Handle trace = TR_TraceHullFilterEx(origin, origin, mins, maxs, MASK_PLAYERSOLID, TraceFilter_Teleporter, entity);
 	bool hit = TR_DidHit(trace);

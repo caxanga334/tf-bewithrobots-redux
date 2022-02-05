@@ -4,22 +4,18 @@
 	{
 		"en"		"[SM] Not enough players to join BLU/Robot team."
 	}
-
 	"Error_Already_BLU"
 	{
 		"en"		"[SM] You're already on BLU team."
 	}
-
 	"Error_BLU_Full"
 	{
 		"en"		"[SM] BLU team is currently full."
 	}
-
 	"Director_Added"
 	{
 		"en"		"[SM] You've joined the BLU team queue."
 	}
-
 	"OnSpawn"
 	{
 		"#format"	"{1:s}"

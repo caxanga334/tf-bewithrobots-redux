@@ -30,6 +30,14 @@ enum MissionType
 	Mission_SentryBuster
 };
 
+char g_sMissionNames[][] = {
+	"None",
+	"Engineer",
+	"Sniper",
+	"Spy",
+	"Sentry Buster"
+}
+
 enum struct MissionManager
 {
 	MissionType last;
@@ -508,9 +516,16 @@ void Director_DispatchMission(MissionType mission, int quantity = 1, const bool 
 		return;
 	}
 
-	g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+	switch(Math_GetRandomInt(0,9))
+	{
+		case 0,1,2,3,4: g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+		case 5,6: g_eDirector.nextrobotindex = Robots_SelectByRNG(robots);
+		case 7,8,9: g_eDirector.nextrobotindex = Robots_SelectBySpawnTime(robots);
+	}
+	
 	delete robots;
 	Director_SpawnPlayers(quantity, shared);
+	g_eDirector.mm.lasttime = GetGameTime();
 }
 
 void Director_DispatchAttack(int quantity = 1, const bool shared = false)
@@ -534,7 +549,13 @@ void Director_DispatchAttack(int quantity = 1, const bool shared = false)
 		return;
 	}
 
-	g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+	switch(Math_GetRandomInt(0,9))
+	{
+		case 0,1,2,3,4: g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+		case 5,6: g_eDirector.nextrobotindex = Robots_SelectByRNG(robots);
+		case 7,8,9: g_eDirector.nextrobotindex = Robots_SelectBySpawnTime(robots);
+	}
+
 	delete robots;
 	Director_SpawnPlayers(quantity, shared);
 }
@@ -562,7 +583,13 @@ void Director_DispatchSupport(int quantity = 1, const bool shared = false)
 		return;
 	}
 
-	g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+	switch(Math_GetRandomInt(0,9))
+	{
+		case 0,1,2,3,4: g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+		case 5,6: g_eDirector.nextrobotindex = Robots_SelectByRNG(robots);
+		case 7,8,9: g_eDirector.nextrobotindex = Robots_SelectBySpawnTime(robots);
+	}
+
 	delete robots;
 	Director_SpawnPlayers(quantity, shared);
 }
@@ -586,7 +613,14 @@ void Director_DispatchBoss()
 	}
 
 	g_eDirector.bm.cooldown = GetGameTime() + Math_GetRandomFloat(c_director_boss_cooldown_min.FloatValue, c_director_boss_cooldown_max.FloatValue);
-	g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+
+	switch(Math_GetRandomInt(0,9))
+	{
+		case 0,1,2,3,4: g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+		case 5,6: g_eDirector.nextrobotindex = Robots_SelectByRNG(robots);
+		case 7,8,9: g_eDirector.nextrobotindex = Robots_SelectBySpawnTime(robots);
+	}
+
 	delete robots;
 	Director_SpawnPlayers(1, false, g_eGateManager.available ? Math_RandomChance(75) : false);
 }
@@ -618,7 +652,13 @@ void Director_DispatchGatebot(int quantity = 1, const bool shared = false)
 		return;
 	}
 
-	g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+	switch(Math_GetRandomInt(0,9))
+	{
+		case 0,1,2,3,4: g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
+		case 5,6: g_eDirector.nextrobotindex = Robots_SelectByRNG(robots);
+		case 7,8,9: g_eDirector.nextrobotindex = Robots_SelectBySpawnTime(robots);
+	}
+	
 	delete robots;
 	Director_SpawnPlayers(quantity, shared, true);
 }
@@ -640,6 +680,7 @@ public Action Director_Think(Handle timer)
 	{
 		#if defined _bwrr_debug_
 		PrintToChatAll("[AI Director] Strategy changed from \"%s\" to \"%s\"", g_sStrategyNames[g_eDirector.currentstrategy], g_sStrategyNames[g_eDirector.idealstrategy]);
+		if(g_eDirector.currentstrategy == Strategy_Mission) { PrintToChatAll("[AI Director] Next Mission is \"%s\".", g_sMissionNames[g_eDirector.mm.next]); }
 		#endif
 		g_eDirector.laststrategy = g_eDirector.currentstrategy;
 		g_eDirector.currentstrategy = g_eDirector.idealstrategy;
@@ -707,20 +748,48 @@ public Action Director_Think(Handle timer)
 					g_eDirector.failedstrategy = g_eDirector.currentstrategy;
 				}
 			}
+			else if(g_eDirector.mm.next == Mission_SentryBuster)
+			{
+				Director_DispatchMission(Mission_SentryBuster, Math_Clamp(inqueue, 1, Director_GetNumberOfDangerousSentries()));
+			}
 		}
 		case Strategy_Attack:
 		{
-			Director_DispatchAttack();
+			if(Math_RandomChance(50))
+			{
+				Director_DispatchAttack(inqueue, true);
+			}
+			else
+			{
+				Director_DispatchAttack();
+			}
+			
 			return Plugin_Continue;
 		}
 		case Strategy_Gatebot:
 		{
-			Director_DispatchGatebot();
+			if(Math_RandomChance(50))
+			{
+				Director_DispatchGatebot(inqueue, true);
+			}
+			else
+			{
+				Director_DispatchGatebot();
+			}
+			
 			return Plugin_Continue;
 		}
 		case Strategy_Support:
 		{
-			Director_DispatchSupport();
+			if(Math_RandomChance(50))
+			{
+				Director_DispatchSupport(inqueue, true);
+			}
+			else
+			{
+				Director_DispatchSupport();
+			}
+			
 			return Plugin_Continue;			
 		}
 		case Strategy_Boss:
@@ -824,6 +893,47 @@ void DirectorBehavior_DecideIdealStrategy()
 		}
 	}
 
+	// Some time without missions
+	if(g_eDirector.mm.lasttime + 90.0 <= GetGameTime() && g_eDirector.laststrategy != Strategy_Mission)
+	{
+		switch(Math_GetRandomInt(0, 2))
+		{
+			case 0:
+			{
+				if(Director_CanSendMission(Mission_Engineer))
+				{
+					g_eDirector.idealstrategy = Strategy_Mission;
+					g_eDirector.mm.next = Mission_Engineer;
+					return;					
+				}
+			}
+			case 1:
+			{
+				if(Director_CanSendMission(Mission_Sniper))
+				{
+					g_eDirector.idealstrategy = Strategy_Mission;
+					g_eDirector.mm.next = Mission_Sniper;
+					return;					
+				}
+			}
+			case 2:
+			{
+				if(Director_CanSendMission(Mission_Spy))
+				{
+					g_eDirector.idealstrategy = Strategy_Mission;
+					g_eDirector.mm.next = Mission_Spy;
+					return;					
+				}
+			}
+		}
+	}
+
+	if(g_eDirector.numberofdeaths >= 15)
+	{
+		g_eDirector.idealstrategy = Strategy_Support;
+		g_eDirector.numberofdeaths = 0;
+		return;
+	}
 
 	// hatchdist = distance between the bomb closest to the bomb hatch and the hatch itself
 	// spawndist = distance between the bomb closest to the bomb hatch and a random BLU team spawn point
@@ -894,13 +1004,14 @@ void Director_ResetData()
 	g_eDirector.spawncooldown = GetGameTime() + 5.0;
 	g_eDirector.nextstrategychange = GetGameTime() + 1.0;
 	g_eDirector.laststrategychange = 0.0;
+	g_eDirector.numberofdeaths = 0;
 	g_eDirector.mm.next = Mission_None;
 	g_eDirector.mm.last = Mission_None;
 	g_eDirector.mm.engineer = GetGameTime() + delay;
 	g_eDirector.mm.sniper = GetGameTime() + delay;
 	g_eDirector.mm.spy = GetGameTime() + delay;
 	g_eDirector.mm.sentrybuster = GetGameTime() + delay;
-	g_eDirector.mm.lasttime = 0.0;
+	g_eDirector.mm.lasttime = GetGameTime();
 	g_eDirector.mm.numengineers = 0;
 	g_eDirector.mm.numbusters = 0;
 	g_eDirector.gm.cooldown = 0.0;
@@ -1265,7 +1376,14 @@ Action DirectorTimer_OnRobotSpawnLate(Handle timer, any data)
 
 		switch(class)
 		{
-			case TFClass_Spy: Announcer_MakeAnnouncement(Announcement_Spy_Spawn);
+			case TFClass_Spy:
+			{
+				int target = 0;
+				TFClassType targetclass = TFClass_Scout;
+				Director_GetDisguiseTarget(target, targetclass);
+				TF2_DisguisePlayer(client, TFTeam_Red, targetclass, target);
+				Announcer_MakeAnnouncement(Announcement_Spy_Spawn);
+			}
 			case TFClass_Sniper: Announcer_MakeAnnouncement(Announcement_Sniper);
 			case TFClass_Engineer:
 			{
@@ -1297,6 +1415,28 @@ Action DirectorTimer_OnRobotSpawnLate(Handle timer, any data)
 		}
 	}
 
+	return Plugin_Stop;
+}
+
+// Called after bots spawns
+Action DirectorTimer_OnFakeClientSpawn(Handle timer, any data)
+{
+	int client = GetClientFromSerial(data);
+
+	if(!client) { return Plugin_Stop; }
+
+	if(TF2_GetPlayerClass(client) == TFClass_Spy) { return Plugin_Stop; } // Don't teleport spies
+
+	ArrayList teleporters = new ArrayList();
+	CollectTeleporters(teleporters);
+
+	if(teleporters.Length > 0)
+	{
+		int entity = teleporters.Get(Math_GetRandomInt(0, teleporters.Length - 1));
+		SpawnOnTeleporter(entity, client);
+	}
+
+	delete teleporters;
 	return Plugin_Stop;
 }
 
@@ -1364,59 +1504,59 @@ void DirectorFrame_PostSpawn(int serial)
 			Call_Finish();
 		}
 
+		SetEntProp(client, Prop_Send, "m_nBotSkill", 3);
 		Robots_SetModel(client, TF2_GetPlayerClass(client));
 		Robots_SetScale(client, Robots_GetScaleSize(client));
-		RequestFrame(DirectorFrame_PreTeleport, serial);
-	}
-}
-
-// Called after DirectorFrame_PostSpawn. Teleports client into a proper spawn.
-void DirectorFrame_PreTeleport(int serial)
-{
-	int client = GetClientFromSerial(serial);
-
-	if(client)
-	{
 		Director_TeleportPlayer(client);
-		RequestFrame(DirectorFrame_GiveBomb, serial);		
+		Director_GiveBomb(client);
 	}
 }
 
 // Called by DirectorFrame_PreTeleport. Gives the player the bomb
-void DirectorFrame_GiveBomb(int serial)
+void Director_GiveBomb(int client)
 {
-	int client = GetClientFromSerial(serial);
+	int flag = TF2_GetRandomFlagAtHome(view_as<int>(TFTeam_Blue));
+	Address attribute = TF2Attrib_GetByName(client, "cannot pick up intelligence");
+	RobotPlayer rp = RobotPlayer(client);
+	TFClassType class = TF2_GetPlayerClass(client);
 
-	if(client)
+	if(flag != INVALID_ENT_REFERENCE && attribute == Address_Null && rp.templateindex >= 0 && !rp.gatebot)
 	{
-		int flag = TF2_GetRandomFlagAtHome(view_as<int>(TFTeam_Blue));
-		Address attribute = TF2Attrib_GetByName(client, "cannot pick up intelligence");
-		RobotPlayer rp = RobotPlayer(client);
+		Action result;
+		Call_StartForward(g_OnGiveFlag);
+		Call_PushCell(client);
+		Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
+		Call_PushCell(TF2_GetPlayerClass(client));
+		Call_PushCell(g_eTemplates[rp.templateindex].index);
+		Call_PushCell(g_eTemplates[rp.templateindex].type);
+		Call_Finish(result);
 
-		if(flag != INVALID_ENT_REFERENCE && attribute == Address_Null && rp.templateindex >= 0 && !rp.gatebot)
+		if(result == Plugin_Continue)
 		{
-			Action result;
-			Call_StartForward(g_OnGiveFlag);
-			Call_PushCell(client);
-			Call_PushCell(g_eTemplates[rp.templateindex].pluginID);
-			Call_PushCell(TF2_GetPlayerClass(client));
-			Call_PushCell(g_eTemplates[rp.templateindex].index);
-			Call_PushCell(g_eTemplates[rp.templateindex].type);
-			Call_Finish(result);
-
-			if(result == Plugin_Continue)
-			{
-				TF2_PickUpFlag(client, flag);
-				RequestFrame(Frame_UpdateBombHUD, GetClientSerial(client));
-			}
-		}
-
-		switch(TF2_GetPlayerClass(client))
-		{
-			case TFClass_Engineer: RequestFrame(DirectorFrame_TeleportEngineer, serial);
-			case TFClass_Spy: RequestFrame(DirectorFrame_TeleportSpy, serial);
+			TF2_PickUpFlag(client, flag);
+			RequestFrame(Frame_UpdateBombHUD, GetClientSerial(client));
 		}
 	}
+
+	ArrayList teleporters = new ArrayList();
+	CollectTeleporters(teleporters);
+
+	// All players but spies will spawn on teleporters
+	if(teleporters.Length > 0 && class != TFClass_Spy)
+	{
+		int entity = teleporters.Get(Math_GetRandomInt(0, teleporters.Length - 1));
+		SpawnOnTeleporter(entity, client);
+	}
+	else
+	{
+		switch(class)
+		{
+			case TFClass_Engineer: RequestFrame(DirectorFrame_TeleportEngineer, GetClientSerial(client));
+			case TFClass_Spy: RequestFrame(DirectorFrame_TeleportSpy, GetClientSerial(client));
+		}
+	}
+
+	delete teleporters;
 }
 
 // Called by DirectorFrame_GiveBomb, teleports engineer robots
@@ -1487,6 +1627,7 @@ void DirectorFrame_TeleportSpy(int serial)
 	
 				if(result == Plugin_Continue || result == Plugin_Changed)
 				{
+					TF2_AddCondition(client, TFCond_Stealthed, 2.0);
 					TeleportEntity(client, pos, angles, {0.0, 0.0, 0.0});
 					rp.inspawn = false;
 				}					
@@ -1495,3 +1636,9 @@ void DirectorFrame_TeleportSpy(int serial)
 	}
 }
 
+void Director_GetDisguiseTarget(int &target, TFClassType &class)
+{
+	target = GetRandomClientFromTeam(view_as<int>(TFTeam_Red), false, true, false);
+	
+	if(target) { class = TF2_GetPlayerClass(target); }
+}

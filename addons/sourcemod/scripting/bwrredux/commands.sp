@@ -61,10 +61,32 @@ public Action Cmd_JoinRobots(int client, int args)
 		return Plugin_Handled;		
 	}
 
-	if(GetTeamClientCount(view_as<int>(TFTeam_Red)) < c_minred.IntValue)
+	switch(c_blu_limit_mode.IntValue)
 	{
-		ReplyToCommand(client ,"%t", "Error_MinRed");
-		return Plugin_Handled;
+		case 0: // Normal
+		{
+			if(GetTeamClientCount(view_as<int>(TFTeam_Red)) < c_minred.IntValue)
+			{
+				ReplyToCommand(client ,"%t", "Error_MinRed");
+				return Plugin_Handled;
+			}
+		}
+		case 1: // Ratio
+		{
+			int inred = GetTeamClientCount(view_as<int>(TFTeam_Red));
+			int inblu = Director_GetNumberofBLUPlayers();
+			int minred = ((inblu + 1) * c_redblu_ratio.IntValue);
+
+#if defined _bwrr_debug_
+			PrintToChat(client, "[DEBUG] Ratio: RED %i BLU %i MIN %i", inred, inblu, minred);
+#endif
+
+			if(inred < 7 && inred <= minred)
+			{
+				ReplyToCommand(client ,"%t", "Error_MinRed");
+				return Plugin_Handled;				
+			}
+		}
 	}
 
 	TF2BWR_ChangeClientTeam(client, TFTeam_Blue);
@@ -88,8 +110,9 @@ public Action Cmd_DebugPlayer(int client, int args)
 public Action Cmd_DirectorDebug(int client, int args)
 {
 	ReplyToCommand(client, "[SM] AI Director Resources: %i", g_eDirector.resources);
-	ReplyToCommand(client, "[SM] AI Director Current Strategy: %s", g_sStrategyNames[g_eDirector.currentstrategy]);
+	ReplyToCommand(client, "[SM] AI Director Current Strategy: %s || Next Mission: %s", g_sStrategyNames[g_eDirector.currentstrategy], g_sMissionNames[g_eDirector.mm.next]);
 	ReplyToCommand(client, "[SM] Gate Manager: Available: %s, Number of Gates: %i", g_eGateManager.available ? "YES" : "NO", g_eGateManager.numgates);
+	ReplyToCommand(client, "[SM] Wave Percent: %.2f Wave Completed Percent: %.2f", TF2MvM_GetWavePercent(), TF2MvM_GetCompletedWavePercent());
 
 	for(int i = 0;i < g_eGateManager.numgates;i++)
 	{

@@ -78,6 +78,10 @@ public Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 			RequestFrame(DirectorFrame_PostSpawn, GetClientSerial(client));
 			CreateTimer(0.500, DirectorTimer_OnRobotSpawnLate, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
 		}
+		else
+		{
+			CreateTimer(0.300, DirectorTimer_OnFakeClientSpawn, GetClientSerial(client), TIMER_FLAG_NO_MAPCHANGE);
+		}
 	}
 
 	return Plugin_Continue;
