@@ -432,7 +432,13 @@ bool Director_CanSendMission(MissionType mission)
 {
 	switch(mission)
 	{
-		case Mission_Engineer: return g_eDirector.mm.engineer <= GetGameTime();
+		case Mission_Engineer:
+		{
+			if(TF2_GetNumPlayersAsClass(TFClass_Engineer, TFTeam_Blue, true, true) >= c_engineer_limit.IntValue)
+				return false;
+
+			return g_eDirector.mm.engineer <= GetGameTime();
+		}
 		case Mission_Sniper: return g_eDirector.mm.sniper <= GetGameTime();
 		case Mission_Spy: return g_eDirector.mm.spy <= GetGameTime();
 		case Mission_SentryBuster: return g_eDirector.mm.sentrybuster <= GetGameTime();
@@ -450,6 +456,9 @@ bool Director_CanSendBoss()
 	if(g_eDirector.bm.cooldown > GetGameTime()) { return false; }
 
 	if(!Director_CanSpawnGiants()) { return false; }
+
+	// Don't get stuck trying to spawn bosses if we can't afford one.
+	if(!Robots_AnyAvailable(g_eDirector.resources, _, BWRR_RobotType_Boss)) { return false; }
 
 	for(int i = 1;i <= MaxClients;i++)
 	{
@@ -508,6 +517,7 @@ void Director_DispatchMission(MissionType mission, int quantity = 1, const bool 
 	}
 
 	Robots_FilterByCanAfford(robots, g_eDirector.resources, quantity);
+	Robots_FilterBySupply(robots, quantity);
 
 	// Abort, no robots to spawn
 	if(robots.Length == 0)
@@ -541,6 +551,7 @@ void Director_DispatchAttack(int quantity = 1, const bool shared = false)
 	}
 
 	Robots_FilterByCanAfford(robots, g_eDirector.resources, quantity);
+	Robots_FilterBySupply(robots, quantity);
 
 	// Abort, no robots to spawn
 	if(robots.Length == 0)
@@ -575,6 +586,7 @@ void Director_DispatchSupport(int quantity = 1, const bool shared = false)
 	}
 
 	Robots_FilterByCanAfford(robots, g_eDirector.resources, quantity);
+	Robots_FilterBySupply(robots, quantity);
 
 	// Abort, no robots to spawn
 	if(robots.Length == 0)
@@ -613,13 +625,7 @@ void Director_DispatchBoss()
 	}
 
 	g_eDirector.bm.cooldown = GetGameTime() + Math_GetRandomFloat(c_director_boss_cooldown_min.FloatValue, c_director_boss_cooldown_max.FloatValue);
-
-	switch(Math_GetRandomInt(0,9))
-	{
-		case 0,1,2,3,4: g_eDirector.nextrobotindex = Robots_SelectByHighestCost(robots);
-		case 5,6: g_eDirector.nextrobotindex = Robots_SelectByRNG(robots);
-		case 7,8,9: g_eDirector.nextrobotindex = Robots_SelectBySpawnTime(robots);
-	}
+	g_eDirector.nextrobotindex = Robots_SelectByRNG(robots); // Always select bosses by RNG
 
 	delete robots;
 	Director_SpawnPlayers(1, false, g_eGateManager.available ? Math_RandomChance(75) : false);
@@ -643,6 +649,7 @@ void Director_DispatchGatebot(int quantity = 1, const bool shared = false)
 	}
 
 	Robots_FilterByCanAfford(robots, g_eDirector.resources, quantity);
+	Robots_FilterBySupply(robots, quantity);
 	Robots_FilterByCanBeGatebot(robots);
 
 	// Abort, no robots to spawn
@@ -680,7 +687,7 @@ public Action Director_Think(Handle timer)
 	{
 		#if defined _bwrr_debug_
 		PrintToChatAll("[AI Director] Strategy changed from \"%s\" to \"%s\"", g_sStrategyNames[g_eDirector.currentstrategy], g_sStrategyNames[g_eDirector.idealstrategy]);
-		if(g_eDirector.currentstrategy == Strategy_Mission) { PrintToChatAll("[AI Director] Next Mission is \"%s\".", g_sMissionNames[g_eDirector.mm.next]); }
+		if(g_eDirector.idealstrategy == Strategy_Mission) { PrintToChatAll("[AI Director] Next Mission is \"%s\".", g_sMissionNames[g_eDirector.mm.next]); }
 		#endif
 		g_eDirector.laststrategy = g_eDirector.currentstrategy;
 		g_eDirector.currentstrategy = g_eDirector.idealstrategy;
@@ -967,7 +974,7 @@ void DirectorBehavior_DecideIdealStrategy()
 
 void Director_OnWaveStart()
 {
-	Director_SetResources(c_director_initial_resources.IntValue);
+	Director_SetResources(c_director_initial_resources.IntValue * TF2MvM_GetCurrentWave());
 	TF2_GetBombHatchPosition(true);
 
 	delete g_eDirector.timer;
@@ -1255,6 +1262,10 @@ void Director_GiveInventory(int client)
 				GiveGatebotHat(client, TF2_GetPlayerClass(client), true);
 				TF2Attrib_SetByName(client, "cannot pick up intelligence", 1.0);
 			}
+
+#if defined _bwrr_debug_
+			PrintToChat(client, "[DEBUG] Director_GiveInventory:: %N %i", client, GetClientTeam(client));
+#endif
 		}
 		else
 		{
@@ -1325,8 +1336,11 @@ Action DirectorTimer_ClearPlayers(Handle timer)
 
 		RobotPlayer rp = RobotPlayer(i);
 
-		if(rp.isrobot)
+		if(rp.isrobot || TF2_GetClientTeam(i) == TFTeam_Spectator)
 		{
+#if defined _bwrr_debug_
+			PrintToChat(i, "DirectorTimer_ClearPlayers:: Moving \"%L\" to RED team!", i);
+#endif
 			Director_MoveClientToRED(i);
 		}
 	}

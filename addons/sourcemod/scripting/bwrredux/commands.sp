@@ -28,6 +28,9 @@ public Action Cmd_JoinDefenders(int client, int args)
 	if(!client)
 		return Plugin_Handled;
 
+	if(TF2_GetClientTeam(client) == TFTeam_Red)
+		return Plugin_Handled;
+
 	TF2BWR_ChangeClientTeam(client, TFTeam_Red);
 	return Plugin_Handled;
 }

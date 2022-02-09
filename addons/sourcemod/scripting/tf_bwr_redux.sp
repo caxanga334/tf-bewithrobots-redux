@@ -20,6 +20,7 @@
 #include <sdkhooks>
 #include <dhooks>
 #include <cbasenpc>
+#include <cbasenpc/tf/nav>
 #include <bwrr_stocks>
 #include <bwrr_api>
 
@@ -424,8 +425,8 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	{
 		if(rp.inspawn)
 		{
-			SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.5);
-			TF2_AddCondition(client, TFCond_UberchargedHidden, 1.0);
+			SetEntPropFloat(client, Prop_Send, "m_flStealthNoAttackExpire", GetGameTime() + 0.250);
+			TF2_AddCondition(client, TFCond_UberchargedHidden, 0.175);
 		}
 
 		if(rp.deploying)

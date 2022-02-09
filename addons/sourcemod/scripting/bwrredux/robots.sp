@@ -328,6 +328,43 @@ int Robots_CollectTemplates(ArrayList robots, int resources, TFClassType class =
 }
 
 /**
+ * Checks if there are any robot available
+ * 
+ * @param resources     Director resource amount
+ * @param class         Optional class filter
+ * @param type          Optional type filter
+ * @param role          Optional role filter
+ * @return              TRUE if at least 1 robot is available
+ */
+bool Robots_AnyAvailable(int resources, TFClassType class = TFClass_Unknown, int type = BWRR_RobotType_Invalid, int role = BWRR_Role_Invalid)
+{
+	for(int i = 0;i < g_maxrobots;i++)
+	{
+		if(g_eTemplates[i].cost > resources) // can't afford
+			continue;
+
+		if(g_eTemplates[i].supply > 0 && g_eTemplates[i].spawns > g_eTemplates[i].supply) // No longer available for the current wave
+			continue;
+
+		if(g_eTemplates[i].percent > TF2MvM_GetCompletedWavePercent()) // Not available for the current wave percentage
+			continue;
+
+		if(class != TFClass_Unknown && g_eTemplates[i].class != class) // Class filter
+			continue;
+
+		if(type != BWRR_RobotType_Invalid && g_eTemplates[i].type != type) // Type filter
+			continue;
+
+		if(role != BWRR_Role_Invalid && g_eTemplates[i].role != role) // Role filter
+			continue;
+
+		return true;
+	}
+
+	return false;
+}
+
+/**
  * Filters the robot list by cost
  * 
  * @param robots        ArrayList containing robots indexes
@@ -348,6 +385,30 @@ void Robots_FilterByCanAfford(ArrayList robots, int resources, int spawns = 1, f
 			#if defined _bwrr_debug_
 			PrintToChatAll("[Cost Filter] Filtered template %i, cost: %i, resources: %i", index, cost, resources);
 			#endif
+			robots.Erase(i);
+		}
+	}
+}
+
+/**
+ * Filters the robot list by supply limit
+ * Checks if there are enough robots remaining to spawn all players
+ * 
+ * @param robots        ArrayList containing robots indexes
+ * @param spawns        Number of players to be spawned simultaneously
+ */
+void Robots_FilterBySupply(ArrayList robots, int spawns = 1)
+{
+	int index;
+	for(int i = 0;i < robots.Length;i++)
+	{
+		index = robots.Get(i);
+		
+		if(g_eTemplates[index].supply < 0)
+			continue;
+
+		if(g_eTemplates[index].spawns + spawns > g_eTemplates[index].supply)
+		{
 			robots.Erase(i);
 		}
 	}
@@ -494,8 +555,8 @@ void Robots_OnSentryBusterExplode(int client)
 		GetClientAbsOrigin(client, origin);
 		CreateTemporaryParticleSystem(origin, "fluidSmokeExpl_ring_mvm", 6.5);
 		CreateTemporaryParticleSystem(origin, "explosionTrail_seeds_mvm", 5.5);
-		Buster_ApplyDamageToClients(client);
-		Buster_ApplyDamageToObjects(client);
+		Buster_ApplyDamageToClients(client, range);
+		Buster_ApplyDamageToObjects(client, range);
 	}
 }
 
@@ -505,19 +566,35 @@ void Robots_OnSentryBusterExplode(int client)
  * @param start     The start position
  * @param end       The end position
  * @param buster    Sentry buster index
- * @return          TRUE if there is an obstruction between the start and end positions
+ * @param target	Sentry buster target entity
+ * @return          TRUE if the trace hit the target entity
  */
-bool Buster_Trace(float start[3], float end[3], int buster)
+bool Buster_Trace(float start[3], float end[3], int buster, int target)
 {
 	Handle trace = null;
-	trace = TR_TraceRayFilterEx(start, end, MASK_SHOT, RayType_EndPoint, TraceFilter_SentryBuster, buster);
+	trace = TR_TraceRayFilterEx(start, end, MASK_SHOT, RayType_EndPoint, TraceFilter_SentryBuster, target);
 	bool hit = TR_DidHit(trace);
-	delete trace;
 
+#if defined _bwrr_debug_
+	PrintToChat(buster, "[BUSTER] Tracing to (%.2f,%.2f,%.2f). Did Hit: %s", end[0], end[1], end[2], hit ? "Yes" : "No");
+	TE_SendBeam(start, end, {255,0,0,255}, buster, 30.0);
+	if(hit)
+	{
+		int ent = TR_GetEntityIndex(trace);
+		if(IsValidEntity(ent))
+		{
+			char classname[64];
+			GetEntityClassname(ent, classname, sizeof(classname));
+			PrintToChat(buster, "[BUSTER] Hit entity \"%s #%i\"", classname, ent);
+		}
+	}
+#endif
+
+	delete trace;
 	return hit;
 }
 
-void Buster_ApplyDamageToClients(int buster)
+void Buster_ApplyDamageToClients(int buster, const float maxrange)
 {
 	float origin[3], target[3];
 	TFTeam team;
@@ -533,6 +610,7 @@ void Buster_ApplyDamageToClients(int buster)
 		{
 			SetEntProp(buster, Prop_Data, "m_takedamage", DAMAGE_YES);
 			SDKHooks_TakeDamage(buster, 0, 0, float(4 * TF2Util_GetPlayerMaxHealthBoost(i)), DMG_BLAST);
+			continue;
 		}
 
 		team = TF2_GetClientTeam(i);
@@ -542,14 +620,14 @@ void Buster_ApplyDamageToClients(int buster)
 		{
 			case TFTeam_Red:
 			{
-				if(!Buster_Trace(origin, target, buster)) // No obstruction
+				if(GetVectorDistance(origin, target) <= maxrange && Buster_Trace(origin, target, buster, i)) // No obstruction
 				{
-					SDKHooks_TakeDamage(i, buster, buster, float(4 * TF2Util_GetPlayerMaxHealthBoost(i)), DMG_BLAST);
+					SDKHooks_TakeDamage(i, buster, buster, float(4 * TF2Util_GetPlayerMaxHealthBoost(i)), DMG_BLAST, TF2Util_GetPlayerLoadoutEntity(buster, TFWeaponSlot_Melee, true));
 				}
 			}
 			case TFTeam_Blue:
 			{
-				if(!Buster_Trace(origin, target, buster)) // No obstruction
+				if(GetVectorDistance(origin, target) <= maxrange && Buster_Trace(origin, target, buster, i)) // No obstruction
 				{
 					SDKHooks_TakeDamage(i, 0, 0, float(4 * TF2Util_GetPlayerMaxHealthBoost(i)), DMG_BLAST);
 				}
@@ -558,53 +636,29 @@ void Buster_ApplyDamageToClients(int buster)
 	}
 }
 
-void Buster_ApplyDamageToObjects(int buster)
+void Buster_ApplyDamageToObjects(int buster, const float maxrange)
 {
+	char szobjects[][] = { "obj_sentrygun", "obj_dispenser", "obj_teleporter" };
 	float origin[3], target[3];
 	GetClientEyePosition(buster, origin);
 
-	int entity = INVALID_ENT_REFERENCE;
-	while((entity = FindEntityByClassname(entity, "obj_sentrygun")) != INVALID_ENT_REFERENCE)
+	int entity;
+
+	for(int i = 0;i < sizeof(szobjects);i++)
 	{
-		if(GetEntPropEnt(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
+		entity = INVALID_ENT_REFERENCE;
+		while((entity = FindEntityByClassname(entity, szobjects[i])) != INVALID_ENT_REFERENCE)
 		{
-			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", target);
-			target[2] += 15.0;
-
-			if(!Buster_Trace(origin, target, buster))
+			if(GetEntProp(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
 			{
-				SDKHooks_TakeDamage(entity, buster, buster, float(4 * TF2Util_GetEntityMaxHealth(entity)), DMG_BLAST);
-			}
-		}
-	}
+				GetEntPropVector(entity, Prop_Send, "m_vecOrigin", target);
+				target[2] += 24.0;
 
-	entity = INVALID_ENT_REFERENCE;
-	while((entity = FindEntityByClassname(entity, "obj_dispenser")) != INVALID_ENT_REFERENCE)
-	{
-		if(GetEntPropEnt(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
-		{
-			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", target);
-			target[2] += 15.0;
-
-			if(!Buster_Trace(origin, target, buster))
-			{
-				SDKHooks_TakeDamage(entity, buster, buster, float(4 * TF2Util_GetEntityMaxHealth(entity)), DMG_BLAST);
-			}
-		}
-	}
-
-	entity = INVALID_ENT_REFERENCE;
-	while((entity = FindEntityByClassname(entity, "obj_teleporter")) != INVALID_ENT_REFERENCE)
-	{
-		if(GetEntPropEnt(entity, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Red))
-		{
-			GetEntPropVector(entity, Prop_Send, "m_vecOrigin", target);
-			target[2] += 15.0;
-
-			if(!Buster_Trace(origin, target, buster))
-			{
-				SDKHooks_TakeDamage(entity, buster, buster, float(4 * TF2Util_GetEntityMaxHealth(entity)), DMG_BLAST);
-			}
+				if(GetVectorDistance(origin, target) <= maxrange && Buster_Trace(origin, target, buster, entity))
+				{
+					SDKHooks_TakeDamage(entity, buster, buster, 10000.0, DMG_BLAST, TF2Util_GetPlayerLoadoutEntity(buster, TFWeaponSlot_Melee, true));
+				}
+			}			
 		}
 	}
 }

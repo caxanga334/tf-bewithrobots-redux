@@ -91,7 +91,7 @@ void TF2BWR_ChangeClientTeam(int client, TFTeam team)
 	RobotPlayer rp = RobotPlayer(client);
 	rp.StopLoopSound();
 	rp.ResetData();
-	TF2_ClearClient(client);
+	TF2_ClearClient(client, true, true);
 
 	if(team == TFTeam_Blue)
 	{
@@ -123,8 +123,12 @@ void TF2MvM_ChangeClientTeam(int client, TFTeam team)
  */
 void TF2_ClearClient(int client, bool removeweapons = true, bool removewearables = true)
 {
-	if(!IsClientInGame(client) || IsFakeClient(client) || !IsPlayerAlive(client))
+	if(!IsClientInGame(client))
 		return;
+
+#if defined _bwrr_debug_
+	PrintToChat(client, "TF2_ClearClient:: \"%L\"", client);
+#endif
 
 	int entity, owner;
 
@@ -136,7 +140,7 @@ void TF2_ClearClient(int client, bool removeweapons = true, bool removewearables
 			owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 			if(owner == client)
 			{
-				TF2_RemoveWearable( client, entity );
+				TF2_RemoveWearable(client, entity);
 				RemoveEntity(entity);
 			}
 		}
@@ -750,12 +754,21 @@ void FilterNavAreasByDistance(ArrayList areas, const float source[3], const floa
 void FilterNavAreasBySpawnRoom(ArrayList areas, const int entity = INVALID_ENT_REFERENCE, const bool bRestrictToSameTeam = false)
 {
 	CNavArea navarea;
+	CTFNavArea tfnavarea;
 	float center[3];
 	float points[4][3];
 
 	for(int i = 0;i < areas.Length;i++)
 	{
 		navarea = TheNavMesh.GetNavAreaByID(areas.Get(i));
+		tfnavarea = view_as<CTFNavArea>(navarea);
+
+		if(tfnavarea.HasAttributeTF(BLUE_SPAWN_ROOM) || tfnavarea.HasAttributeTF(RED_SPAWN_ROOM))
+		{
+			areas.Erase(i);
+			continue;
+		}
+
 		navarea.GetCenter(center);
 		center[2] += 15.0; // add a bit of height
 
@@ -1183,19 +1196,12 @@ bool TraceFilter_LOS(int entity, int contentsMask)
 // Trace filter for sentry buster explosions
 bool TraceFilter_SentryBuster(int entity, int contentsMask, any data)
 {
-	if(entity == data) { return false; }
-
-	if(entity > 0 && entity <= MaxClients)
+	if(entity == data) // only allow the trace to hit the target object
 	{
-		return false;
+		return true;
 	}
 
-	char classname[64];
-	GetEntityClassname(entity, classname, sizeof(classname));
-
-	if(StrContains("obj_", classname, false) != -1) { return false; }
-
-	return true;
+	return false;
 }
 
 bool TraceFilter_Teleporter(int entity, int contentsMask, any data)
