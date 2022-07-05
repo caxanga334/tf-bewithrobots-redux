@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        SM_VERSION: ["1.11"]
+        SM_VERSION: ["1.11.x"]
 
     steps:
       - uses: actions/checkout@v2
@@ -44,7 +44,6 @@ jobs:
           wget https://raw.githubusercontent.com/nosoop/tf2attributes/master/scripting/include/tf2attributes.inc -O tf2attributes.inc
           wget https://raw.githubusercontent.com/nosoop/sourcemod-tf2wearables/master/addons/sourcemod/scripting/include/tf2wearables.inc -O tf2wearables.inc
           wget https://raw.githubusercontent.com/asherkin/TF2Items/master/pawn/tf2items.inc -O tf2items.inc
-          wget https://raw.githubusercontent.com/peace-maker/DHooks2/dynhooks/sourcemod_files/scripting/include/dhooks.inc -O dhooks.inc
           wget https://raw.githubusercontent.com/Impact123/AutoExecConfig/development/autoexecconfig.inc -O autoexecconfig.inc
           wget https://raw.githubusercontent.com/Bara/Multi-Colors/master/addons/sourcemod/scripting/include/multicolors.inc -O multicolors.inc
           cd multicolors
@@ -59,7 +58,7 @@ jobs:
           for file in tf_bwr_redux.sp
           do
             echo -e "\nCompiling $file..."
-            spcomp -w234 -O2 -v2 -i include $file
+            spcomp -w234 -O2 -v2 -i include $file -i $includePath -i $SCRIPTS_PATH/include
           done
           echo "===OUT FILES==="
           ls
