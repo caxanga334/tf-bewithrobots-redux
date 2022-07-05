@@ -1234,13 +1234,15 @@ public Action OnTouchUpgradeStation(int entity, int other)
 		if(TF2_GetClientTeam(other) == TFTeam_Blue)
 		{
 			ForcePlayerSuicide(other);
-			return;
+			return Plugin_Continue;
 		}
 		if(!g_bUpgradeStation[other])
 		{
 			g_bUpgradeStation[other] = true;
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 // Called when an entity touches the capture zone
@@ -3241,6 +3243,8 @@ public int MenuHandler_HelpMenu(Menu menu, MenuAction action, int param1, int pa
 			delete menu;
 		}
 	}
+
+	return 0;
 }
 
 void MenuFunc_PrintHelp(int fid, int client)
@@ -3322,7 +3326,9 @@ public int MenuHandler_JoinTeam(Menu menu, MenuAction action, int param1, int pa
 		{
 			delete menu;
 		}
-	}	
+	}
+
+	return 0;
 }
 
 void Menufunc_CreateEditorMenu(int client)
@@ -3379,7 +3385,9 @@ public int MenuHandler_Editor(Menu menu, MenuAction action, int param1, int para
 		{
 			delete menu;
 		}
-	}	
+	}
+
+	return 0;
 }
 
 /**
@@ -3437,6 +3445,8 @@ public int MenuHandler_EngineerTeleport(Menu menu, MenuAction action, int param1
 			delete menu;
 		}
 	}
+
+	return 0;
 }
 
 /**
@@ -3490,6 +3500,8 @@ public int MenuHandler_SpyTeleport(Menu menu, MenuAction action, int param1, int
 			delete menu;
 		}
 	}
+
+	return 0;
 }
 
 /**
@@ -3541,6 +3553,8 @@ public int MenuHandler_TeleSpawn(Menu menu, MenuAction action, int param1, int p
 			delete menu;
 		}
 	}
+
+	return 0;
 }
 
 /****************************************************
@@ -3565,6 +3579,8 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 			CreateTimer(5.0, Timer_HelpUnstuck, GetClientUserId(i), TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
@@ -3579,6 +3595,8 @@ public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 		}
 	}
 	ResetRobotMenuCooldown();
+
+	return Plugin_Continue;
 }
 
 public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
@@ -3587,6 +3605,8 @@ public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 	UpdateClassArray();
 	ResetRobotMenuCooldown();
 	CreateTimer(2.0, Timer_RemoveFromSpec, _, TIMER_FLAG_NO_MAPCHANGE);
+
+	return Plugin_Continue;
 }
 
 public Action E_MissionComplete(Event event, const char[] name, bool dontBroadcast)
@@ -3599,6 +3619,8 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 			g_flJoinRobotBanTime[i] = GetGameTime() + 40.0;
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
@@ -3621,6 +3643,8 @@ public Action E_ChangeClass(Event event, const char[] name, bool dontBroadcast)
 			TF2_SetPlayerClass(client,p_BotClass[client]);
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -3652,6 +3676,8 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 		}
 		rp.ProtectionTime = GetGameTime() + c_flBluProtectionTime.FloatValue;
 	}
+
+	return Plugin_Continue;
 }
 
 public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -3675,6 +3701,8 @@ public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 		CreateTimer(5.0, Timer_ShowWelcMsg, client, TIMER_FLAG_NO_MAPCHANGE);
 		g_bWelcomeMsg[client] = true;
 	}
+
+	return Plugin_Continue;
 }
 
 public Action E_Pre_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
@@ -3845,6 +3873,8 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 			}
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 public Action E_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast)
@@ -3881,6 +3911,8 @@ public Action E_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast
 			rp.DeployTime = -1.0;
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 public Action E_BuildObject(Event event, const char[] name, bool dontBroadcast)
@@ -3891,6 +3923,8 @@ public Action E_BuildObject(Event event, const char[] name, bool dontBroadcast)
 	{
 		CreateTimer(0.1, Timer_BuildObject, index, TIMER_FLAG_NO_MAPCHANGE);
 	}
+
+	return Plugin_Continue;
 }
 
 // Event: MvM Win Panel
@@ -3909,6 +3943,8 @@ public Action E_MVM_WinPanel(Event event, const char[] name, bool dontBroadcast)
 			}
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 /****************************************************
@@ -3919,6 +3955,8 @@ public Action MsgHook_MVMRespec(UserMsg msg_id, BfRead msg, const int[] players,
 {
 	int client = BfReadByte(msg); //client that used the respec    
 	OnRefund(client);
+
+	return Plugin_Continue;
 }
 
 /****************************************************
@@ -4428,6 +4466,8 @@ public Action Timer_RemoveGibs(Handle timer, any entity)
 			RemoveEntity(entity);
 		}
 	}
+
+	return Plugin_Stop;
 }
 
 // Applies the giant sound, needs delay to compensate for latency

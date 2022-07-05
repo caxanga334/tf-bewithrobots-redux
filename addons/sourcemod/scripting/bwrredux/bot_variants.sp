@@ -193,7 +193,7 @@ void RemoveAllWeapons(int client)
 	int weapon;
 	for(int i = 0; i <= view_as<int>(TF2LoadoutSlot_PDA2); i++)
 	{
-		weapon = TF2_GetPlayerLoadoutSlot(client, i, true);
+		weapon = TF2_GetPlayerLoadoutSlot(client, view_as<TF2LoadoutSlot>(i), true);
 		if(weapon != -1) {
 			if(TF2_IsWearable(weapon)) {
 				TF2_RemoveWearable(client, weapon);

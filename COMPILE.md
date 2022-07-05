@@ -2,7 +2,7 @@
 Compiling should be simple, use the stable sourcemod branch. Make sure you have all include files installed.
 
 ## SourceMod
-Use SM 1.10
+Use SM 1.11
 
 
 ## Include Files
