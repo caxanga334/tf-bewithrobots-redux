@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.10"
+#define PLUGIN_VERSION "1.2.11"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -5432,7 +5432,7 @@ void TeleportToSpawnPoint(int client, TFClassType TFClass)
 		iSpawn = FindRandomSpawnPoint(Spawn_Normal);
 	}
 	
-	if(iSpawn > MaxClients && IsValidEntity(iSpawn))
+	if(IsValidEntity(iSpawn))
 	{
 		GetEntPropVector(iSpawn, Prop_Send, "m_vecOrigin", vecOrigin);
 		GetEntPropVector(iSpawn, Prop_Data, "m_angRotation", vecAngles);		
