@@ -20,7 +20,7 @@
 			"CTFBot::GetEventChangeAttributes"	//"ChangeBotAttributes: Failed to find eve"
 			{
 				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x33\xF6\x39\xB7\x50\x27\x00\x00"
+				"windows"	"\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x33\xF6\x39\xB7\x60\x27\x00\x00"
 				"linux"		"@_ZNK6CTFBot24GetEventChangeAttributesEPKc"
 			}
 			"CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed" // string --> "MVM.SentryBusterExplode"
