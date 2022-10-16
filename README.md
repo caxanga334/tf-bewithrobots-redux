@@ -9,6 +9,9 @@
 # Be With Robots: Redux
 A plugin made for Team Fortress 2 that allow players to join BLU (robot) team in Mann vs Machine. This was made to replace Be With Robots 2.
 
+## Experimental 32 Players Branch
+This is an experimental branch that allows 32 players. This is unstable and probably will crash your server frequently. Use at your own risk.
+
 # Dependencies
 * [TF2Items](https://forums.alliedmods.net/showthread.php?p=1050170)
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556) (Optional)

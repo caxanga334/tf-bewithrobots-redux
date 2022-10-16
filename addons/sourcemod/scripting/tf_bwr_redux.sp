@@ -108,6 +108,7 @@ ConVar c_flBluProtectionTime; // How many seconds of spawn protection human BLU 
 ConVar c_strBusterProfiles; // List of sentry busters profiles to load.
 ConVar c_bFixSpawnHole; // Create additional func_respawnroom to fix holes
 ConVar c_bDropCurrency; // Should human players drop currency when killed
+ConVar c_b32PlayersEnabled; // 32 Player mode enabled
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -332,6 +333,7 @@ methodmap RoboPlayer
 #include "bwrredux/functions.sp"
 #include "bwrredux/boss.sp"
 #include "bwrredux/buster.sp"
+#include "bwrredux/experimental.sp"
 
 public Plugin myinfo =
 {
@@ -370,7 +372,7 @@ public void OnPluginStart()
 	c_iMinRedinProg = AutoExecConfig_CreateConVar("sm_bwrr_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
 	c_iGiantChance = AutoExecConfig_CreateConVar("sm_bwrr_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
 	c_iGiantMinRed = AutoExecConfig_CreateConVar("sm_bwrr_giantminred", "5", "Minimum amount of players on RED team to allow human giants. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 8.0);
-	c_iMaxBlu = AutoExecConfig_CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 10.0);
+	c_iMaxBlu = AutoExecConfig_CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 30.0);
 	c_bAutoTeamBalance = AutoExecConfig_CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_flBusterDelay = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_delay", "60.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
 	c_iBusterMinKills = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
@@ -386,6 +388,7 @@ public void OnPluginStart()
 	c_strBusterProfiles = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_profiles", "valve", "List of sentry busters profiles to load separated by comma.", FCVAR_NONE);
 	c_bFixSpawnHole = AutoExecConfig_CreateConVar("sm_bwrr_fix_spawnroom_holes", "1.0", "Should the plugin create func_respawnroom to fix holes?", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_bDropCurrency = AutoExecConfig_CreateConVar("sm_bwrr_spawn_currency", "1.0", "Should the plugin spawn currency when human BLU players are killed.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_b32PlayersEnabled = AutoExecConfig_CreateConVar("sm_bwrr_experimental_32players_enabled", "0", "Enables the experimental 32 players support.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
@@ -833,6 +836,11 @@ public void OnClientPutInServer(int client)
 	DHookEntity(g_hCTFPlayerShouldGib, true, client);
 	g_flinstructiontime[client] = 0.0;
 	g_flJoinRobotBanTime[client] = 0.0;
+
+	if (!IsFakeClient(client)) // Prevents infinite loop
+	{
+		CreateTimer(5.0, Timer_RemoveMvMBots, .flags = TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 public void OnClientDisconnect(int client)
@@ -3580,6 +3588,12 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 		}
 	}
 
+	if (c_b32PlayersEnabled.BoolValue) // 32 players mode enable
+	{
+		RemoveAllMvMBots();
+	}
+		
+
 	return Plugin_Continue;
 }
 
@@ -3596,6 +3610,11 @@ public Action E_WaveEnd(Event event, const char[] name, bool dontBroadcast)
 	}
 	ResetRobotMenuCooldown();
 
+	if (c_b32PlayersEnabled.BoolValue) // 32 players mode enable
+	{
+		RemoveAllMvMBots();
+	}
+
 	return Plugin_Continue;
 }
 
@@ -3605,6 +3624,11 @@ public Action E_WaveFailed(Event event, const char[] name, bool dontBroadcast)
 	UpdateClassArray();
 	ResetRobotMenuCooldown();
 	CreateTimer(2.0, Timer_RemoveFromSpec, _, TIMER_FLAG_NO_MAPCHANGE);
+
+	if (c_b32PlayersEnabled.BoolValue) // 32 players mode enable
+	{
+		RemoveAllMvMBots();
+	}
 
 	return Plugin_Continue;
 }
@@ -4654,6 +4678,9 @@ bool IsClassAvailable(TFClassType TFClass, bool bGiants = false)
 		
 	// Class limit disabled
 	if(!c_bLimitClasses.BoolValue)
+		return true;
+
+	if (c_b32PlayersEnabled.BoolValue) // 32 players mode enable
 		return true;
 		
 	int iClass = view_as<int>(TFClass);
