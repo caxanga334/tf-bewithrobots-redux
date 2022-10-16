@@ -1,0 +1,98 @@
+name: Compile Plugin
+
+on:
+  push:
+    branches: 1.0-exp32ply
+  pull_request:
+    branches: 1.0-exp32ply
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        SM_VERSION: ['1.10.x' ,'1.11.x', '1.12.x']
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set environment variables
+        run: |
+          SOURCEMOD_PATH=$GITHUB_WORKSPACE/addons/sourcemod
+          BUILD_PATH=$GITHUB_WORKSPACE/build
+          echo "SOURCEMOD_PATH=$SOURCEMOD_PATH" >> $GITHUB_ENV
+          echo "BUILD_PATH=$BUILD_PATH" >> $GITHUB_ENV
+          echo "SCRIPTS_PATH=$SOURCEMOD_PATH/scripting" >> $GITHUB_ENV
+          echo "INCLUDES_PATH=$SOURCEMOD_PATH/scripting/include" >> $GITHUB_ENV
+          echo "PLUGINS_PATH=$SOURCEMOD_PATH/plugins" >> $GITHUB_ENV
+          
+      - name: Setup SourcePawn Compiler ${{ matrix.SM_VERSION }}
+        id: setup_sp
+        uses: rumblefrog/setup-sp@master
+        with:
+          version: ${{ matrix.SM_VERSION }}
+
+      - name: Make Folders
+        run: |
+          mkdir include
+          mkdir -p include/multicolors
+        working-directory: ${{ env.SCRIPTS_PATH }}
+
+      - name: Get Include Files - ${{ matrix.SM_VERSION }}
+        run: |
+          echo "Begin downloading include files"
+          wget https://raw.githubusercontent.com/JoinedSenses/SourceMod-IncludeLibrary/master/include/steamworks.inc -O steamworks.inc
+          wget https://raw.githubusercontent.com/nosoop/tf2attributes/master/scripting/include/tf2attributes.inc -O tf2attributes.inc
+          wget https://raw.githubusercontent.com/nosoop/sourcemod-tf2wearables/master/addons/sourcemod/scripting/include/tf2wearables.inc -O tf2wearables.inc
+          wget https://raw.githubusercontent.com/asherkin/TF2Items/master/pawn/tf2items.inc -O tf2items.inc
+          wget https://raw.githubusercontent.com/Impact123/AutoExecConfig/development/autoexecconfig.inc -O autoexecconfig.inc
+          wget https://raw.githubusercontent.com/Bara/Multi-Colors/master/addons/sourcemod/scripting/include/multicolors.inc -O multicolors.inc
+          cd multicolors
+          wget https://raw.githubusercontent.com/Bara/Multi-Colors/master/addons/sourcemod/scripting/include/multicolors/colors.inc -O colors.inc
+          wget https://raw.githubusercontent.com/Bara/Multi-Colors/master/addons/sourcemod/scripting/include/multicolors/morecolors.inc -O morecolors.inc
+          echo "Done downloading include files."
+          ls -la
+        working-directory: ${{ env.INCLUDES_PATH }}
+
+      - name: Get Legacy Include Files - ${{ matrix.SM_VERSION }}
+        if: matrix.SM_VERSION == '1.10.x'
+        run: |
+          echo "Begin downloading include files"
+          wget https://raw.githubusercontent.com/peace-maker/DHooks2/dynhooks/sourcemod_files/scripting/include/dhooks.inc -O dhooks.inc
+          echo "Done downloading include files."
+          ls -la
+        working-directory: ${{ env.INCLUDES_PATH }}
+
+      - name: Compile plugins
+        run: |
+          for file in tf_bwr_redux.sp
+          do
+            echo -e "\nCompiling $file..."
+            spcomp -w234 -O2 -v2 -i include $file
+          done
+          echo "===OUT FILES==="
+          ls
+        working-directory: ${{ env.SCRIPTS_PATH }}
+
+      - name: Post Build
+        run: |
+          echo "Creating build folder"
+          mkdir build
+          mkdir -p build/addons/sourcemod/configs/bwrr/
+          mkdir -p build/addons/sourcemod/gamedata
+          mkdir -p build/addons/sourcemod/plugins
+          mkdir -p build/addons/sourcemod/translations
+          mv $SCRIPTS_PATH/tf_bwr_redux.smx $BUILD_PATH/addons/sourcemod/plugins/tf_bwr_redux.smx
+          mv $SOURCEMOD_PATH/configs/bwrr/* $BUILD_PATH/addons/sourcemod/configs/bwrr/
+          mv $SOURCEMOD_PATH/gamedata/tf2.bwrr.txt $BUILD_PATH/addons/sourcemod/gamedata/tf2.bwrr.txt
+          mv $SOURCEMOD_PATH/translations/* $BUILD_PATH/addons/sourcemod/translations/
+          cd build
+          ls -la
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: tf-bwrr-${{ matrix.SM_VERSION }}
+          path: |
+              ${{ env.BUILD_PATH }}/*
