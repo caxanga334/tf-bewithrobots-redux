@@ -1,4 +1,4 @@
-name: Compile Plugin
+name: Compile Experimental Plugin
 
 on:
   push:
