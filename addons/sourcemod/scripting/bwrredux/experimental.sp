@@ -57,7 +57,7 @@ void CreatePopulatorInterface()
     if (populator == -1) { LogError("Failed to create \"point_populator_interface\" entity!"); return; }
 
     origin = TF2_GetBombHatchPosition();
-    TeleportEntity(populator, origin);
+    TeleportEntity(populator, origin, NULL_VECTOR, NULL_VECTOR);
     DispatchSpawn(populator);
     ActivateEntity(populator);
     AcceptEntityInput(populator, "PauseBotSpawning");
