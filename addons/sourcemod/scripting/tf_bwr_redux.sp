@@ -3591,6 +3591,7 @@ public Action E_WaveStart(Event event, const char[] name, bool dontBroadcast)
 	if (c_b32PlayersEnabled.BoolValue) // 32 players mode enable
 	{
 		RemoveAllMvMBots();
+		CreateTimer(10.0, Timer_PauseBotSpawning, .flags = TIMER_FLAG_NO_MAPCHANGE);
 	}
 		
 
