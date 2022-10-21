@@ -116,22 +116,20 @@ UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
 Handle g_hSDKPlaySpecificSequence;
 Handle g_hSDKDispatchParticleEffect;
 Handle g_hSDKPointIsWithin;
-Handle g_hGetEventChangeAttributes;
 Handle g_hSDKWorldSpaceCenter;
-Handle g_hCFilterTFBotHasTag;
 Handle g_hSDKRemoveObject;
 Handle g_hSDKGetMaxClip;
 Handle g_hSDKGetClip;
 Handle g_hSDKIsFlagHome;
 Handle g_hSDKPickupFlag;
-Handle g_hCTFPlayerShouldGib;
 Handle g_hSDKSpeakConcept;
-Handle g_hCTFPLayerCanBeForcedToLaugh;
 Handle g_hSDKPushAwayPlayers;
 Handle g_hSDKDropCurrency;
 Handle g_hSDKPointInRespawnRoom;
-//Handle g_hSDKCTFPlayerCanBuild;
-//Handle g_hCTeamGetNumPlayers;
+
+// Hooks
+DynamicHook g_dkCFilterTFBotHasTag;
+DynamicHook g_dkCTFPlayerShouldGib;
 
 enum ParticleAttachment
 {
@@ -483,20 +481,20 @@ public void OnPluginStart()
 	
 	// SDK calls
 	
-	Handle hConf = LoadGameConfigFile("tf2.bwrr");
+	GameData gd = new GameData("tf2.bwrr");
 	bool sigfailure;
 	
-	if( hConf == null ) { SetFailState("Failed to load gamedata file tf2.bwrr.txt"); }
+	if( gd == null ) { SetFailState("Failed to load gamedata file tf2.bwrr.txt"); }
 	
 	// bool CTFPlayer::PlaySpecificSequence( const char *pAnimationName )
 	StartPrepSDKCall(SDKCall_Player);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFPlayer::PlaySpecificSequence");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CTFPlayer::PlaySpecificSequence");
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//Sequence name
 	if((g_hSDKPlaySpecificSequence = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFPlayer::PlaySpecificSequence signature!"); sigfailure = true; }
 	
 	//This call will play a particle effect
 	StartPrepSDKCall(SDKCall_Static);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "DispatchParticleEffect");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "DispatchParticleEffect");
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);		//pszParticleName
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);	//iAttachType
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);	//pEntity
@@ -506,32 +504,32 @@ public void OnPluginStart()
 	
 	// This allows us to check if a vector is within a cbasetrigger entity
 	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CBaseTrigger::PointIsWithin");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CBaseTrigger::PointIsWithin");
 	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Plain);
 	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
 	if((g_hSDKPointIsWithin = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CBaseTrigger::PointIsWithin signature!"); sigfailure = true; }
 	
 	//This call is used to remove an objects owner
 	StartPrepSDKCall(SDKCall_Player);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFPlayer::RemoveObject");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CTFPlayer::RemoveObject");
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);	//CBaseObject
 	if((g_hSDKRemoveObject = EndPrepSDKCall()) == null) { LogError("Failed To create SDKCall for CTFPlayer::RemoveObject signature!"); sigfailure = true; }
 	
 	// Used to get an entity center
 	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CBaseEntity::WorldSpaceCenter");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Virtual, "CBaseEntity::WorldSpaceCenter");
 	PrepSDKCall_SetReturnInfo(SDKType_Vector, SDKPass_ByRef);
 	if((g_hSDKWorldSpaceCenter = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CBaseEntity::WorldSpaceCenter offset!"); sigfailure = true; }
 	
 	// Used to check if the bomb is at home
 	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CCaptureFlag::IsHome");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CCaptureFlag::IsHome");
 	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_ByValue);
 	if((g_hSDKIsFlagHome = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CCaptureFlag::IsHome signature!"); sigfailure = true; }
 	
 	// Make players speak concept
 	StartPrepSDKCall(SDKCall_GameRules);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed");
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // int iConcept
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // int iTeam
 	PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer); // const char *modifiers
@@ -539,7 +537,7 @@ public void OnPluginStart()
 	
 	// Push players away
 	StartPrepSDKCall(SDKCall_GameRules);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFGameRules::PushAllPlayersAway");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CTFGameRules::PushAllPlayersAway");
 	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_Plain); // Vector& vFromThisPoint
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // float flRange
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // float flForce
@@ -549,7 +547,7 @@ public void OnPluginStart()
 	
 	// Drop currency
 	StartPrepSDKCall(SDKCall_Player);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "CTFPlayer::DropCurrencyPack");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CTFPlayer::DropCurrencyPack");
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_ByValue); // CurrencyRewards_t nSize
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // int nAmount
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain); // bool bForceDistribute
@@ -558,7 +556,7 @@ public void OnPluginStart()
 	
 	//This call forces a player to pickup the intel
 	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CCaptureFlag::PickUp");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Virtual, "CCaptureFlag::PickUp");
 	PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_Pointer);	//CCaptureFlag
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);			//silent pickup? or maybe it doesnt exist im not sure.
 	if((g_hSDKPickupFlag = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CCaptureFlag::PickUp offset!"); sigfailure = true; }
@@ -566,83 +564,31 @@ public void OnPluginStart()
 	// Checks if a point is inside a respawn room
 	// PointInRespawnRoom(CBaseEntity const*,Vector const&,bool)
 	StartPrepSDKCall(SDKCall_Static);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Signature, "PointInRespawnRoom");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "PointInRespawnRoom");
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL);
 	PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_ByRef, _, VENCODE_FLAG_COPYBACK);
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);
 	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_Plain);
 	if((g_hSDKPointInRespawnRoom = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for PointInRespawnRoom!"); sigfailure = true; }
 	
-	// Used to allow humans to capture gates
-	int iOffset = GameConfGetOffset(hConf, "CFilterTFBotHasTag::PassesFilterImpl");	
-	if(iOffset == -1) { LogError("Failed to get offset of CFilterTFBotHasTag::PassesFilterImpl"); sigfailure = true; }
-	g_hCFilterTFBotHasTag = DHookCreate(iOffset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, CFilterTFBotHasTag);
-	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index of the entity using the filter
-	DHookAddParam(g_hCFilterTFBotHasTag, HookParamType_CBaseEntity);	//Entity index that triggered the filter
-	
-	iOffset = GameConfGetOffset(hConf, "CTFPlayer::ShouldGib");
-	if(iOffset == -1) { SetFailState("Failed to get offset of CTFPlayer::ShouldGib"); }
-	g_hCTFPlayerShouldGib = DHookCreate(iOffset, HookType_Entity, ReturnType_Bool, ThisPointer_CBaseEntity, CTFPlayer_ShouldGib);
-	DHookAddParam(g_hCTFPlayerShouldGib, HookParamType_ObjectPtr, -1, DHookPass_ByRef);
-	
-	/**iOffset = GameConfGetOffset(hConf, "CTeam::GetNumPlayers");
-	if(iOffset == -1) { SetFailState("Failed to get offset of CTeam::GetNumPlayers"); }
-	g_hCTeamGetNumPlayers = DHookCreate(iOffset, HookType_Entity, ReturnType_Int, ThisPointer_CBaseEntity, CTeam_GetNumPlayers); **/
-	
 	//This call gets the maximum clip 1 of a weapon
 	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CTFWeaponBase::GetMaxClip1");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Virtual, "CTFWeaponBase::GetMaxClip1");
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Clip
 	if((g_hSDKGetMaxClip = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFWeaponBase::GetMaxClip1 offset!"); sigfailure = true; }
 	
 	//This call gets clip 1 of a weapon
 	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(hConf, SDKConf_Virtual, "CTFWeaponBase::Clip1");
+	PrepSDKCall_SetFromConf(gd, SDKConf_Virtual, "CTFWeaponBase::Clip1");
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);	//Clip
 	if((g_hSDKGetClip = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CTFWeaponBase::GetMaxClip1 offset!"); sigfailure = true; }
 	
-	//CTFBot::GetEventChangeAttributes
-	g_hGetEventChangeAttributes = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
-	if(!g_hGetEventChangeAttributes) { SetFailState("Failed to setup detour for CTFBot::GetEventChangeAttributes"); }
+	RegisterDetour(gd, "CTFBot::GetEventChangeAttributes", CTFBot_GetEventChangeAttributes, CTFBot_GetEventChangeAttributes_Post);
+	RegisterDetour(gd, "CTFPlayer::CanBeForcedToLaugh", CTFPLayer_CanBeForcedToLaugh, CTFPLayer_CanBeForcedToLaugh_Post);
+	RegisterHook(gd, g_dkCFilterTFBotHasTag, "CFilterTFBotHasTag::PassesFilterImpl");
+	RegisterHook(gd, g_dkCTFPlayerShouldGib, "CTFPlayer::ShouldGib");
 	
-	if(!DHookSetFromConf(g_hGetEventChangeAttributes, hConf, SDKConf_Signature, "CTFBot::GetEventChangeAttributes"))
-	{
-		LogError("Failed to load CTFBot::GetEventChangeAttributes signature from gamedata");
-		sigfailure = true;
-	}
-	
-	// HookParamType_Unknown
-	DHookAddParam(g_hGetEventChangeAttributes, HookParamType_CharPtr);
-	
-	if(!DHookEnableDetour(g_hGetEventChangeAttributes, false, CTFBot_GetEventChangeAttributes)) { SetFailState("Failed to detour CTFBot::GetEventChangeAttributes."); }
-	if(!DHookEnableDetour(g_hGetEventChangeAttributes, true, CTFBot_GetEventChangeAttributes_Post)) { SetFailState("Failed to detour CTFBot::GetEventChangeAttributes_Post."); }
-	
-	g_hCTFPLayerCanBeForcedToLaugh = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Bool, ThisPointer_CBaseEntity);
-	if(!g_hCTFPLayerCanBeForcedToLaugh) { SetFailState("Failed to setup detour for CTFPlayer::CanBeForcedToLaugh"); }
-	
-	if(!DHookSetFromConf(g_hCTFPLayerCanBeForcedToLaugh, hConf, SDKConf_Signature, "CTFPlayer::CanBeForcedToLaugh"))
-	{
-		LogError("Failed to load CTFPlayer::CanBeForcedToLaugh signature from gamedata");
-		sigfailure = true;
-	}
-	
-	if(!DHookEnableDetour(g_hCTFPLayerCanBeForcedToLaugh, false, CTFPLayer_CanBeForcedToLaugh)) { SetFailState("Failed to detour CTFPlayer::CanBeForcedToLaugh"); }
-	if(!DHookEnableDetour(g_hCTFPLayerCanBeForcedToLaugh, true, CTFPLayer_CanBeForcedToLaugh_Post)) { SetFailState("Failed to detour CTFPlayer::CanBeForcedToLaugh_Post"); }
-
-	// CTFPlayer::CanBuild
-/**	g_hSDKCTFPlayerCanBuild = DHookCreateDetour(Address_Null, CallConv_THISCALL, ReturnType_Int, ThisPointer_CBaseEntity);
-	if(!g_hSDKCTFPlayerCanBuild) { SetFailState("Failed to setup detour for CTFPlayer::CanBuild"); }
-
-	if(!DHookSetFromConf(g_hSDKCTFPlayerCanBuild, hConf, SDKConf_Signature, "CTFPlayer::CanBuild"))
-	{
-		LogError("Failed to load CTFPlayer::CanBuild signature from gamedata");
-		sigfailure = true;
-	}
-
-	if(!DHookEnableDetour(g_hSDKCTFPlayerCanBuild, false, CTFPlayer_CanBuild)) { SetFailState("Failed to detour CTFPlayer::CanBuild"); }
-	//if(!DHookEnableDetour(g_hSDKCTFPlayerCanBuild, false, CTFPlayer_CanBuild_Post)) { SetFailState("Failed to detour CTFPlayer::CanBuild_Post"); }
-**/	
-	delete hConf;
+	delete gd;
 	
 	if(sigfailure) { SetFailState("One or more signatures failed!"); }
 	
@@ -830,7 +776,7 @@ public void TF2_OnWaitingForPlayersEnd()
 public void OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_OnTakeDamage, SDKOnPlayerTakeDamage);
-	DHookEntity(g_hCTFPlayerShouldGib, true, client);
+	g_dkCTFPlayerShouldGib.HookEntity(Hook_Post, client, CTFPlayer_ShouldGib);
 	g_flinstructiontime[client] = 0.0;
 	g_flJoinRobotBanTime[client] = 0.0;
 }
@@ -1368,7 +1314,7 @@ public void OnReviveMarkerSpawnPost(int entity)
 
 public void OnTFBotTagFilterSpawnPost(int entity)
 {
-	DHookEntity(g_hCFilterTFBotHasTag, true, entity);
+	g_dkCFilterTFBotHasTag.HookEntity(Hook_Post, entity, CFilterTFBotHasTag);
 }
 
 public void OnAmmoPackSpawnPost(int entity)
@@ -1844,7 +1790,7 @@ public Action Command_Debug_Spy( int client, int nArgs )
 	
 	float vecPos[3];
 	g_aSpyTeleport.GetArray(iArg1, vecPos);
-	TeleportEntity(client, vecPos, NULL_VECTOR, NULL_VECTOR);
+	TeleportEntity(client, vecPos);
 	ReplyToCommand(client, "Teleported to index %i at %.1f %.1f %.1f", iArg1, vecPos[0], vecPos[1], vecPos[2]);
 
 	return Plugin_Handled;
@@ -2050,7 +1996,7 @@ public Action Command_Debug_Engy(int client, int nArgs)
 	
 	float vecPos[3];
 	g_aEngyTeleport.GetArray(iArg1, vecPos);
-	TeleportEntity(client, vecPos, NULL_VECTOR, NULL_VECTOR);
+	TeleportEntity(client, vecPos);
 	ReplyToCommand(client, "Teleported to index %i at %.1f %.1f %.1f", iArg1, vecPos[0], vecPos[1], vecPos[2]);
 
 	return Plugin_Handled;
@@ -5436,7 +5382,7 @@ void TeleportToSpawnPoint(int client, TFClassType TFClass)
 	{
 		GetEntPropVector(iSpawn, Prop_Send, "m_vecOrigin", vecOrigin);
 		GetEntPropVector(iSpawn, Prop_Data, "m_angRotation", vecAngles);		
-		TeleportEntity(client, vecOrigin, vecAngles, NULL_VECTOR);
+		TeleportEntity(client, vecOrigin, vecAngles);
 #if defined DEBUG_GENERAL
 		CPrintToChat(client, "{green}[SPAWN] {snow}Teleported to spawn point index %i origin %.1f %.1f %.1f angles %.1f %.1f %.1f", iSpawn, vecOrigin[0], vecOrigin[1], vecOrigin[2], vecAngles[0], vecAngles[1], vecAngles[2]);
 		int colors[4] = { 20, 200, 255, 255 };

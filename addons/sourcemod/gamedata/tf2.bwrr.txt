@@ -65,12 +65,6 @@
 				"windows"	"\x55\x8B\xEC\x83\xEC\x18\x57\x8B\xF9\x8B\x07"
 				"linux"		"@_ZN9CTFPlayer16DropCurrencyPackE17CurrencyRewards_tibP11CBasePlayer"					
 			}
-			"CTFPlayer::CanBuild" // string "Dispenser built" in function CTFBotEngineerBuildDispenser::Update
-			{ // DISABLED
-				"library" "server"
-				"windows" "\x55\x8B\xEC\x83\xEC\x0C\x53\x8B\x5D\x08\x57\x8B\xF9\x83\xFB\x03"
-				"linux" "@_ZN9CTFPlayer8CanBuildEii"
-			}
 			"PointInRespawnRoom"
 			{
 				"library"	"server"
@@ -110,10 +104,62 @@
 				"windows"	"293"
 				"linux"		"294"
 			}
-			"CTeam::GetNumPlayers"
+		}
+		"Functions"
+		{
+			"CTFBot::GetEventChangeAttributes"
 			{
-				"windows"	"207"
-				"linux"		"208"			
+				"signature" "CTFBot::GetEventChangeAttributes"
+				"callconv"	"thiscall"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"eventchangeattribs" // struct CTFBot::EventChangeAttributes_t* pEvent
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+			"CTFPlayer::CanBeForcedToLaugh"
+			{
+				"signature" "CTFPlayer::CanBeForcedToLaugh"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"entity"
+			}
+			"CFilterTFBotHasTag::PassesFilterImpl"
+			{
+				"offset"	"CFilterTFBotHasTag::PassesFilterImpl"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"entity"
+				"arguments"
+				{
+					"entity1"
+					{
+						"type"	"cbaseentity"
+					}
+					"entity2"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+			"CTFPlayer::ShouldGib"
+			{
+				"offset"	"CTFPlayer::ShouldGib"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"entity"
+				"arguments"
+				{
+					"CTakeDamageInfo"
+					{
+						"type"	"objectptr"
+						"flags"	"byref"
+					}
+				}
 			}
 		}
 	}

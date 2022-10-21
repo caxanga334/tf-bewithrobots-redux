@@ -244,7 +244,7 @@ void BWRR_TeleportSpy(int client, float origin[3], int target = 0)
 		return;
 
 	BWRR_RemoveSpawnProtection(client);
-	TeleportEntity(client, origin, angles, NULL_VECTOR);
+	TeleportEntity(client, origin, angles);
 	TF2_AddCondition(client, TFCond_Stealthed, 7.0);
 
 	if(target > 0)
@@ -417,7 +417,7 @@ void TeleportEngineerToPosition(float origin[3], int client, float OffsetVec[3] 
 	TF2_PushAllPlayers(origin, 400.0, 500.0, view_as<int>(TFTeam_Red)); // Push players
 	BWRR_RemoveSpawnProtection(client);
 	AddVectors(origin, OffsetVec, FinalVec);
-	TeleportEntity(client, FinalVec, angles, NULL_VECTOR);
+	TeleportEntity(client, FinalVec, angles);
 	CreateTEParticle("teleported_blue",FinalVec, _, _,3.0,-1,-1,-1);
 	CreateTEParticle("teleported_mvm_bot",FinalVec, _, _,3.0,-1,-1,-1);
 	if(GetClassCount(TFClass_Engineer, TFTeam_Blue, true, false) > 1)
@@ -660,7 +660,7 @@ void SpawnOnTeleporter(int teleporter,int client)
 		}
 		
 		TF2_AddCondition(client, TFCond_UberchargedCanteen, 5.1); // 0.1 sec to compensate for a small delay
-		TeleportEntity(client, OriginVec, NULL_VECTOR, NULL_VECTOR);
+		TeleportEntity(client, OriginVec);
 		EmitGameSoundToAll("MVM.Robot_Teleporter_Deliver", teleporter, SND_NOFLAGS, teleporter, OriginVec);
 		BWRR_RemoveSpawnProtection(client);
 	}
@@ -675,7 +675,7 @@ void AddParticleToTeleporter(int ent)
 	float VecOrigin[3];
 	GetEntPropVector(ent, Prop_Send, "m_vecOrigin", VecOrigin);
 	VecOrigin[2] -= 500;
-	TeleportEntity(particle, VecOrigin, NULL_VECTOR, NULL_VECTOR);
+	TeleportEntity(particle, VecOrigin);
 
 	FormatEx(targetname, sizeof(targetname), "tele_target_%i", ent);
 	DispatchKeyValue(ent, "targetname", targetname);
@@ -987,7 +987,7 @@ int CreateParticle( float flOrigin[3], const char[] strParticle, float flDuratio
 	{
 		DispatchKeyValue( iParticle, "effect_name", strParticle );
 		DispatchKeyValue( iParticle, "targetname", "bwrr_particle_effect" );
-		TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
+		TeleportEntity( iParticle, flOrigin );
 		DispatchSpawn( iParticle );
 		ActivateEntity( iParticle );
 		AcceptEntityInput( iParticle, "Start" );
@@ -1009,7 +1009,7 @@ int CreateGateStunParticle(const char[] strParticle, float flDuration = -1.0, in
 		AcceptEntityInput(iParticle, "SetParent", client, iParticle, 0);
 		SetVariantString("head");
 		AcceptEntityInput(iParticle, "SetParentAttachment", iParticle , iParticle, 0);
-		//TeleportEntity( iParticle, flOrigin, NULL_VECTOR, NULL_VECTOR );
+		//TeleportEntity( iParticle, flOrigin );
 		DispatchSpawn( iParticle );
 		ActivateEntity( iParticle );
 		AcceptEntityInput( iParticle, "Start" );
@@ -1641,7 +1641,7 @@ void CreateSpawnRoom(int spawnpoint)
 	
 	float pos[3];
 	GetEntPropVector(spawnpoint, Prop_Send, "m_vecOrigin", pos);
-	TeleportEntity(ent, pos, NULL_VECTOR, NULL_VECTOR);
+	TeleportEntity(ent, pos);
 	HookRespawnRoom(ent);
 #if defined DEBUG_GENERAL	
 	LogMessage("Creating func_respawnroom at (%.1f %.1f %.1f) index %i", pos[0], pos[1], pos[2], ent);
@@ -2633,4 +2633,26 @@ void AnnounceBombDeployWarning(bool clear = false)
 		EmitGameSoundToAll("Announcer.MVM_Bomb_Alert_Deploying");
 		last = GetGameTime() + 10.0; // 10 seconds cooldown
 	}
+}
+
+void RegisterDetour(GameData gd, const char[] fnName, DHookCallback pre, DHookCallback post)
+{
+	DynamicDetour detour;
+	detour = DynamicDetour.FromConf(gd, fnName);
+	if (!detour)
+	{
+		SetFailState("Failed to detour \"%s\"!", fnName);
+	}
+	else
+	{
+		detour.Enable(Hook_Pre, pre);
+		detour.Enable(Hook_Post, post);
+	}
+	
+	delete detour;
+}
+
+void RegisterHook(GameData gd, DynamicHook &hook, const char[] fnName)
+{
+	hook = DynamicHook.FromConf(gd, fnName);
 }
