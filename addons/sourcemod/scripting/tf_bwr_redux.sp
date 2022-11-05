@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.12"
+#define PLUGIN_VERSION "1.2.13"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -108,6 +108,7 @@ ConVar c_flBluProtectionTime; // How many seconds of spawn protection human BLU 
 ConVar c_strBusterProfiles; // List of sentry busters profiles to load.
 ConVar c_bFixSpawnHole; // Create additional func_respawnroom to fix holes
 ConVar c_bDropCurrency; // Should human players drop currency when killed
+ConVar c_flJoinBluCooldownTime; // Cooldown time for joinblu
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -384,6 +385,7 @@ public void OnPluginStart()
 	c_strBusterProfiles = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_profiles", "valve", "List of sentry busters profiles to load separated by comma.", FCVAR_NONE);
 	c_bFixSpawnHole = AutoExecConfig_CreateConVar("sm_bwrr_fix_spawnroom_holes", "1.0", "Should the plugin create func_respawnroom to fix holes?", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_bDropCurrency = AutoExecConfig_CreateConVar("sm_bwrr_spawn_currency", "1.0", "Should the plugin spawn currency when human BLU players are killed.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_flJoinBluCooldownTime = AutoExecConfig_CreateConVar("sm_bwrr_joinblue_cooldown_time", "60.0", "The cooldown time applied to players when they are moved to RED", FCVAR_NONE, true, 15.0, true, 900.0);
 
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
@@ -3562,7 +3564,7 @@ public Action E_MissionComplete(Event event, const char[] name, bool dontBroadca
 		if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue)
 		{
 			PreChangeTeam(i, view_as<int>(TFTeam_Red));
-			g_flJoinRobotBanTime[i] = GetGameTime() + 40.0;
+			g_flJoinRobotBanTime[i] = GetGameTime() + c_flJoinBluCooldownTime.FloatValue * 2;
 		}
 	}
 
@@ -3884,7 +3886,7 @@ public Action E_MVM_WinPanel(Event event, const char[] name, bool dontBroadcast)
 		{
 			if(IsClientInGame(i) && !IsFakeClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue)
 			{ // Apply cooldown on BLU players when they win
-				g_flJoinRobotBanTime[i] = GetGameTime() + 75.0;
+				g_flJoinRobotBanTime[i] = GetGameTime() + c_flJoinBluCooldownTime.FloatValue;
 				LogMessage("Applying join blu cooldown on \"%L\". Reason: ROBOT Victory.", i);
 			}
 		}
