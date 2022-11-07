@@ -70,7 +70,7 @@ enum
 };
 
 // remove items from the player
-void StripItems(int client, bool RemoveWeapons = true)
+void StripItems(int client, bool RemoveWeapons = true, bool isOwnLoadout = false)
 {	
 	if(!IsClientInGame(client) || IsFakeClient(client) || !IsPlayerAlive(client))
 		return;
@@ -104,8 +104,23 @@ void StripItems(int client, bool RemoveWeapons = true)
 		
 		RemoveAllWeapons(client);
 	}
+
+	bool shouldremovewearables = true;
+
+	if (g_iCosmeticRestrictionMode == CM_Allow_All) // Always allow cosmetics
+	{
+		shouldremovewearables = false
+	}
+	else if(g_iCosmeticRestrictionMode == CM_Allow_For_Own_Robots && isOwnLoadout) // Always allow for 'Own Loadout'
+	{
+		shouldremovewearables = false;
+	}
+	else if(OR_IsHalloweenMission() && p_iBotType[client] != Bot_Buster)
+	{
+		shouldremovewearables = false;
+	}
 	
-	if(!OR_IsHalloweenMission() || p_iBotType[client] == Bot_Buster) // Allow players to have wearables on wave 666 unless the player is a sentry buster
+	if(shouldremovewearables)
 	{
 		iEntity = -1;
 		while((iEntity = FindEntityByClassname(iEntity, "tf_wearable")) > MaxClients)

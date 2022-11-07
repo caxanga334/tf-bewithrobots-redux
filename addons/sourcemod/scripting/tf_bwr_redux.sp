@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.13"
+#define PLUGIN_VERSION "1.2.14"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -84,6 +84,7 @@ float g_flGateStunTime;
 int g_iLaserSprite;
 int g_iHaloSprite;
 bool g_bPluginError; // Allows the plugin to soft fail
+int g_iCosmeticRestrictionMode;
 
 // convars
 ConVar c_PluginVersion; // Plugin version
@@ -109,6 +110,7 @@ ConVar c_strBusterProfiles; // List of sentry busters profiles to load.
 ConVar c_bFixSpawnHole; // Create additional func_respawnroom to fix holes
 ConVar c_bDropCurrency; // Should human players drop currency when killed
 ConVar c_flJoinBluCooldownTime; // Cooldown time for joinblu
+ConVar c_iCosmeticsRestrictionMode; // Cosmetic items restriction mode
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -231,6 +233,14 @@ enum struct eDisguisedStruct
 	int g_iDisguisedClass; // The spy's disguised class
 }
 eDisguisedStruct g_nDisguised[MAXPLAYERS+1];
+
+enum
+{
+	CM_Remove_Cosmetics = 0,
+	CM_Allow_For_Own_Robots,
+	CM_Allow_All,
+	CM_Max
+};
 
 // Methodmaps
 
@@ -386,7 +396,7 @@ public void OnPluginStart()
 	c_bFixSpawnHole = AutoExecConfig_CreateConVar("sm_bwrr_fix_spawnroom_holes", "1.0", "Should the plugin create func_respawnroom to fix holes?", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_bDropCurrency = AutoExecConfig_CreateConVar("sm_bwrr_spawn_currency", "1.0", "Should the plugin spawn currency when human BLU players are killed.", FCVAR_NONE, true, 0.0, true, 1.0);
 	c_flJoinBluCooldownTime = AutoExecConfig_CreateConVar("sm_bwrr_joinblue_cooldown_time", "60.0", "The cooldown time applied to players when they are moved to RED", FCVAR_NONE, true, 15.0, true, 900.0);
-
+	c_iCosmeticsRestrictionMode = AutoExecConfig_CreateConVar("sm_bwrr_cosmetics_restriction_mode", "0", "Selects the cosmetic items restriction mode.\n0 = Restricted\n1 = Allow for Own Loadout robots\n2 = Allow for all robots", FCVAR_NONE);
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
@@ -398,6 +408,7 @@ public void OnPluginStart()
 	// Add Changehook
 	c_strNBFile.AddChangeHook(OnRobotTemplateFileChanged);
 	c_strGBFile.AddChangeHook(OnRobotTemplateFileChanged);
+	c_iCosmeticsRestrictionMode.AddChangeHook(OnCosmeticRestrictionModeChanged);
 	
 	c_svTag = FindConVar("sv_tags");
 	
@@ -641,6 +652,19 @@ void OnRobotTemplateFileChanged(ConVar convar, const char[] oldValue, const char
 	RT_PostLoad();	
 }
 
+void OnCosmeticRestrictionModeChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	int newmode = StringToInt(newValue);
+
+	if (newmode < CM_Remove_Cosmetics || newmode >= CM_Max)
+	{
+		newmode = 0;
+	}
+
+	g_iCosmeticRestrictionMode = newmode;
+	LogAction(-1, -1, "Cosmetic restriction mode changed to %i.", newmode);
+}
+
 public void OnLibraryAdded(const char[] name)
 {
 	if(strcmp(name, "SteamWorks", false) == 0)
@@ -693,6 +717,15 @@ public void OnMapStart()
 	RT_LoadCfgGiant();
 	RT_PostLoad();
 	Config_LoadMap();
+
+	if (c_iCosmeticsRestrictionMode.IntValue < CM_Remove_Cosmetics || c_iCosmeticsRestrictionMode.IntValue >= CM_Max)
+	{
+		g_iCosmeticRestrictionMode = 0;
+	}
+	else
+	{
+		g_iCosmeticRestrictionMode = c_iCosmeticsRestrictionMode.IntValue;
+	}
 	
 	array_avclass.Clear();
 	array_avgiants.Clear();
@@ -3817,7 +3850,7 @@ public Action E_Inventory(Event event, const char[] name, bool dontBroadcast)
 			}
 			else
 			{
-				StripItems(client, false); // remove misc but not weapons, allow own loadout
+				StripItems(client, false, true); // remove misc but not weapons, allow own loadout
 			}
 		}
 	}
