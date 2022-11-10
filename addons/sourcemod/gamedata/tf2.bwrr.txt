@@ -111,7 +111,7 @@
 			{
 				"signature" "CTFBot::GetEventChangeAttributes"
 				"callconv"	"thiscall"
-				"return"	"void"
+				"return"	"int"
 				"this"		"entity"
 				"arguments"
 				{
