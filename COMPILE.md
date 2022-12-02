@@ -9,7 +9,7 @@ Use SM 1.11
 * [SteamWorks](https://github.com/JoinedSenses/SourceMod-IncludeLibrary/blob/master/include/steamworks.inc)
 * [TF2Items](https://builds.limetech.io/?project=tf2items)
 * [TF2Attributes](https://github.com/nosoop/tf2attributes/blob/master/scripting/include/tf2attributes.inc)
-* [TF2Wearables](https://github.com/nosoop/sourcemod-tf2wearables/blob/master/addons/sourcemod/scripting/include/tf2wearables.inc)
+* [TF2Utils](https://github.com/nosoop/SM-TFUtils/blob/master/scripting/include/tf2utils.inc)
 * [AutoExecConfig](https://github.com/Impact123/AutoExecConfig/blob/development/autoexecconfig.inc)
 * [MultiColors](https://github.com/Bara/Multi-Colors/)
 * [DHooks2](https://github.com/peace-maker/DHooks2/releases)

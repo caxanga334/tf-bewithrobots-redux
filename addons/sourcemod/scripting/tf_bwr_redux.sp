@@ -8,7 +8,7 @@
 #include <multicolors>
 #define REQUIRE_PLUGIN
 #include <tf2attributes>
-#include <tf2wearables>
+#include <tf2utils>
 #undef REQUIRE_EXTENSIONS
 #include <steamworks>
 #define REQUIRE_EXTENSIONS
@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.15"
+#define PLUGIN_VERSION "1.2.16"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -3998,7 +3998,7 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 				case TFClass_Medic:
 				{
 					SetEntPropFloat(client, Prop_Send, "m_flRageMeter", 100.0); // Medigun's Shield
-					int iWeapon = TF2_GetPlayerLoadoutSlot(client, TF2LoadoutSlot_Secondary);
+					int iWeapon = TF2Util_GetPlayerLoadoutEntity(client, TFWeaponSlot_Secondary);
 					if(IsValidEntity(iWeapon))
 						SetEntPropFloat(iWeapon, Prop_Send, "m_flChargeLevel", 1.0);				
 				}

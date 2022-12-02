@@ -206,15 +206,15 @@ bool IsWeaponWearable(char[] classname)
 void RemoveAllWeapons(int client)
 {
 	int weapon;
-	for(int i = 0; i <= view_as<int>(TF2LoadoutSlot_PDA2); i++)
+	for(int i = 0; i <= TFWeaponSlot_Item2; i++)
 	{
-		weapon = TF2_GetPlayerLoadoutSlot(client, view_as<TF2LoadoutSlot>(i), true);
+		weapon = TF2Util_GetPlayerLoadoutEntity(client, i, true);
 		if(weapon != -1) {
-			if(TF2_IsWearable(weapon)) {
+			if(TF2Util_IsEntityWearable(weapon)) {
 				TF2_RemoveWearable(client, weapon);
 			}
 			else {
-				TF2_RemoveWeapon(client, weapon);
+				TF2_RemoveWeaponSlot(client, i);
 			}
 
 			RemoveEntity(weapon);
@@ -291,14 +291,14 @@ int SpawnWeapon(int client,char[] name,int index,int level,int qual,bool bWearab
 		
 	int entity = TF2Items_GiveNamedItem(client, hWeapon);
 	CloseHandle(hWeapon);
-	if( IsValidEdict( entity ) )
+	if (IsValidEdict(entity))
 	{
-		if( bWearable )
+		if (bWearable)
 		{
-			TF2_EquipPlayerWearable(client, entity);
+			TF2Util_EquipPlayerWearable(client, entity);
 		}
 		else
-			EquipPlayerWeapon( client, entity );
+			EquipPlayerWeapon(client, entity);
 
 #if defined VISIBLE_WEAPONS
 		SetEntProp(entity, Prop_Send, "m_bValidatedAttachedEntity", 1);
@@ -334,7 +334,7 @@ void SpawnGatebotHat(int client,char[] name,int index, bool light = true)
 	CloseHandle(hWeapon);
 	if(IsValidEdict(entity))
 	{
-		TF2_EquipPlayerWearable(client, entity);
+		TF2Util_EquipPlayerWearable(client, entity);
 #if defined VISIBLE_WEAPONS
 		SetEntProp(entity, Prop_Send, "m_bValidatedAttachedEntity", 1);
 #endif
