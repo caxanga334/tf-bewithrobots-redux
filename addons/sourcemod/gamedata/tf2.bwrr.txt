@@ -5,22 +5,22 @@
 	{
 		"Signatures"
 		{
-			"CTFPlayer::PlaySpecificSequence"	//"primary_deploybomb"
+			"CTFPlayer::PlaySpecificSequence"	// Called by CTFBotMvMDeployBomb::Update string "primary_deploybomb" is passed as a parameter
 			{
 				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x83\xEC\x30\x53\x56\x8B\x75\x2A\x57\x56\x8B\xF9\xE8\x2A\x2A\x2A\x2A\x8B\xD8\x83\xFB\xFF\x74\x2A\x8B\x35\x2A\x2A\x2A\x2A\x8B\xCE\x8B\x16\xFF\x52\x2A\x8B\x8F\x2A\x2A\x2A\x2A\x53\x6A\x13"
+				"windows"	"\x55\x8B\xEC\x53\x56\x8B\x75\x2A\x57\x56\x8B\xF9\xE8\x2A\x2A\x2A\x2A\x8B\xD8"
 				"linux"		"@_ZN9CTFPlayer20PlaySpecificSequenceEPKc"
 			}
 			"CTFPlayer::RemoveObject" //"mvm_mission_update"
 			{
 				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x8B\xD1\x56\x8B\xB2\x8C\x21\x00\x00"
+				"windows"	"\x55\x8B\xEC\x56\x8B\xF1\x57\x8B\xBE\x2A\x2A\x2A\x2A\x83\xEF\x01"
 				"linux"		"@_ZN9CTFPlayer12RemoveObjectEP11CBaseObject"
 			}
-			"CTFBot::GetEventChangeAttributes"	//"ChangeBotAttributes: Failed to find eve"
+			"CTFBot::GetEventChangeAttributes"	// Has unique xref to string "Unable to find item %s to update attribute.\n"
 			{
 				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x33\xF6\x39\xB7\x60\x27\x00\x00"
+				"windows"	"\x55\x8B\xEC\x81\xEC\x30\x01\x00\x00\x53\x8B\x5D\x2A\x57"
 				"linux"		"@_ZNK6CTFBot24GetEventChangeAttributesEPKc"
 			}
 			"DispatchParticleEffect"	//"MODEL '%S' DOESN'T HAVE ATTACHMENT '%S' TO ATTACH PARTICLE SYSTEM '%S' TO.\N"
@@ -32,25 +32,25 @@
 			"CBaseTrigger::PointIsWithin"
 			{
 				"library"	"server"
-				"windows"	"\x53\x8B\xDC\x83\xEC\x2A\x83\xE4\x2A\x83\xC4\x2A\x55\x8B\x6B\x2A\x89\x6C\x2A\x2A\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x8B\x43\x2A\x56\x50\x8B\xF1"	
+				"windows"	"\x53\x8B\xDC\x83\xEC\x08\x83\xE4\xF0\x83\xC4\x04\x55\x8B\x6B\x2A\x89\x6C\x24\x2A\x8B\xEC\x81\xEC\xAC\x00\x00\x00"
 				"linux"		"@_ZN12CBaseTrigger13PointIsWithinERK6Vector"
 			}
 			"CCaptureFlag::IsHome" // CTFBotAttackFlagDefenders::Update // string --> "Flag was dropped"
 			{
 				"library"	"server"
-				"windows"	"\x83\xB9\x60\x06\x00\x00\x00"	
+				"windows"	"\x8B\x89\x10\x02\x00\x00\x85\xC9"
 				"linux"		"@_ZN12CCaptureFlag6IsHomeEv"
 			}
 			"CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed" // string --> "MVM.SentryBusterExplode"
 			{
 				"library"	"server"
-				"windows"	"\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x57\xBF\x01\x00\x00\x00\x39\x78\x14\x7C\x2A\x53\x8B\x5D\x0C\x56\x57\xE8\x2A\x2A\x2A\x2A\x8B\xF0\x83\xC4\x04\x85\xF6\x74\x2A\x8B\x06"	
+				"windows"	"\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x57\xBF\x01\x00\x00\x00\x39\x78\x2A\x7C\x2A\x53\x8B\x5D\x2A\x56\x57\xE8\x2A\x2A\x2A\x2A\x8B\xF0\x83\xC4\x04\x85\xF6\x74\x2A\x8B\x06"
 				"linux"		"@_ZN15CMultiplayRules35HaveAllPlayersSpeakConceptIfAllowedEiiPKc"
 			}
 			"CTFPlayer::CanBeForcedToLaugh" // string --> "#TF_Powerup_Knocked_Out"
 			{
 				"library"	"server"
-				"windows"	"\xA1\x2A\x2A\x2A\x2A\x56\x8B\xF1\x85\xC0\x74\x2A\x80\xB8\x66\x09\x00\x00\x00\x74\x2A\x8B\x06"
+				"windows"	"\xA1\x2A\x2A\x2A\x2A\x56\x8B\xF1\x85\xC0\x74\x2A\x80\xB8\x2A\x2A\x2A\x2A\x00\x74\x2A\x8B\x06"
 				"linux"		"@_ZN9CTFPlayer18CanBeForcedToLaughEv"
 			}
 			"CTFGameRules::PushAllPlayersAway" // string --> "merasmus_spawn"
@@ -76,33 +76,33 @@
 		{
 			"CBaseEntity::WorldSpaceCenter" // use https://asherkin.github.io/vtable/
 			{
-				"windows"	"152"
-				"linux"		"153"
+				"windows"	"155"
+				"linux"		"156"
 			}
 			"CFilterTFBotHasTag::PassesFilterImpl" //(CBaseEntity *, CBaseEntity *) use asherkin's vtable dumper
 			{
-				"windows"	"195"
-				"linux"		"196"
+				"windows"	"198"
+				"linux"		"199"
 			}
 			"CTFWeaponBase::GetMaxClip1" // int	CTFWeaponBase::GetMaxClip1( void ) const
 			{
-				"windows"	"321"
-				"linux"		"327"
+				"windows"	"324"
+				"linux"		"330"
 			}
 			"CTFWeaponBase::Clip1" // virtual int	Clip1() { return IsEnergyWeapon() ? Energy_GetEnergy() : m_iClip1; }
 			{
-				"windows"	"341"
-				"linux"		"347"
+				"windows"	"344"
+				"linux"		"350"
 			}
 			"CCaptureFlag::PickUp"
 			{
-				"windows"	"228"
-				"linux"		"266"
+				"windows"	"231"
+				"linux"		"269"
 			}
 			"CTFPlayer::ShouldGib"
 			{
-				"windows"	"293"
-				"linux"		"294"
+				"windows"	"296"
+				"linux"		"297"
 			}
 		}
 		"Functions"
