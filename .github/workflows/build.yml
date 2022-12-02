@@ -43,7 +43,7 @@ jobs:
           echo "Begin downloading include files"
           wget https://raw.githubusercontent.com/JoinedSenses/SourceMod-IncludeLibrary/master/include/steamworks.inc -O steamworks.inc
           wget https://raw.githubusercontent.com/nosoop/tf2attributes/master/scripting/include/tf2attributes.inc -O tf2attributes.inc
-          wget https://raw.githubusercontent.com/nosoop/sourcemod-tf2wearables/master/addons/sourcemod/scripting/include/tf2wearables.inc -O tf2wearables.inc
+          wget https://raw.githubusercontent.com/nosoop/SM-TFUtils/master/scripting/include/tf2utils.inc -O tf2utils.inc
           wget https://raw.githubusercontent.com/asherkin/TF2Items/master/pawn/tf2items.inc -O tf2items.inc
           wget https://raw.githubusercontent.com/Impact123/AutoExecConfig/development/autoexecconfig.inc -O autoexecconfig.inc
           wget https://raw.githubusercontent.com/Bara/Multi-Colors/master/addons/sourcemod/scripting/include/multicolors.inc -O multicolors.inc
