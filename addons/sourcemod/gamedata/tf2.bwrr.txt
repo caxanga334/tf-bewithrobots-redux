@@ -17,10 +17,21 @@
 				"windows"	"\x55\x8B\xEC\x56\x8B\xF1\x57\x8B\xBE\x2A\x2A\x2A\x2A\x83\xEF\x01"
 				"linux"		"@_ZN9CTFPlayer12RemoveObjectEP11CBaseObject"
 			}
-			"CTFBot::GetEventChangeAttributes"	// Has unique xref to string "Unable to find item %s to update attribute.\n"
+			/**
+			 * Find CTFBot::OnEventChangeAttributes by unique string xref "Unable to find item %s to update attribute.\n"
+			 * Go to CPointPopulatorInterface::InputChangeBotAttributes via xref
+			 * Call for CTFBot::GetEventChangeAttributes should be above it
+			 * 
+			 * 
+			 * iVar4 = FUN_1052ea20(pbVar2); <-- CTFBot::GetEventChangeAttributes
+       		 * if (iVar4 != 0) {
+             *   FUN_10535530(iVar4); <-- CTFBot::OnEventChangeAttributes
+			 * 
+			 */
+			"CTFBot::GetEventChangeAttributes"
 			{
 				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x81\xEC\x30\x01\x00\x00\x53\x8B\x5D\x2A\x57"
+				"windows"	"\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x33\xF6\x39\xB7\x90\x28\x00\x00"
 				"linux"		"@_ZNK6CTFBot24GetEventChangeAttributesEPKc"
 			}
 			"DispatchParticleEffect"	//"MODEL '%S' DOESN'T HAVE ATTACHMENT '%S' TO ATTACH PARTICLE SYSTEM '%S' TO.\N"
