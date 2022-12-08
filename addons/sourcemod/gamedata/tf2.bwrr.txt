@@ -31,7 +31,7 @@
 			"CTFBot::GetEventChangeAttributes"
 			{
 				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x33\xF6\x39\xB7\x90\x28\x00\x00"
+				"windows"	"\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x33\xF6\x39\xB7\xA8\x28\x00\x00"
 				"linux"		"@_ZNK6CTFBot24GetEventChangeAttributesEPKc"
 			}
 			"DispatchParticleEffect"	//"MODEL '%S' DOESN'T HAVE ATTACHMENT '%S' TO ATTACH PARTICLE SYSTEM '%S' TO.\N"
