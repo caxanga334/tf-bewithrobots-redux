@@ -2,9 +2,9 @@ name: Compile Plugin
 
 on:
   push:
-    branches: master
+    branches: [ master ]
   pull_request:
-    branches: master
+    branches: [ master ]
 
 jobs:
   build:
@@ -16,6 +16,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - uses: benjlevesque/short-sha@v2.1
+        id: short-sha
 
       - name: Set environment variables
         run: |
@@ -80,6 +83,55 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: tf-bwrr-${{ matrix.SM_VERSION }}
+          name: tf-bwrr-${{ matrix.SM_VERSION }}-${{ steps.short-sha.outputs.sha }}
           path: |
               ${{ env.BUILD_PATH }}/*
+
+      - name: Create Release Package
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: build
+        run: |
+          7z a -bb3 -mx9 -r "tf-bwr-redux-${{ matrix.SM_VERSION }}-${{ steps.short-sha.outputs.sha }}.zip" addons
+          ls -la
+
+      # Cache release package to be retreived by the create_release job
+      - name: Cache Release Package
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/cache@v3.0.11
+        id: cache
+        with:
+          path: |
+            build/*.zip
+          key: bwrr-${{ github.ref_name }}-${{ matrix.SM_VERSION }}
+
+  # Job for creating a release, waits for build_main to finish
+  create_release:
+    name: Upload Release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [ build ]
+
+    steps:
+      - name: Retreive Release Package From Cache 1.11
+        uses: actions/cache@v3.0.11
+        id: cache2
+        with:
+          path: |
+            build/*.zip
+          key: bwrr-${{ github.ref_name }}-1.11.x
+
+      - name: Retreive Release Package From Cache 1.12
+        uses: actions/cache@v3.0.11
+        id: cache3
+        with:
+          path: |
+            build/*.zip
+          key: bwrr-${{ github.ref_name }}-1.12.x
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v0.1.15
+        with:
+          name: "Be With Robots Redux ${{ github.ref_name }}"
+          generate_release_notes: true
+          files:  |
+            build/*.zip
