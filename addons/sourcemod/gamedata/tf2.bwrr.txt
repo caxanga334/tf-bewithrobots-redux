@@ -46,12 +46,6 @@
 				"windows"	"\x53\x8B\xDC\x83\xEC\x08\x83\xE4\xF0\x83\xC4\x04\x55\x8B\x6B\x2A\x89\x6C\x24\x2A\x8B\xEC\x81\xEC\xAC\x00\x00\x00"
 				"linux"		"@_ZN12CBaseTrigger13PointIsWithinERK6Vector"
 			}
-			"CCaptureFlag::IsHome" // CTFBotAttackFlagDefenders::Update // string --> "Flag was dropped"
-			{
-				"library"	"server"
-				"windows"	"\x8B\x89\x10\x02\x00\x00\x85\xC9"
-				"linux"		"@_ZN12CCaptureFlag6IsHomeEv"
-			}
 			"CMultiplayRules::HaveAllPlayersSpeakConceptIfAllowed" // string --> "MVM.SentryBusterExplode"
 			{
 				"library"	"server"

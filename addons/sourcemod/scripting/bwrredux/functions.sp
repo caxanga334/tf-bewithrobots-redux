@@ -26,6 +26,72 @@ enum eEngineerTeleportType
 	TeleportToAlly // Near ally
 }
 
+enum
+{
+	TF_FLAGINFO_HOME = 0, // Flag is at home
+	TF_FLAGINFO_STOLEN = (1<<0), // Flag is stolen
+	TF_FLAGINFO_DROPPED = (1<<1) // Flag is dropped
+};
+
+/**
+ * Gets a TF2 flag (item_teamflag) status.
+ *
+ * @param flag          Flag entity index.
+ * @return              Flag current status.
+ * @error               Invalid entity or entity is not a flag.
+ */
+stock int TF2_GetFlagStatus(int flag)
+{
+	if(!IsValidEntity(flag)) 
+	{ 
+		ThrowError("Invalid flag entity %i!", flag); 
+	}
+
+	if(!HasEntProp(flag, Prop_Send, "m_nFlagStatus"))
+	{
+		ThrowError("Entity %i does not have \"m_nFlagStatus\"!", flag);
+	}
+
+	return GetEntProp(flag, Prop_Send, "m_nFlagStatus");
+}
+
+/**
+ * Checks if a TF2 flag (item_teamflag) is home.
+ *
+ * @param flag          Flag entity index.
+ * @return              TRUE if the flag is home.
+ * @error               Invalid entity or entity is not a flag.
+ */
+stock bool TF2_IsFlagHome(int flag)
+{
+	return TF2_GetFlagStatus(flag) == TF_FLAGINFO_HOME;
+}
+
+/**
+ * Checks if a TF2 flag (item_teamflag) is stolen.
+ *
+ * @param flag          Flag entity index.
+ * @return              TRUE if the flag is stolen.
+ * @error               Invalid entity or entity is not a flag.
+ */
+stock bool TF2_IsFlagStolen(int flag)
+{
+	return TF2_GetFlagStatus(flag) == TF_FLAGINFO_STOLEN;
+}
+
+/**
+ * Checks if a TF2 flag (item_teamflag) is dropped.
+ *
+ * @param flag          Flag entity index.
+ * @return              TRUE if the flag is dropped.
+ * @error               Invalid entity or entity is not a flag.
+ */
+stock bool TF2_IsFlagDropped(int flag)
+{
+	return TF2_GetFlagStatus(flag) == TF_FLAGINFO_DROPPED;
+}
+
+
 /**
  * Checks if the given client index is valid.
  *
@@ -2334,17 +2400,6 @@ int TF2_GetClientFlag(int client)
 void TF2_PickUpFlag(int client, int flag)
 {
 	SDKCall(g_hSDKPickupFlag, flag, client, true);
-}
-
-/**
- * Checks if the flag is home
- *
- * @param flag		The flag entity index to check
- * @return     True if the given flag is at home
- */
-bool TF2_IsFlagHome(int flag)
-{
-	return SDKCall(g_hSDKIsFlagHome, flag);
 }
 
 /**
