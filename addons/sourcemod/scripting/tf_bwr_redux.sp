@@ -24,7 +24,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.16"
+#define PLUGIN_VERSION "1.2.17"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -123,7 +123,6 @@ Handle g_hSDKWorldSpaceCenter;
 Handle g_hSDKRemoveObject;
 Handle g_hSDKGetMaxClip;
 Handle g_hSDKGetClip;
-Handle g_hSDKIsFlagHome;
 Handle g_hSDKPickupFlag;
 Handle g_hSDKSpeakConcept;
 Handle g_hSDKPushAwayPlayers;
@@ -533,12 +532,6 @@ public void OnPluginStart()
 	PrepSDKCall_SetFromConf(gd, SDKConf_Virtual, "CBaseEntity::WorldSpaceCenter");
 	PrepSDKCall_SetReturnInfo(SDKType_Vector, SDKPass_ByRef);
 	if((g_hSDKWorldSpaceCenter = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CBaseEntity::WorldSpaceCenter offset!"); sigfailure = true; }
-	
-	// Used to check if the bomb is at home
-	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CCaptureFlag::IsHome");
-	PrepSDKCall_SetReturnInfo(SDKType_Bool, SDKPass_ByValue);
-	if((g_hSDKIsFlagHome = EndPrepSDKCall()) == null) { LogError("Failed to create SDKCall for CCaptureFlag::IsHome signature!"); sigfailure = true; }
 	
 	// Make players speak concept
 	StartPrepSDKCall(SDKCall_GameRules);
