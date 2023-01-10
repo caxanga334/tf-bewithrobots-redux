@@ -4,7 +4,7 @@
 ![GitHub Releases](https://img.shields.io/github/downloads/caxanga334/tf-bewithrobots-redux/latest/total?style=flat-square)
 ![GitHub issues](https://img.shields.io/github/issues-raw/caxanga334/tf-bewithrobots-redux?style=flat-square)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr-raw/caxanga334/tf-bewithrobots-redux?style=flat-square)
-[![Discord](https://img.shields.io/discord/680494591585026113?label=discord&style=flat-square)](https://discord.gg/cSdu8Uf)
+[![Discord](https://img.shields.io/discord/680494591585026113?label=Discord&style=flat-square)](https://discord.gg/bh9g8MebJn)
 
 # Be With Robots: Redux
 A plugin made for Team Fortress 2 that allow players to join BLU (robot) team in Mann vs Machine. This was made to replace Be With Robots 2.
@@ -25,4 +25,4 @@ A plugin made for Team Fortress 2 that allow players to join BLU (robot) team in
 # Contact
 If you need help using the plugin, feel free to contact me.
 * [Discussions](https://github.com/caxanga334/tf-bewithrobots-redux/discussions)
-* [Discord](https://discord.gg/cSdu8Uf)
+* [Discord](https://discord.gg/bh9g8MebJn)
