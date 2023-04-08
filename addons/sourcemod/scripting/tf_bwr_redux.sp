@@ -644,7 +644,8 @@ void OnRobotTemplateFileChanged(ConVar convar, const char[] oldValue, const char
 	RT_ClearArrays();
 	RT_LoadCfgNormal();
 	RT_LoadCfgGiant();
-	RT_PostLoad();	
+	RT_PostLoad();
+	LogMessage("Robot template ConVar changed, config files reloaded.");
 }
 
 void OnCosmeticRestrictionModeChanged(ConVar convar, const char[] oldValue, const char[] newValue)

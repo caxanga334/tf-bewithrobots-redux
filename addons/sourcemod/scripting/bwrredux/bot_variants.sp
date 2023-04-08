@@ -1003,6 +1003,7 @@ void RT_InitArrays()
 	}
 }
 
+// Clear old robot template data
 void RT_ClearArrays()
 {
 	for(int i = 0;i < MAX_ROBOTS_TEMPLATE;i++)
@@ -1051,6 +1052,7 @@ void RT_PostLoad()
 	{
 		for(int y = 0;y < CONST_ROBOT_CLASSES;y++)
 		{
+			g_BNBitsAttribs[i][y] = 0; // Unlike other variables, this one doesn't get a default value when reading the config file.
 			if(strlen(g_BNRobotAttribs[i][y]) > 0)
 			{
 				iBits = 0;
@@ -1075,6 +1077,7 @@ void RT_PostLoad()
 	{
 		for(int y = 0;y < CONST_ROBOT_CLASSES;y++)
 		{
+			g_BGBitsAttribs[i][y] = 0; // Unlike other variables, this one doesn't get a default value when reading the config file.
 			if(strlen(g_BGRobotAttribs[i][y]) > 0)
 			{
 				iBits = 0;
