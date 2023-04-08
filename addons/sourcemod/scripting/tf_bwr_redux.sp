@@ -1249,9 +1249,11 @@ public Action OnTouchCaptureZone(int entity, int other)
 	if(rp.Carrier)
 	{
 		float CarrierPos[3];
+		float zeroVel[3] = {0.00001, 0.00001, 0.0};
 		float flConVarTime = GetConVarFloat(FindConVar("tf_deploying_bomb_time")) + 0.5;
 		GetClientAbsOrigin(other, CarrierPos);
 		TF2_AddCondition(other, TFCond_FreezeInput, flConVarTime);
+		TeleportEntity(other, NULL_VECTOR, NULL_VECTOR, zeroVel);
 		TF2_PlaySequence(other, "primary_deploybomb");
 		SetVariantInt(1);
 		AcceptEntityInput(other, "SetForcedTauntCam");
