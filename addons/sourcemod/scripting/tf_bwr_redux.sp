@@ -891,7 +891,8 @@ public void OnEntityCreated(int entity,const char[] name)
 {
 	if (strcmp(name, "func_capturezone", false) == 0)
 	{
-		SDKHook(entity, SDKHook_StartTouch, OnTouchCaptureZone);
+		SDKHook(entity, SDKHook_StartTouch, OnStartTouchCaptureZone);
+		SDKHook(entity, SDKHook_Touch, OnTouchCaptureZone);
 		SDKHook(entity, SDKHook_EndTouch, OnEndTouchCaptureZone);
 	}
 	else if (strcmp(name, "entity_revive_marker", false) == 0)
@@ -1223,7 +1224,7 @@ public Action OnTouchUpgradeStation(int entity, int other)
 }
 
 // Called when an entity touches the capture zone
-public Action OnTouchCaptureZone(int entity, int other)
+public Action OnStartTouchCaptureZone(int entity, int other)
 {
 	if(!IsValidClient(other)) {
 		return Plugin_Continue;
@@ -1265,6 +1266,40 @@ public Action OnTouchCaptureZone(int entity, int other)
 			EmitGameSoundToAll("MVM.DeployBombGiant", other, SND_NOFLAGS, other, CarrierPos);
 		else
 			EmitGameSoundToAll("MVM.DeployBombSmall", other, SND_NOFLAGS, other, CarrierPos);
+	}
+	
+	return Plugin_Continue;
+}
+
+// Called while an entity is touching a capture zone
+public Action OnTouchCaptureZone(int entity, int other)
+{
+	if(!IsValidClient(other)) {
+		return Plugin_Continue;
+	}
+
+	if(IsFakeClient(other)) {
+		return Plugin_Continue;
+	}
+		
+	if(TF2_GetClientTeam(other) != TFTeam_Blue) {
+		return Plugin_Continue;
+	}
+		
+	if(GameRules_GetRoundState() == RoundState_TeamWin) {
+		return Plugin_Handled;
+	}
+		
+	if(!TF2_HasFlag(other)) {
+		return Plugin_Handled;
+	}
+
+	RoboPlayer rp = RoboPlayer(other);
+	if(rp.Carrier && rp.Deploying)
+	{
+		// While deploying, try to force a velocity of every touch frame
+		float zeroVel[3] = {0.00001, 0.00001, 0.0};
+		TeleportEntity(other, NULL_VECTOR, NULL_VECTOR, zeroVel);
 	}
 	
 	return Plugin_Continue;

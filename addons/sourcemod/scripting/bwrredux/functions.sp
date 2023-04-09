@@ -1868,9 +1868,11 @@ void HookEntitiesOnLateLoad()
 	{
 		if(IsValidEntity(ent))
 		{
-			SDKUnhook(ent, SDKHook_StartTouch, OnTouchCaptureZone); // propably not needed but added just for safety
+			SDKUnhook(ent, SDKHook_StartTouch, OnStartTouchCaptureZone); // propably not needed but added just for safety
+			SDKUnhook(ent, SDKHook_Touch, OnTouchCaptureZone);
 			SDKUnhook(ent, SDKHook_EndTouch, OnEndTouchCaptureZone);
-			SDKHook(ent, SDKHook_StartTouch, OnTouchCaptureZone);
+			SDKHook(ent, SDKHook_StartTouch, OnStartTouchCaptureZone);
+			SDKHook(ent, SDKHook_Touch, OnTouchCaptureZone);
 			SDKHook(ent, SDKHook_EndTouch, OnEndTouchCaptureZone);			
 		}
 	}
