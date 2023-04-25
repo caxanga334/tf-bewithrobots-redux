@@ -3697,7 +3697,7 @@ public Action E_Pre_PlayerSpawn(Event event, const char[] name, bool dontBroadca
 public Action E_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if( IsFakeClient(client) ) {
+	if( IsFakeClient(client) && TF2_GetClientTeam(client) == TFTeam_Blue ) {
 		CreateTimer(1.0, Timer_OnFakePlayerSpawn, client, TIMER_FLAG_NO_MAPCHANGE);
 	}
 	else {
