@@ -49,6 +49,7 @@ bool p_bIsReloadingBarrage[MAXPLAYERS + 1]; // Is loading a barrage?
 bool p_bIsBusterDetonating[MAXPLAYERS + 1]; // Is the sentry buster detonating?
 float p_flProtTime[MAXPLAYERS + 1]; // Spawn protection timer
 float p_flBusterTimer[MAXPLAYERS + 1]; // Sentry Buster detonation control timer
+TFTeam p_oldTeam[MAXPLAYERS + 1]; // The player old team
 
 // bomb
 bool g_bIsCarrier[MAXPLAYERS + 1]; // true if the player is carrying the bomb
@@ -326,6 +327,11 @@ methodmap RoboPlayer
 	{
 		public get() { return p_bIsBusterDetonating[this.index]; }
 		public set( bool value ) { p_bIsBusterDetonating[this.index] = value; }
+	}
+	property TFTeam OldTeam
+	{
+		public get() { return p_oldTeam[this.index]; }
+		public set( TFTeam value ) { p_oldTeam[this.index] = value; }
 	}
 	public void MiniBoss(bool value)
 	{
@@ -1775,6 +1781,7 @@ public Action Command_JoinBLU( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
+	p_oldTeam[client] = TF2_GetClientTeam(client);
 	PreChangeTeam(client, view_as<int>(TFTeam_Blue));
 	return Plugin_Handled;
 }
@@ -1789,6 +1796,7 @@ public Action Command_JoinRED( int client, int nArgs )
 		return Plugin_Handled;
 	}
 	
+	p_oldTeam[client] = TFTeam_Red;
 	PreChangeTeam(client, view_as<int>(TFTeam_Red));
 
 	return Plugin_Handled;
@@ -2791,6 +2799,7 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 	}
 	else if(strcmp(strTeam, "spectate", false) == 0 || strcmp(strTeam, "spectator", false) == 0)
 	{
+		p_oldTeam[client] = TFTeam_Spectator;
 		PreChangeTeam(client, view_as<int>(TFTeam_Spectator));
 		return Plugin_Handled;
 	}
@@ -3989,6 +3998,14 @@ public Action Timer_OnPlayerSpawn(Handle timer, any client)
 		
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
+		// Joining from spectator causes issues, force the player to respawn again once.
+		if (rp.OldTeam < TFTeam_Red)
+		{
+			CreateTimer(0.400, Timer_Respawn, client, TIMER_FLAG_NO_MAPCHANGE);
+			rp.OldTeam = TFTeam_Blue;
+			return Plugin_Stop;
+		}
+
 		if(TF2_GetPlayerClass(client) != rp.Class)
 		{
 			TF2_SetPlayerClass(client, rp.Class, _, true);
@@ -5345,6 +5362,7 @@ void ResetRobotData(int client, bool bStrip = false)
 	g_flBombDeployTime[client] = 0.0;
 	p_flProtTime[client] = 0.0;
 	p_flBusterTimer[client] = 0.0;
+	p_oldTeam[client] = TFTeam_Unassigned;
 	if( bStrip )
 		StripWeapons(client);
 }
