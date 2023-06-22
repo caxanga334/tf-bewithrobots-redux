@@ -202,6 +202,7 @@ enum
 
 // Speak Concepts
 
+// See https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/game/shared/mp_shareddefs.h#L19
 enum
 {
 	MP_CONCEPT_MVM_BOMB_CARRIER_UPGRADE1 = 99,
@@ -937,37 +938,42 @@ public void OnEntityCreated(int entity,const char[] name)
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
-	if(!IsClientInGame(client) || IsFakeClient(client) || !IsPlayerAlive(client))
+	if(!IsClientInGame(client) || !IsPlayerAlive(client))
 		return Plugin_Continue;
 		
 	RoboPlayer rp = RoboPlayer(client);
 	TFClassType class = TF2_GetPlayerClass(client);
 	
-	if(class == TFClass_Spy)
+	// RED team logic, run for both human and bots
+	if (TF2_GetClientTeam(client) == TFTeam_Red)
 	{
-		int iDisguisedClass = GetEntProp(client, Prop_Send, "m_nDisguiseClass");
-		int iDisguisedTeam = GetEntProp(client, Prop_Send, "m_nDisguiseTeam");
-		if(g_nDisguised[client].g_iDisguisedClass != iDisguisedClass || g_nDisguised[client].g_iDisguisedTeam != iDisguisedTeam)
+		if(class == TFClass_Spy)
 		{
-			if(iDisguisedClass == 0 && iDisguisedTeam == 0)
+			int iDisguisedClass = GetEntProp(client, Prop_Send, "m_nDisguiseClass");
+			int iDisguisedTeam = GetEntProp(client, Prop_Send, "m_nDisguiseTeam");
+			if(g_nDisguised[client].g_iDisguisedClass != iDisguisedClass || g_nDisguised[client].g_iDisguisedTeam != iDisguisedTeam)
 			{
-				SpyDisguiseClear(client);
-			}
-			else 
-			{
-				SpyDisguiseThink(client, iDisguisedClass, iDisguisedTeam);
+				if(iDisguisedClass == 0 && iDisguisedTeam == 0)
+				{
+					SpyDisguiseClear(client);
+				}
+				else 
+				{
+					SpyDisguiseThink(client, iDisguisedClass, iDisguisedTeam);
 
-				g_nDisguised[client].g_iDisguisedClass = iDisguisedClass;
-				g_nDisguised[client].g_iDisguisedTeam = iDisguisedTeam;
+					g_nDisguised[client].g_iDisguisedClass = iDisguisedClass;
+					g_nDisguised[client].g_iDisguisedTeam = iDisguisedTeam;
+				}
 			}
 		}
+		else
+		{
+			SpyDisguiseClear(client);
+		}
 	}
-	else
-	{
-		SpyDisguiseClear(client);
-	}
-		
-	if(TF2_GetClientTeam(client) == TFTeam_Blue)
+	
+	// BLU team human player logic
+	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
 		int iActiveWeapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
 		BWRR_InstructPlayer(client);
