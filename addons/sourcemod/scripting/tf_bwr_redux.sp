@@ -57,6 +57,7 @@ bool g_bIsDeploying[MAXPLAYERS + 1]; // Is the player deploying the bomb?
 int g_iBombCarrierUpgradeLevel[MAXPLAYERS + 1]; // Bomb upgrade level
 float g_flNextBombUpgradeTime[MAXPLAYERS + 1]; // Bomb upgrade timer
 float g_flBombDeployTime[MAXPLAYERS + 1]; // Bomb deploy timer
+float g_flBombDeployFreezeTime[MAXPLAYERS + 1]; // Timer to prevent players from moving when deploying the bomb
 
 ArrayList array_avclass; // array containing available classes
 ArrayList array_avgiants; // array containing available giant classes
@@ -292,6 +293,11 @@ methodmap RoboPlayer
 	{
 		public get() { return g_flBombDeployTime[this.index]; }
 		public set( float value ) { g_flBombDeployTime[this.index] = value; }
+	}
+	property float DeployFreezeTime
+	{
+		public get() { return g_flBombDeployFreezeTime[this.index]; }
+		public set( float value ) { g_flBombDeployFreezeTime[this.index] = value; }
 	}
 	property TFClassType Class
 	{
@@ -1267,6 +1273,7 @@ public Action OnStartTouchCaptureZone(int entity, int other)
 		RequestFrame(DisableAnim, GetClientUserId(other));
 		rp.Deploying = true;
 		rp.DeployTime = GetGameTime() + flConVarTime;
+		rp.DeployFreezeTime = GetGameTime() + (flConVarTime / 10.0);
 		AnnounceBombDeployWarning();
 		if(rp.Type == Bot_Giant || rp.Type == Bot_Boss)
 			EmitGameSoundToAll("MVM.DeployBombGiant", other, SND_NOFLAGS, other, CarrierPos);
@@ -1301,7 +1308,7 @@ public Action OnTouchCaptureZone(int entity, int other)
 	}
 
 	RoboPlayer rp = RoboPlayer(other);
-	if(rp.Carrier && rp.Deploying)
+	if(rp.Carrier && rp.Deploying && rp.DeployFreezeTime >= GetGameTime())
 	{
 		// While deploying, try to force a velocity of every touch frame
 		float zeroVel[3] = {0.00001, 0.00001, 0.0};
@@ -1343,6 +1350,7 @@ public Action OnEndTouchCaptureZone(int entity, int other)
 		TF2_RemoveCondition(other, TFCond_FreezeInput);
 		rp.Deploying = false;
 		rp.DeployTime = -1.0;
+		rp.DeployFreezeTime = -1.0;
 	}
 	
 	return Plugin_Continue;
@@ -3932,6 +3940,7 @@ public Action E_Teamplay_Flag(Event event, const char[] name, bool dontBroadcast
 			rp.Carrier = false;
 			rp.Deploying = false;
 			rp.DeployTime = -1.0;
+			rp.DeployFreezeTime = -1.0;
 		}
 	}
 
@@ -5360,6 +5369,7 @@ void ResetRobotData(int client, bool bStrip = false)
 	g_flinstructiontime[client] = 0.0;
 	g_bIsDeploying[client] = false;
 	g_flBombDeployTime[client] = 0.0;
+	g_flBombDeployFreezeTime[client] = 0.0;
 	p_flProtTime[client] = 0.0;
 	p_flBusterTimer[client] = 0.0;
 	p_oldTeam[client] = TFTeam_Unassigned;
