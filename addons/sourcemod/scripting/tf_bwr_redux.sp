@@ -74,7 +74,7 @@ float g_flBusterVisionTimer; // timer for buster wallhack
 float g_flinstructiontime[MAXPLAYERS + 1]; // Last time we gave an instruction to a player 
 float g_flJoinRobotBanTime[MAXPLAYERS + 1]; // Join blu/robot ban time
 float g_flNextCommand[MAXPLAYERS + 1]; // delayed command timer
-float g_flSpySpawnCloakDuration; // how long should spies the cloak effect given to spies on teleport last
+float g_flSpySpawnCloakDuration; // how long should the cloak effect given to spies on teleport last
 TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1]; // the class the player selected on sm_robotmenu
 Handle g_hHUDReload;
 
