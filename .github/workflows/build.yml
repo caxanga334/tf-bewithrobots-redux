@@ -16,9 +16,9 @@ jobs:
         SM_VERSION: ['1.11.x', '1.12.x']
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.1.1
 
-      - uses: benjlevesque/short-sha@v2.1
+      - uses: benjlevesque/short-sha@v3.0
         id: short-sha
 
       - name: Set environment variables
@@ -87,7 +87,7 @@ jobs:
           ls -la
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: tf-bwrr-${{ matrix.SM_VERSION }}-${{ steps.short-sha.outputs.sha }}
           path: |
