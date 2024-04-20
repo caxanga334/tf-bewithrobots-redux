@@ -14,7 +14,7 @@
 			"CTFPlayer::RemoveObject" //"mvm_mission_update"
 			{
 				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x56\x8B\xF1\x57\x8B\xBE\x2A\x2A\x2A\x2A\x83\xEF\x01"
+				"windows"	"\x55\x8B\xEC\x56\x57\x8B\xF9\x8B\xB7\x2A\x2A\x2A\x2A\x83\xEE\x01"
 				"linux"		"@_ZN9CTFPlayer12RemoveObjectEP11CBaseObject"
 			}
 			/**
@@ -58,10 +58,10 @@
 				"windows"	"\xA1\x2A\x2A\x2A\x2A\x56\x8B\xF1\x85\xC0\x74\x2A\x80\xB8\x2A\x2A\x2A\x2A\x00\x74\x2A\x8B\x06"
 				"linux"		"@_ZN9CTFPlayer18CanBeForcedToLaughEv"
 			}
-			"CTFGameRules::PushAllPlayersAway" // string --> "merasmus_spawn"
+			"CTFGameRules::PushAllPlayersAway" // string --> "Halloween.MerasmusDiscovered" to find CMerasmus::OnRevealed, CTFGameRules::PushAllPlayersAway is called twice by this function. Look at the parameters passed to it.
 			{
 				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x83\xEC\x2C\x6A\x00"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x2C\x56\x6A\x00"
 				"linux"		"@_ZN12CTFGameRules18PushAllPlayersAwayERK6VectorffiP10CUtlVectorIP9CTFPlayer10CUtlMemoryIS5_iEE"				
 			}
 			"CTFPlayer::DropCurrencyPack" // string --> "mvm_sniper_headshot_currency"
