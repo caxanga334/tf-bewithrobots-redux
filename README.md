@@ -15,8 +15,6 @@ A plugin made for Team Fortress 2 that allow players to join BLU (robot) team in
 * [SteamWorks](https://forums.alliedmods.net/showthread.php?t=229556) (Optional)
 * [TF2Attributes](https://github.com/FlaminSarge/tf2attributes)
 * [TF2Utils](https://github.com/nosoop/SM-TFUtils)
-* [DHooks with dynamic detour](https://github.com/peace-maker/DHooks2/releases)
-* [MvM Visible Max Players](https://forums.alliedmods.net/showpost.php?p=1819270) (Optional,Recommended)
 * [Stripper:Source](http://www.bailopan.net/stripper/snapshots/1.2/) (Optional,Recommended)
 
 # Documentation
