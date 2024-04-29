@@ -740,7 +740,7 @@ void AddParticleToTeleporter(int ent)
 	char targetname[64];
 	float VecOrigin[3];
 	GetEntPropVector(ent, Prop_Send, "m_vecOrigin", VecOrigin);
-	VecOrigin[2] -= 500;
+	VecOrigin[2] -= 4.0;
 	TeleportEntity(particle, VecOrigin);
 
 	FormatEx(targetname, sizeof(targetname), "tele_target_%i", ent);
