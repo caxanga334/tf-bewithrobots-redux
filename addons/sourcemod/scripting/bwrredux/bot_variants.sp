@@ -1184,6 +1184,12 @@ void RT_LoadCfgNormal()
 							if(kv.JumpToKey(g_strWeaponsKey[i]))
 							{
 								kv.GetString("classname", buffer, sizeof(buffer), "");
+
+								if (strncmp(buffer, "saxxy", 5, false) == 0)
+								{
+									ThrowError("\"saxxy\" is not a valid weapon entity classname! You must manually translate the \"saxxy\" classname into a real entity classname.");
+								}
+
 								g_BNWeaponClass[iCounter][j].SetString(i, buffer); // Store Weapon Classname
 								g_BNWeaponIndex[iCounter][j][i] = kv.GetNum("index"); // Store Weapon Definition Index
 								g_BNWeapChance[iCounter][j][i] = kv.GetNum("spawnchance", 100); // Store Weapon Spawn Chance
@@ -1317,6 +1323,12 @@ void RT_LoadCfgGiant()
 							if(kv.JumpToKey(g_strWeaponsKey[i]))
 							{
 								kv.GetString("classname", buffer, sizeof(buffer), "");
+
+								if (strncmp(buffer, "saxxy", 5, false) == 0)
+								{
+									ThrowError("\"saxxy\" is not a valid weapon entity classname! You must manually translate the \"saxxy\" classname into a real entity classname.");
+								}
+
 								g_BGWeaponClass[iCounter][j].SetString(i, buffer); // Store Weapon Classname
 								g_BGWeaponIndex[iCounter][j][i] = kv.GetNum("index"); // Store Weapon Definition Index
 								g_BGWeapChance[iCounter][j][i] = kv.GetNum("spawnchance", 100); // Store Weapon Spawn Chance
