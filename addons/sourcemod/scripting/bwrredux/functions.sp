@@ -311,7 +311,7 @@ void BWRR_TeleportSpy(int client, float origin[3], int target = 0)
 
 	BWRR_RemoveSpawnProtection(client);
 	TeleportEntity(client, origin, angles);
-	TF2_AddCondition(client, TFCond_Stealthed, g_flSpySpawnCloakDuration);
+	TF2_AddCondition(client, g_iSpySpawnCloakCondition, g_flSpySpawnCloakDuration);
 
 	if(target > 0)
 	{

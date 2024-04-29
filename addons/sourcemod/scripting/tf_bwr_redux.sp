@@ -26,7 +26,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.20"
+#define PLUGIN_VERSION "1.2.21"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -75,6 +75,7 @@ float g_flinstructiontime[MAXPLAYERS + 1]; // Last time we gave an instruction t
 float g_flJoinRobotBanTime[MAXPLAYERS + 1]; // Join blu/robot ban time
 float g_flNextCommand[MAXPLAYERS + 1]; // delayed command timer
 float g_flSpySpawnCloakDuration; // how long should the cloak effect given to spies on teleport last
+TFCond g_iSpySpawnCloakCondition; // Condition used to cloak the spy on spawn
 TFClassType g_BotMenuSelectedClass[MAXPLAYERS + 1]; // the class the player selected on sm_robotmenu
 Handle g_hHUDReload;
 
@@ -117,6 +118,7 @@ ConVar c_bDropCurrency; // Should human players drop currency when killed
 ConVar c_flJoinBluCooldownTime; // Cooldown time for joinblu
 ConVar c_iCosmeticsRestrictionMode; // Cosmetic items restriction mode
 ConVar c_flSpyCloakTime; // Spy on teleport cloak effect duration
+ConVar c_SpyCloakCondition; // Spy on teleport condition used to simulate cloak
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -414,6 +416,7 @@ public void OnPluginStart()
 	c_flJoinBluCooldownTime = AutoExecConfig_CreateConVar("sm_bwrr_joinblue_cooldown_time", "60.0", "The cooldown time applied to players when they are moved to RED", FCVAR_NONE, true, 15.0, true, 900.0);
 	c_iCosmeticsRestrictionMode = AutoExecConfig_CreateConVar("sm_bwrr_cosmetics_restriction_mode", "0", "Selects the cosmetic items restriction mode.\n0 = Restricted\n1 = Allow for Own Loadout robots\n2 = Allow for all robots", FCVAR_NONE);
 	c_flSpyCloakTime = AutoExecConfig_CreateConVar("sm_bwrr_spy_teleport_cloak_time", "3.0", "How long should the cloak effect given to spies on teleport last.", FCVAR_NONE, true, 0.0, true, 60.0);
+	c_SpyCloakCondition = AutoExecConfig_CreateConVar("sm_bwrr_spy_teleport_cloak_cond", "1", "Which condition should be aplied to the spy on spawn?\n0 = Cloak effect\n1 = Halloween Cloak Spell", FCVAR_NONE, true, 0.0, true, 1.0);
 	
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
@@ -645,6 +648,7 @@ public void OnPluginStart()
 	}
 
 	g_flSpySpawnCloakDuration = 3.0; // Initialize with the convar default value
+	g_iSpySpawnCloakCondition = TFCond_Stealthed; // Initialize with the convar default value
 }
 
 void GetNormalBotTFile(char[] filename, int size)
@@ -683,6 +687,18 @@ void OnCosmeticRestrictionModeChanged(ConVar convar, const char[] oldValue, cons
 void OnSpyCloakTimeCvarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	g_flSpySpawnCloakDuration = convar.FloatValue;
+}
+
+void OnSpyCloakConditionCvarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (convar.BoolValue)
+	{
+		g_iSpySpawnCloakCondition = TFCond_Stealthed;
+	}
+	else
+	{
+		g_iSpySpawnCloakCondition = TFCond_Cloaked;
+	}
 }
 
 public void OnLibraryAdded(const char[] name)
