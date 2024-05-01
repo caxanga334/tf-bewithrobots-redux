@@ -26,7 +26,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.21"
+#define PLUGIN_VERSION "1.2.22"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -119,6 +119,8 @@ ConVar c_flJoinBluCooldownTime; // Cooldown time for joinblu
 ConVar c_iCosmeticsRestrictionMode; // Cosmetic items restriction mode
 ConVar c_flSpyCloakTime; // Spy on teleport cloak effect duration
 ConVar c_SpyCloakCondition; // Spy on teleport condition used to simulate cloak
+ConVar c_bBlockReadyForBLUTeam; // Block the ready up/F4 on BLU team
+ConVar c_bBlockUpgradeStationForBLU; // Block the BLU team from using the upgrade station
 
 // user messages
 UserMsg ID_MVMResetUpgrade = INVALID_MESSAGE_ID;
@@ -417,7 +419,10 @@ public void OnPluginStart()
 	c_iCosmeticsRestrictionMode = AutoExecConfig_CreateConVar("sm_bwrr_cosmetics_restriction_mode", "0", "Selects the cosmetic items restriction mode.\n0 = Restricted\n1 = Allow for Own Loadout robots\n2 = Allow for all robots", FCVAR_NONE);
 	c_flSpyCloakTime = AutoExecConfig_CreateConVar("sm_bwrr_spy_teleport_cloak_time", "3.0", "How long should the cloak effect given to spies on teleport last.", FCVAR_NONE, true, 0.0, true, 60.0);
 	c_SpyCloakCondition = AutoExecConfig_CreateConVar("sm_bwrr_spy_teleport_cloak_cond", "1", "Which condition should be aplied to the spy on spawn?\n0 = Cloak effect\n1 = Halloween Cloak Spell", FCVAR_NONE, true, 0.0, true, 1.0);
-	
+	c_bBlockReadyForBLUTeam = AutoExecConfig_CreateConVar("sm_bwrr_can_blu_toggle_ready", "0", "Can the BLU team use F4/Toggle ready up?\n0 = No (Default).\n1 = Yes.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bBlockUpgradeStationForBLU = AutoExecConfig_CreateConVar("sm_bwrr_can_blu_buy_upgrades", "0", "Can the BLU team use Upgrade Stations to buy upgrades?\n0 = No (Default).\n1 = Yes.", FCVAR_NONE, true, 0.0, true, 1.0);
+
+
 	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
 	AutoExecConfig_ExecuteFile();
 	
@@ -736,6 +741,7 @@ public void OnMapStart()
 		if(IsValidEntity(i))
 		{
 			SDKHook(i, SDKHook_StartTouch, OnTouchUpgradeStation);
+			SDKHook(i, SDKHook_Touch, OnTouchUpgradeStation);
 		}
 	}
 	
@@ -1254,11 +1260,12 @@ public Action OnTouchUpgradeStation(int entity, int other)
 {
 	if(IsValidClient(other) && !IsFakeClient(other))
 	{
-		if(TF2_GetClientTeam(other) == TFTeam_Blue)
+		if (c_bBlockUpgradeStationForBLU.BoolValue == false && TF2_GetClientTeam(other) == TFTeam_Blue)
 		{
-			ForcePlayerSuicide(other);
-			return Plugin_Continue;
+			// ForcePlayerSuicide(other);
+			return Plugin_Handled; // This should block the touch event, preventing the upgrade station UI from opening
 		}
+
 		if(!g_bUpgradeStation[other])
 		{
 			g_bUpgradeStation[other] = true;
@@ -2851,6 +2858,11 @@ public Action Listener_JoinTeam(int client, const char[] command, int argc)
 
 public Action Listener_Ready(int client, const char[] command, int argc)
 {
+	if (c_bBlockReadyForBLUTeam.BoolValue)
+	{
+		return Plugin_Continue; // Don't block if f4 is allowed on BLU
+	}
+
 	if(!IsClientInGame(client)) {
 		return Plugin_Continue;
 	}
