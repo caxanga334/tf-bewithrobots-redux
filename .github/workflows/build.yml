@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        SM_VERSION: ['1.11.x', '1.12.x']
+        SM_VERSION: ['1.11.x', '1.12.x', '1.13.x']
 
     steps:
       - uses: actions/checkout@v4.1.1
