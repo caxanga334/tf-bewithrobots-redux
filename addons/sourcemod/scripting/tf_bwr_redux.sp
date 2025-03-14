@@ -6,13 +6,17 @@
 #include <tf2_stocks>
 #include <autoexecconfig>
 #include <multicolors>
+#if !defined(REQUIRE_PLUGIN)
 #define REQUIRE_PLUGIN
+#endif
 #include <tf2attributes>
 #include <tf2utils>
 #undef REQUIRE_EXTENSIONS
 #include <steamworks>
 #define REQUIRE_EXTENSIONS
+#if !defined(AUTOLOAD_EXTENSIONS)
 #define AUTOLOAD_EXTENSIONS
+#endif
 #include <sdkhooks>
 #include <tf2items>
 #include <dhooks>
@@ -26,7 +30,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.2.23"
+#define PLUGIN_VERSION "1.3.0"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -89,7 +93,6 @@ float g_flGateStunTime;
 
 int g_iLaserSprite;
 int g_iHaloSprite;
-bool g_bPluginError; // Allows the plugin to soft fail
 int g_iCosmeticRestrictionMode;
 
 // convars
@@ -435,6 +438,7 @@ public void OnPluginStart()
 	c_strGBFile.AddChangeHook(OnRobotTemplateFileChanged);
 	c_iCosmeticsRestrictionMode.AddChangeHook(OnCosmeticRestrictionModeChanged);
 	c_flSpyCloakTime.AddChangeHook(OnSpyCloakTimeCvarChanged);
+	c_SpyCloakCondition.AddChangeHook(OnSpyCloakConditionCvarChanged);
 	
 	c_svTag = FindConVar("sv_tags");
 	
@@ -724,8 +728,6 @@ public void OnConfigsExecuted()
 
 public void OnMapStart()
 {
-	g_bPluginError = false;
-
 	if(!IsMvM(true))
 	{
 		SetFailState("This plugin is for Mann vs Machine Only."); // probably easier than add IsMvM everywhere
@@ -1752,12 +1754,6 @@ public Action Command_JoinBLU( int client, int nArgs )
 	}
 		
 	if(GameRules_GetRoundState() == RoundState_TeamWin) {
-		return Plugin_Handled;
-	}
-		
-	if(g_bPluginError)
-	{
-		ReplyToCommand(client, "[BWRR] The plugin has been disabled due to an error. Please contact the server administrator.");
 		return Plugin_Handled;
 	}
 		
@@ -4799,7 +4795,7 @@ void PickRandomRobot(int client)
 	}
 	
 	// Checks if giants are allowed.
-	if(OR_IsGiantAvaiable && Math_GetRandomInt(1, 100) <= c_iGiantChance.IntValue && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue && array_avgiants.Length >= 1)
+	if(OR_IsGiantAvaiable() && Math_GetRandomInt(1, 100) <= c_iGiantChance.IntValue && GetTeamClientCount(2) >= c_iGiantMinRed.IntValue && array_avgiants.Length >= 1)
 	{
 		bGiants = true;
 	}
@@ -5537,6 +5533,39 @@ void TeleportToSpawnPoint(int client, TFClassType TFClass)
 // finds a random spawn point for human players
 int FindRandomSpawnPoint(SpawnType iType)
 {
+	// This handles cases where no spawn point was defined for the given type
+	switch(iType)
+	{
+		case Spawn_Normal:
+		{
+			if (g_iSplitSize[0] <= 0)
+			{
+				return UTIL_SelectRandomSpawnPointForRobot(Spawn_Normal);
+			}
+		}
+		case Spawn_Giant, Spawn_Buster, Spawn_Boss:
+		{
+			if (g_iSplitSize[1] <= 0)
+			{
+				return UTIL_SelectRandomSpawnPointForRobot(Spawn_Giant);
+			}
+		}
+		case Spawn_Sniper:
+		{
+			if (g_iSplitSize[2] <= 0)
+			{
+				return UTIL_SelectRandomSpawnPointForRobot(Spawn_Normal);
+			}
+		}
+		case Spawn_Spy:
+		{
+			if (g_iSplitSize[3] <= 0)
+			{
+				return UTIL_SelectRandomSpawnPointForRobot(Spawn_Normal);
+			}
+		}
+	}
+
 	int iEnt = -1;
 	char strSpawnName[64];
 	ArrayList array_spawns; // spawn points for human players
@@ -5544,7 +5573,9 @@ int FindRandomSpawnPoint(SpawnType iType)
 	
 	while((iEnt = FindEntityByClassname( iEnt, "info_player_teamspawn")) != -1)
 	{
-		if(GetEntProp(iEnt, Prop_Send, "m_iTeamNum") == view_as<int>(TFTeam_Blue) && GetEntProp(iEnt, Prop_Data, "m_bDisabled") == 0) // ignore disabled spawn points
+		// For named spawns, also allo spawns on unassigned team since some maps uses them
+		if((GetEntProp(iEnt, Prop_Data, "m_iTeamNum") == view_as<int>(TFTeam_Blue) || GetEntProp(iEnt, Prop_Data, "m_iTeamNum") == view_as<int>(TFTeam_Unassigned)) && 
+		GetEntProp(iEnt, Prop_Data, "m_bDisabled") == 0) // ignore disabled spawn points
 		{
 			GetEntPropString(iEnt, Prop_Data, "m_iName", strSpawnName, sizeof(strSpawnName));
 			

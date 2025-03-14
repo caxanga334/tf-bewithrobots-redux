@@ -8,10 +8,12 @@ ArrayList g_aEngyTeleport;
 ArrayList g_aVecEngyTele; // Engineer teleport vector list. Config file + map entities combined
 ArrayList g_aSpawnRooms; // arraylist containing func_respawnroom that already exists in the map
 
-char g_strNormalSplit[16][64];
-char g_strGiantSplit[16][64];
-char g_strSniperSplit[16][64];
-char g_strSpySplit[16][64];
+#define MAX_ROBOT_SPAWNS 16
+
+char g_strNormalSplit[MAX_ROBOT_SPAWNS][64];
+char g_strGiantSplit[MAX_ROBOT_SPAWNS][64];
+char g_strSniperSplit[MAX_ROBOT_SPAWNS][64];
+char g_strSpySplit[MAX_ROBOT_SPAWNS][64];
 int g_iSplitSize[4];
 
 float g_flGateStunDuration;
@@ -277,6 +279,9 @@ void TeleportSpyRobot(int client, int target = 0)
 	if(TF2_GetPlayerClass(client) != TFClass_Spy)
 		return;
 
+	if (g_aSpyTeleport.Length == 0)
+		return;
+
 	if(target == 0) // Random
 	{
 		origin = GetRandomSpyTeleportPoint(client);
@@ -517,6 +522,9 @@ void BWRR_TeleportEngineer(int client, eEngineerTeleportType type)
 		return;
 
 	if(TF2_GetPlayerClass(client) != TFClass_Engineer)
+		return;
+
+	if(g_aVecEngyTele.Length == 0) // array empty
 		return;
 
 	GetClientAbsOrigin(client, origin); // In case of failure, teleport to self
@@ -1295,6 +1303,24 @@ void Config_LoadMap()
 	g_aSpyTeleport.Clear();
 	g_aEngyTeleport.Clear();
 	g_aVecEngyTele.Clear();
+	// reset some globals
+	g_flGateStunDuration = 22.0; // Use 22 seconds as default if not defined by the config file
+	g_bDisableGateBots = false;
+	g_bLimitRobotScale = false;
+
+	for (int i = 0; i < sizeof(g_iSplitSize); i++)
+	{
+		// where's my memset sourcemod????
+		g_iSplitSize[i] = 0;
+	}
+
+	for (int i = 0; i < MAX_ROBOT_SPAWNS; i++)
+	{
+		g_strNormalSplit[i] = "";
+		g_strGiantSplit[i] = "";
+		g_strSniperSplit[i] = "";
+		g_strSpySplit[i] = "";
+	}
 	
 	GetCurrentMap(buffer, sizeof(buffer));
 	
@@ -1315,7 +1341,6 @@ void Config_LoadMap()
 
 	if(!FileExists(configfile))
 	{
-		g_bPluginError = true;
 		LogError("Map \"%s\" configuration not found. \"%s\"", mapname, configfile);
 		return;
 	}
@@ -1323,11 +1348,6 @@ void Config_LoadMap()
 #if defined DEBUG_GENERAL
 	LogMessage("Loading Map Config file: \"%s\".", configfile);
 #endif
-	
-	// reset some globals
-	g_flGateStunDuration = 0.0;
-	g_bDisableGateBots = false;
-	g_bLimitRobotScale = false;
 	
 	KeyValues kv = new KeyValues("MapConfig");
 	kv.ImportFromFile(configfile);
@@ -2712,4 +2732,77 @@ void RegisterDetour(GameData gd, const char[] fnName, DHookCallback pre, DHookCa
 void RegisterHook(GameData gd, DynamicHook &hook, const char[] fnName)
 {
 	hook = DynamicHook.FromConf(gd, fnName);
+}
+
+bool TraceFilter_SpawnPointSearch(int entity, int contentsMask)
+{
+	if (!IsValidEntity(entity))
+	{
+		return true; // static prop?
+	}
+
+	if (entity > 0 && entity <= MaxClients)
+	{
+		return false; // don't hit players
+	}
+
+	return true; // hit the rest
+}
+
+// Tries to find a valid spawn point in case the config file is missing
+int UTIL_SelectRandomSpawnPointForRobot(SpawnType type)
+{
+	// should be large enough to handle most maps
+	int[] spawns = new int[512];
+	int size = 0;
+	int entity = INVALID_ENT_REFERENCE;
+
+	float mins[3];
+	float maxs[3];
+	float origin[3];
+
+	if (type == Spawn_Normal)
+	{
+		mins[0] = -24.0;
+		mins[1] = -24.0;
+		mins[2] = 0.0;
+		maxs[0] = 24.0;
+		maxs[1] = 24.0;
+		maxs[2] = 72.0;
+	}
+	else
+	{
+		mins[0] = -48.0;
+		mins[1] = -48.0;
+		mins[2] = 0.0;
+		maxs[0] = 48.0;
+		maxs[1] = 48.0;
+		maxs[2] = 144.0;
+	}
+
+	while((entity = FindEntityByClassname(entity, "info_player_teamspawn")) != INVALID_ENT_REFERENCE)
+	{
+		if (size >= 512) { break; }
+
+		if((GetEntProp(entity, Prop_Data, "m_iTeamNum") == view_as<int>(TFTeam_Blue)) && 
+		GetEntProp(entity, Prop_Data, "m_bDisabled") == 0)
+		{
+			GetEntPropVector(entity, Prop_Data, "m_vecOrigin", origin);
+
+			Handle tr = TR_TraceHullFilterEx(origin, origin, mins, maxs, MASK_PLAYERSOLID, TraceFilter_SpawnPointSearch);
+
+			if (!TR_DidHit(tr))
+			{
+				spawns[size] = entity;
+				size++;
+			}
+
+			delete tr;
+		}
+	}
+
+	if (size == 0) { return INVALID_ENT_REFERENCE; }
+	if (size == 1) { return spawns[0]; }
+
+	return spawns[Math_GetRandomInt(0, size - 1)];
 }
