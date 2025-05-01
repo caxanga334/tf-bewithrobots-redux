@@ -81,33 +81,33 @@
 		{
 			"CBaseEntity::WorldSpaceCenter" // use https://asherkin.github.io/vtable/
 			{
-				"windows"	"155"
-				"linux"		"156"
+				"windows"	"156"
+				"linux"		"157"
 			}
 			"CFilterTFBotHasTag::PassesFilterImpl" //(CBaseEntity *, CBaseEntity *) use asherkin's vtable dumper
 			{
-				"windows"	"198"
-				"linux"		"199"
+				"windows"	"199"
+				"linux"		"200"
 			}
 			"CTFWeaponBase::GetMaxClip1" // int	CTFWeaponBase::GetMaxClip1( void ) const
 			{
-				"windows"	"324"
-				"linux"		"330"
+				"windows"	"325"
+				"linux"		"331"
 			}
 			"CTFWeaponBase::Clip1" // virtual int	Clip1() { return IsEnergyWeapon() ? Energy_GetEnergy() : m_iClip1; }
 			{
-				"windows"	"344"
-				"linux"		"350"
+				"windows"	"345"
+				"linux"		"351"
 			}
 			"CCaptureFlag::PickUp"
 			{
-				"windows"	"231"
-				"linux"		"269"
+				"windows"	"232"
+				"linux"		"270"
 			}
 			"CTFPlayer::ShouldGib"
 			{
-				"windows"	"296"
-				"linux"		"297"
+				"windows"	"297"
+				"linux"		"298"
 			}
 		}
 		"Functions"
