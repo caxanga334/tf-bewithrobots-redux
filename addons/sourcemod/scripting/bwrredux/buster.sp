@@ -315,7 +315,18 @@ void Buster_GiveInventory(int client)
 		{
 			g_TBusterCharAttrib.GetString(i, buffer, sizeof(buffer));
 			g_TBusterCharAttribValue.GetString(i, sValue, sizeof(sValue));
-			TF2Attrib_SetFromStringValue(client, buffer, sValue);
+#if defined __tf_custom_attributes_included
+					if (TF2Attrib_IsValidAttributeName(buffer))
+					{
+						TF2Attrib_SetFromStringValue(client, buffer, sValue);
+					}
+					else
+					{
+						TF2CustAttr_SetString(client, buffer, sValue);
+					}
+#else
+					TF2Attrib_SetFromStringValue(client, buffer, sValue);
+#endif
 		}
 	}
 	SpawnWeapon(client, "tf_weapon_stickbomb", 307, 1, 6, false);
@@ -380,6 +391,11 @@ bool Buster_LoadProfile(const char[] busterprofile)
 			do
 			{ // Store Player Attributes
 				kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
+#if defined __tf_custom_attributes_included
+				g_TBusterCharAttrib.PushString(buffer); // Attribute Name
+				kv.GetString(NULL_STRING, buffer, sizeof(buffer));
+				g_TBusterCharAttribValue.PushString(buffer); // Attribute Value
+#else
 				if(TF2Attrib_IsValidAttributeName(buffer))
 				{
 					g_TBusterCharAttrib.PushString(buffer); // Attribute Name
@@ -390,6 +406,7 @@ bool Buster_LoadProfile(const char[] busterprofile)
 				{
 					LogError("ERROR: Invalid player attribute \"%s\" in boss \"%s\"", buffer, g_TBossName);
 				}
+#endif
 			} while(kv.GotoNextKey(false));
 			kv.GoBack();
 		}

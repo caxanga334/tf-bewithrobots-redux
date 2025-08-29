@@ -11,6 +11,7 @@
 #endif
 #include <tf2attributes>
 #include <tf2utils>
+#tryinclude <tf_custom_attributes>
 #undef REQUIRE_EXTENSIONS
 #include <steamworks>
 #define REQUIRE_EXTENSIONS
@@ -830,6 +831,10 @@ public void OnMapStart()
 	
 	// Update plugin version convar
 	c_PluginVersion.SetString(PLUGIN_VERSION);
+
+#if defined __tf_custom_attributes_included
+	LogMessage("BWRR compiled with nosoop's custom attribute framework support.");
+#endif
 }
 
 public void TF2_OnWaitingForPlayersStart()
@@ -894,7 +899,7 @@ public void OnClientPostAdminCheck(int client)
 	CreateTimer(20.0, Timer_HelpUnstuck, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE); // unstuck players from spectator team.
 }
 
-stock void TF2Spawn_TouchingSpawn(int client,int entity)
+void TF2Spawn_TouchingSpawn(int client,int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
@@ -903,7 +908,7 @@ stock void TF2Spawn_TouchingSpawn(int client,int entity)
 	}
 }
 
-stock void TF2Spawn_EnterSpawnOnce(int client,int entity)
+void TF2Spawn_EnterSpawnOnce(int client,int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
@@ -915,7 +920,7 @@ stock void TF2Spawn_EnterSpawnOnce(int client,int entity)
 	}
 }
 
-stock void TF2Spawn_LeaveSpawn(int client,int entity)
+void TF2Spawn_LeaveSpawn(int client,int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{

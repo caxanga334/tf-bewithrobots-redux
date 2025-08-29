@@ -16,7 +16,7 @@ jobs:
         SM_VERSION: ['1.11.x', '1.12.x', '1.13.x']
 
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v5.0.0
 
       - uses: benjlevesque/short-sha@v3.0
         id: short-sha

@@ -420,7 +420,18 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 				{
 					g_BNCharAttrib[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
 					g_BNCharAttribValue[templateindex][iClass].GetString(i, sValue, sizeof(sValue));
+#if defined __tf_custom_attributes_included
+					if (TF2Attrib_IsValidAttributeName(buffer))
+					{
+						TF2Attrib_SetFromStringValue(client, buffer, sValue);
+					}
+					else
+					{
+						TF2CustAttr_SetString(client, buffer, sValue);
+					}
+#else
 					TF2Attrib_SetFromStringValue(client, buffer, sValue);
+#endif
 				}
 			}
 			
@@ -441,7 +452,18 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 							{
 								g_BNWeapAttrib[templateindex][iClass][i].GetString(y, buffer, sizeof(buffer));
 								g_BNWeapAttribValue[templateindex][iClass][i].GetString(y, sValue, sizeof(sValue));
+#if defined __tf_custom_attributes_included
+								if (TF2Attrib_IsValidAttributeName(buffer))
+								{
+									TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
+								}
+								else
+								{
+									TF2CustAttr_SetString(iWeapon, buffer, sValue);
+								}
+#else
 								TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
+#endif
 							}
 						}
 					}
@@ -460,7 +482,18 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 				{
 					g_BGCharAttrib[templateindex][iClass].GetString(i, buffer, sizeof(buffer));
 					g_BGCharAttribValue[templateindex][iClass].GetString(i, sValue, sizeof(sValue));
+#if defined __tf_custom_attributes_included
+					if (TF2Attrib_IsValidAttributeName(buffer))
+					{
+						TF2Attrib_SetFromStringValue(client, buffer, sValue);
+					}
+					else
+					{
+						TF2CustAttr_SetString(client, buffer, sValue);
+					}
+#else
 					TF2Attrib_SetFromStringValue(client, buffer, sValue);
+#endif
 				}
 			}
 
@@ -479,7 +512,18 @@ void RT_GiveInventory(int client, int type = 0, int templateindex)
 							{
 								g_BGWeapAttrib[templateindex][iClass][i].GetString(y, buffer, sizeof(buffer));
 								g_BGWeapAttribValue[templateindex][iClass][i].GetString(y, sValue, sizeof(sValue));
+#if defined __tf_custom_attributes_included
+								if (TF2Attrib_IsValidAttributeName(buffer))
+								{
+									TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
+								}
+								else
+								{
+									TF2CustAttr_SetString(iWeapon, buffer, sValue);
+								}
+#else
 								TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
+#endif
 							}
 						}
 					}
@@ -1162,6 +1206,14 @@ void RT_LoadCfgNormal()
 							{
 								do
 								{ // Store Player Attributes
+
+#if defined __tf_custom_attributes_included
+									kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
+									g_BNCharAttrib[iCounter][j].PushString(buffer); // Attribute Name
+									kv.GetString(NULL_STRING, buffer, sizeof(buffer)); // Retreive Attribute Name
+									g_BNCharAttribValue[iCounter][j].PushString(buffer); // Store Attribute Value
+
+#else 
 									kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
 									if(TF2Attrib_IsValidAttributeName(buffer))
 									{
@@ -1173,6 +1225,7 @@ void RT_LoadCfgNormal()
 									{
 										LogError("ERROR: Invalid player attribute \"%s\" in robot \"%s\"", buffer, g_BNTemplateName[iCounter][j]);
 									}
+#endif
 								} while(kv.GotoNextKey(false));
 								kv.GoBack();
 							}
@@ -1200,6 +1253,12 @@ void RT_LoadCfgNormal()
 									{
 										do
 										{
+#if defined __tf_custom_attributes_included
+											kv.GetSectionName(buffer, sizeof(buffer));
+											g_BNWeapAttrib[iCounter][j][i].PushString(buffer); // Store Attribute Name
+											kv.GetString(NULL_STRING, buffer, sizeof(buffer)); // Retreive Attribute Name
+											g_BNWeapAttribValue[iCounter][j][i].PushString(buffer); // Store Attribute Value
+#else
 											kv.GetSectionName(buffer, sizeof(buffer));
 											if(TF2Attrib_IsValidAttributeName(buffer))
 											{
@@ -1211,6 +1270,7 @@ void RT_LoadCfgNormal()
 											{
 												LogError("ERROR: Invalid weapon attribute \"%s\" in robot \"%s\" weapon \"%s\"", buffer, g_BNTemplateName[iCounter][j], g_strWeaponsKey[i]);
 											}
+#endif
 										} while(kv.GotoNextKey(false));
 										kv.GoBack();
 									}
@@ -1301,6 +1361,13 @@ void RT_LoadCfgGiant()
 							{
 								do
 								{ // Store Player Attributes
+#if defined __tf_custom_attributes_included
+									kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
+									g_BGCharAttrib[iCounter][j].PushString(buffer); // Attribute Name
+									kv.GetString(NULL_STRING, buffer, sizeof(buffer)); // Retreive Attribute Name
+									g_BGCharAttribValue[iCounter][j].PushString(buffer); // Store Attribute Value
+
+#else
 									kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
 									if(TF2Attrib_IsValidAttributeName(buffer))
 									{
@@ -1312,6 +1379,7 @@ void RT_LoadCfgGiant()
 									{
 										LogError("ERROR: Invalid player attribute \"%s\" in robot \"%s\"", buffer, g_BGTemplateName[iCounter][j]);
 									}
+#endif
 								} while(kv.GotoNextKey(false));
 								kv.GoBack();
 							}
@@ -1339,6 +1407,12 @@ void RT_LoadCfgGiant()
 									{
 										do
 										{
+#if defined __tf_custom_attributes_included
+											kv.GetSectionName(buffer, sizeof(buffer));
+											g_BGWeapAttrib[iCounter][j][i].PushString(buffer); // Store Attribute Name
+											kv.GetString(NULL_STRING, buffer, sizeof(buffer)); // Retreive Attribute Name
+											g_BGWeapAttribValue[iCounter][j][i].PushString(buffer); // Store Attribute Value
+#else
 											kv.GetSectionName(buffer, sizeof(buffer));
 											if(TF2Attrib_IsValidAttributeName(buffer))
 											{
@@ -1350,6 +1424,7 @@ void RT_LoadCfgGiant()
 											{
 												LogError("ERROR: Invalid weapon attribute \"%s\" in robot \"%s\" weapon \"%s\"", buffer, g_BGTemplateName[iCounter][j], g_strWeaponsKey[i]);
 											}
+#endif
 										} while(kv.GotoNextKey(false));
 										kv.GoBack();
 									}
