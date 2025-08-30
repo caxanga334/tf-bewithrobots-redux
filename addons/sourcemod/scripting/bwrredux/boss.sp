@@ -142,7 +142,18 @@ void Boss_GiveInventory(int client)
 		{
 			g_TBossCharAttrib.GetString(i, buffer, sizeof(buffer));
 			g_TBossCharAttribValue.GetString(i, sValue, sizeof(sValue));
+#if defined __tf_custom_attributes_included
+			if (TF2Attrib_IsValidAttributeName(buffer))
+			{
+				TF2Attrib_SetFromStringValue(client, buffer, sValue);
+			}
+			else
+			{
+				TF2CustAttr_SetString(client, buffer, sValue);
+			}
+#else
 			TF2Attrib_SetFromStringValue(client, buffer, sValue);
+#endif
 		}
 	}
 
@@ -159,7 +170,18 @@ void Boss_GiveInventory(int client)
 				{
 					g_TBossWeapAttrib[i].GetString(y, buffer, sizeof(buffer));
 					g_TBossWeapAttribValue[i].GetString(y, sValue, sizeof(sValue));
+#if defined __tf_custom_attributes_included
+					if (TF2Attrib_IsValidAttributeName(buffer))
+					{
+						TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
+					}
+					else
+					{
+						TF2CustAttr_SetString(iWeapon, buffer, sValue);
+					}
+#else
 					TF2Attrib_SetFromStringValue(iWeapon, buffer, sValue);
+#endif
 				}
 			}
 		}
@@ -428,6 +450,11 @@ bool Boss_LoadProfile(char[] bossfile)
 			do
 			{ // Store Player Attributes
 				kv.GetSectionName(buffer, sizeof(buffer)); // Get Attribute Name
+#if defined __tf_custom_attributes_included
+				g_TBossCharAttrib.PushString(buffer); // Attribute Name
+				kv.GetString(NULL_STRING, buffer, sizeof(buffer));
+				g_TBossCharAttribValue.PushString(buffer); // Attribute Value
+#else
 				if(TF2Attrib_IsValidAttributeName(buffer))
 				{
 					g_TBossCharAttrib.PushString(buffer); // Attribute Name
@@ -438,6 +465,7 @@ bool Boss_LoadProfile(char[] bossfile)
 				{
 					LogError("ERROR: Invalid player attribute \"%s\" in boss \"%s\"", buffer, g_TBossName);
 				}
+#endif
 			} while(kv.GotoNextKey(false));
 			kv.GoBack();
 		}
@@ -459,6 +487,11 @@ bool Boss_LoadProfile(char[] bossfile)
 					do
 					{
 						kv.GetSectionName(buffer, sizeof(buffer));
+#if defined __tf_custom_attributes_included
+						g_TBossCharAttrib.PushString(buffer); // Attribute Name
+						kv.GetString(NULL_STRING, buffer, sizeof(buffer));
+						g_TBossCharAttribValue.PushString(buffer); // Attribute Value
+#else
 						if(TF2Attrib_IsValidAttributeName(buffer))
 						{
 							g_TBossWeapAttrib[i].PushString(buffer); // Store Attribute Name
@@ -469,6 +502,7 @@ bool Boss_LoadProfile(char[] bossfile)
 						{
 							LogError("ERROR: Invalid player attribute \"%s\" in boss \"%s\" weapon \"%s\"", buffer, g_TBossName, g_strWeaponsKey[i]);
 						}
+#endif
 					} while(kv.GotoNextKey(false));
 					kv.GoBack();
 				}
