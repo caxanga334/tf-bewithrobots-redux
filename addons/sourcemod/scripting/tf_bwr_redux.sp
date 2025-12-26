@@ -4,7 +4,6 @@
 #include <sourcemod>
 #include <tf2>
 #include <tf2_stocks>
-#include <autoexecconfig>
 #include <multicolors>
 #if !defined(REQUIRE_PLUGIN)
 #define REQUIRE_PLUGIN
@@ -29,7 +28,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.3.2"
+#define PLUGIN_VERSION "1.3.3"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -391,46 +390,36 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	// Sets the file for the include, must be done before using most other functions
-	// The .cfg file extension can be left off
-	AutoExecConfig_SetFile("plugin.bwrredux");
-
 	// convars
 	c_PluginVersion = CreateConVar("sm_bwrr_version", PLUGIN_VERSION, "Be With Robots: Redux plugin version.", FCVAR_NOTIFY|FCVAR_DONTRECORD);
-	c_iMinRed = AutoExecConfig_CreateConVar("sm_bwrr_minred", "5", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 100.0);
-	c_iMinRedinProg = AutoExecConfig_CreateConVar("sm_bwrr_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
-	c_iGiantChance = AutoExecConfig_CreateConVar("sm_bwrr_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
-	c_iGiantMinRed = AutoExecConfig_CreateConVar("sm_bwrr_giantminred", "5", "Minimum amount of players on RED team to allow human giants. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
-	c_iMaxBlu = AutoExecConfig_CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 100.0);
-	c_bAutoTeamBalance = AutoExecConfig_CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_flBusterDelay = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_delay", "60.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
-	c_iBusterMinKills = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
-	c_flForceDelay = AutoExecConfig_CreateConVar("sm_bwrr_force_delay", "30.0", "Base delay for sm_robotmenu usage (Normal Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
-	c_flFDGiant = AutoExecConfig_CreateConVar("sm_bwrr_force_giant_delay", "60.0", "Base delay for sm_robotmenu usage (Giant Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
-	c_strNBFile = AutoExecConfig_CreateConVar("sm_bwrr_botnormal_file", "robots_normal.cfg", "The file to load normal robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
-	c_strGBFile = AutoExecConfig_CreateConVar("sm_bwrr_botgiant_file", "robots_giant.cfg", "The file to load giant robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
-	c_bLimitClasses = AutoExecConfig_CreateConVar("sm_bwrr_limit_classes", "1", "Limit playable classes on the BLU team to classes that are used in the current wave", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_iGatebotChance = AutoExecConfig_CreateConVar("sm_bwrr_gatebot_chance", "25", "Chance to spawn as a gatebot on gate maps. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
-	c_bAntiJoinSpam = AutoExecConfig_CreateConVar("sm_bwrr_antispam", "1.0", "Enables/Disables the cooldown system on the join BLU command. 1 = Enabled, 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_fl666CritChance = AutoExecConfig_CreateConVar("sm_bwrr_wave666_fullcrit_chance", "75.0", "Chance to spawn with full crits on Wave 666 missions.", FCVAR_NONE, true, 0.0, true, 100.0);
-	c_flBluProtectionTime = AutoExecConfig_CreateConVar("sm_bwrr_blu_spawnprotection_time", "60.0", "How many seconds of spawn protection human BLU players have.", FCVAR_NONE, true, 60.0, true, 300.0);
-	c_strBusterProfiles = AutoExecConfig_CreateConVar("sm_bwrr_sentry_buster_profiles", "valve", "List of sentry busters profiles to load separated by comma.", FCVAR_NONE);
-	c_bFixSpawnHole = AutoExecConfig_CreateConVar("sm_bwrr_fix_spawnroom_holes", "1.0", "Should the plugin create func_respawnroom to fix holes?", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_bDropCurrency = AutoExecConfig_CreateConVar("sm_bwrr_spawn_currency", "1.0", "Should the plugin spawn currency when human BLU players are killed.", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_flJoinBluCooldownTime = AutoExecConfig_CreateConVar("sm_bwrr_joinblue_cooldown_time", "60.0", "The cooldown time applied to players when they are moved to RED", FCVAR_NONE, true, 15.0, true, 900.0);
-	c_iCosmeticsRestrictionMode = AutoExecConfig_CreateConVar("sm_bwrr_cosmetics_restriction_mode", "0", "Selects the cosmetic items restriction mode.\n0 = Restricted\n1 = Allow for Own Loadout robots\n2 = Allow for all robots", FCVAR_NONE);
-	c_flSpyCloakTime = AutoExecConfig_CreateConVar("sm_bwrr_spy_teleport_cloak_time", "3.0", "How long should the cloak effect given to spies on teleport last.", FCVAR_NONE, true, 0.0, true, 60.0);
-	c_SpyCloakCondition = AutoExecConfig_CreateConVar("sm_bwrr_spy_teleport_cloak_cond", "1", "Which condition should be aplied to the spy on spawn?\n0 = Cloak effect\n1 = Halloween Cloak Spell", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_bBlockReadyForBLUTeam = AutoExecConfig_CreateConVar("sm_bwrr_can_blu_toggle_ready", "0", "Can the BLU team use F4/Toggle ready up?\n0 = No (Default).\n1 = Yes.", FCVAR_NONE, true, 0.0, true, 1.0);
-	c_bBlockUpgradeStationForBLU = AutoExecConfig_CreateConVar("sm_bwrr_can_blu_buy_upgrades", "0", "Can the BLU team use Upgrade Stations to buy upgrades?\n0 = No (Default).\n1 = Yes.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_iMinRed = CreateConVar("sm_bwrr_minred", "5", "Minimum amount of players on RED team to allow joining ROBOTs.", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_iMinRedinProg = CreateConVar("sm_bwrr_minred_inprog", "7", "Minimum amount of players on RED team to allow joining ROBOTs while the wave is in progress.", FCVAR_NONE, true, 0.0, true, 10.0);
+	c_iGiantChance = CreateConVar("sm_bwrr_giantchance", "30", "Chance in percentage to human players to spawn as a giant. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_iGiantMinRed = CreateConVar("sm_bwrr_giantminred", "5", "Minimum amount of players on RED team to allow human giants. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_iMaxBlu = CreateConVar("sm_bwrr_maxblu", "4", "Maximum amount of players in BLU team.", FCVAR_NONE, true, 1.0, true, 100.0);
+	c_bAutoTeamBalance = CreateConVar("sm_bwrr_autoteambalance", "1", "Balance teams at wave start?", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_flBusterDelay = CreateConVar("sm_bwrr_sentry_buster_delay", "60.0", "Delay between human sentry buster spawn.", FCVAR_NONE, true, 30.0, true, 1200.0);
+	c_iBusterMinKills = CreateConVar("sm_bwrr_sentry_buster_minkills", "15", "Minimum amount of kills a sentry gun must have to become a threat.", FCVAR_NONE, true, 5.0, true, 50.0);
+	c_flForceDelay = CreateConVar("sm_bwrr_force_delay", "30.0", "Base delay for sm_robotmenu usage (Normal Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
+	c_flFDGiant = CreateConVar("sm_bwrr_force_giant_delay", "60.0", "Base delay for sm_robotmenu usage (Giant Robots).", FCVAR_NONE, true, 1.0, true, 600.0);
+	c_strNBFile = CreateConVar("sm_bwrr_botnormal_file", "robots_normal.cfg", "The file to load normal robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
+	c_strGBFile = CreateConVar("sm_bwrr_botgiant_file", "robots_giant.cfg", "The file to load giant robots templates from. The file name length (including extension) must not exceed 32 characters.", FCVAR_NONE);
+	c_bLimitClasses = CreateConVar("sm_bwrr_limit_classes", "1", "Limit playable classes on the BLU team to classes that are used in the current wave", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_iGatebotChance = CreateConVar("sm_bwrr_gatebot_chance", "25", "Chance to spawn as a gatebot on gate maps. 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_bAntiJoinSpam = CreateConVar("sm_bwrr_antispam", "1.0", "Enables/Disables the cooldown system on the join BLU command. 1 = Enabled, 0 = Disabled.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_fl666CritChance = CreateConVar("sm_bwrr_wave666_fullcrit_chance", "75.0", "Chance to spawn with full crits on Wave 666 missions.", FCVAR_NONE, true, 0.0, true, 100.0);
+	c_flBluProtectionTime = CreateConVar("sm_bwrr_blu_spawnprotection_time", "60.0", "How many seconds of spawn protection human BLU players have.", FCVAR_NONE, true, 60.0, true, 300.0);
+	c_strBusterProfiles = CreateConVar("sm_bwrr_sentry_buster_profiles", "valve", "List of sentry busters profiles to load separated by comma.", FCVAR_NONE);
+	c_bFixSpawnHole = CreateConVar("sm_bwrr_fix_spawnroom_holes", "1.0", "Should the plugin create func_respawnroom to fix holes?", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bDropCurrency = CreateConVar("sm_bwrr_spawn_currency", "1.0", "Should the plugin spawn currency when human BLU players are killed.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_flJoinBluCooldownTime = CreateConVar("sm_bwrr_joinblue_cooldown_time", "60.0", "The cooldown time applied to players when they are moved to RED", FCVAR_NONE, true, 15.0, true, 900.0);
+	c_iCosmeticsRestrictionMode = CreateConVar("sm_bwrr_cosmetics_restriction_mode", "0", "Selects the cosmetic items restriction mode.\n0 = Restricted\n1 = Allow for Own Loadout robots\n2 = Allow for all robots", FCVAR_NONE);
+	c_flSpyCloakTime = CreateConVar("sm_bwrr_spy_teleport_cloak_time", "3.0", "How long should the cloak effect given to spies on teleport last.", FCVAR_NONE, true, 0.0, true, 60.0);
+	c_SpyCloakCondition = CreateConVar("sm_bwrr_spy_teleport_cloak_cond", "1", "Which condition should be aplied to the spy on spawn?\n0 = Cloak effect\n1 = Halloween Cloak Spell", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bBlockReadyForBLUTeam = CreateConVar("sm_bwrr_can_blu_toggle_ready", "0", "Can the BLU team use F4/Toggle ready up?\n0 = No (Default).\n1 = Yes.", FCVAR_NONE, true, 0.0, true, 1.0);
+	c_bBlockUpgradeStationForBLU = CreateConVar("sm_bwrr_can_blu_buy_upgrades", "0", "Can the BLU team use Upgrade Stations to buy upgrades?\n0 = No (Default).\n1 = Yes.", FCVAR_NONE, true, 0.0, true, 1.0);
 
-
-	// Uses AutoExecConfig internally using the file set by AutoExecConfig_SetFile
-	AutoExecConfig_ExecuteFile();
-	
-	// Cleaning is an optional operation that removes whitespaces that might have been introduced and formats the file in a certain way
-	// It is an expensive operation (file operations is relatively slow) and should be done at the end when the file will not be written to anymore
-	AutoExecConfig_CleanFile();
+	AutoExecConfig(true, "plugin.bwrredux");
 	
 	// Add Changehook
 	c_strNBFile.AddChangeHook(OnRobotTemplateFileChanged);
@@ -897,7 +886,7 @@ public void OnClientPostAdminCheck(int client)
 	CreateTimer(20.0, Timer_HelpUnstuck, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE); // unstuck players from spectator team.
 }
 
-void TF2Spawn_TouchingSpawn(int client,int entity)
+void TF2Spawn_TouchingSpawn(int client, int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
@@ -906,7 +895,7 @@ void TF2Spawn_TouchingSpawn(int client,int entity)
 	}
 }
 
-void TF2Spawn_EnterSpawnOnce(int client,int entity)
+void TF2Spawn_EnterSpawnOnce(int client, int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{
@@ -918,7 +907,7 @@ void TF2Spawn_EnterSpawnOnce(int client,int entity)
 	}
 }
 
-void TF2Spawn_LeaveSpawn(int client,int entity)
+void TF2Spawn_LeaveSpawn(int client, int entity)
 {
 	if(TF2_GetClientTeam(client) == TFTeam_Blue && !IsFakeClient(client))
 	{

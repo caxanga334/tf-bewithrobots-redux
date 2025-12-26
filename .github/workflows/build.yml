@@ -50,7 +50,6 @@ jobs:
           wget https://raw.githubusercontent.com/FlaminSarge/tf2attributes/master/scripting/include/tf2attributes.inc -O tf2attributes.inc
           wget https://raw.githubusercontent.com/nosoop/SM-TFUtils/master/scripting/include/tf2utils.inc -O tf2utils.inc
           wget https://raw.githubusercontent.com/asherkin/TF2Items/master/pawn/tf2items.inc -O tf2items.inc
-          wget https://raw.githubusercontent.com/Impact123/AutoExecConfig/development/autoexecconfig.inc -O autoexecconfig.inc
           wget https://raw.githubusercontent.com/Bara/Multi-Colors/master/addons/sourcemod/scripting/include/multicolors.inc -O multicolors.inc
           mkdir multicolors
           cd multicolors
