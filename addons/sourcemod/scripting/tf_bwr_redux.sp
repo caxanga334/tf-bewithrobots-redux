@@ -28,7 +28,7 @@
 // visible weapons?
 //#define VISIBLE_WEAPONS
 
-#define PLUGIN_VERSION "1.3.3"
+#define PLUGIN_VERSION "1.3.4"
 
 // giant sounds
 #define ROBOT_SND_GIANT_SCOUT "mvm/giant_scout/giant_scout_loop.wav"
@@ -374,18 +374,13 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	EngineVersion ev = GetEngineVersion();
-	g_bLateLoad = late;
-	
-	if(ev == Engine_TF2)
-	{
-		return APLRes_Success;
-	}
-	else
+	if (FindSendPropInfo("CTFGameRulesProxy", "m_bPlayingMannVsMachine") == -1)
 	{
 		strcopy(error, err_max, "This plugin is for Team Fortress 2 only.");
-		return APLRes_Failure;
+		return APLRes_SilentFailure;
 	}
+
+	return APLRes_Success;
 }
 
 public void OnPluginStart()
